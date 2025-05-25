@@ -24,6 +24,8 @@ import { AuthProvider } from "./context/AuthContext";
 import Index from "./pages/Index";
 import { Role } from "./types/user";
 import Accounts from "./pages/Accounts";
+import Profile from "./pages/Profile";
+import Notifications from "./pages/Notification";
 
 type UserRole = "admin" | "principal" | "secretary" | "faculty" | "staff";
 
@@ -97,7 +99,7 @@ const AppRoutes = () => {
       ],
       // allowedRoles: ["admin", "principal", "secretary"],
     },
-     {
+    {
       path: "/accounts",
       element: <Accounts />,
       allowedRoles: [
@@ -133,7 +135,6 @@ const AppRoutes = () => {
           name: "staff",
         },
       ],
-      // allowedRoles: ["admin", "principal", "secretary", "faculty", "staff"],
     },
     {
       path: "/dtr",
@@ -208,31 +209,13 @@ const AppRoutes = () => {
       ],
       // allowedRoles: ["admin", "faculty"],
     },
-    // {
-    //   path: "/students",
-    //   element: <Students />,
-    //   allowedRoles: [
-    //     {
-    //       name: "admin",
-    //     },
-    //     {
-    //       name: "faculty",
-    //     },
-    //   ],
-    //   // allowedRoles: ["admin", "faculty"],
-    // },
+
     {
       path: "/workload",
       element: <Workload />,
       allowedRoles: [
         {
-          name: "admin",
-        },
-        {
           name: "principal",
-        },
-        {
-          name: "faculty",
         },
       ],
       // allowedRoles: ["admin", "principal", "faculty"],
@@ -248,6 +231,27 @@ const AppRoutes = () => {
       // allowedRoles: ["admin"],
     },
     {
+      path: "/profile",
+      element: <Profile />,
+      allowedRoles: [
+        {
+          name: "admin",
+        },
+        {
+          name: "principal",
+        },
+        {
+          name: "secretary",
+        },
+        {
+          name: "faculty",
+        },
+        {
+          name: "staff",
+        },
+      ],
+    },
+    {
       path: "/settings",
       element: <Settings />,
       allowedRoles: [
@@ -255,7 +259,27 @@ const AppRoutes = () => {
           name: "admin",
         },
       ],
-      // allowedRoles: ["admin"],
+    },
+    {
+      path: "/notifications",
+      element: <Notifications />,
+      allowedRoles: [
+        {
+          name: "admin",
+        },
+        {
+          name: "principal",
+        },
+        {
+          name: "secretary",
+        },
+        {
+          name: "faculty",
+        },
+        {
+          name: "staff",
+        },
+      ],
     },
   ];
 
@@ -291,8 +315,8 @@ const App = () => {
     <React.StrictMode>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster  />
-          <Sonner  />
+          <Toaster />
+          <Sonner />
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>

@@ -8,18 +8,14 @@ use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Workhour;
+use App\Models\ActivityLog;
+use Auth;
 use DB;
 use Hash;
 
 class EmployeeService
 {
-    /**
-     * Create a new class instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+
 
     public function fetchByFullname(string $employee_fullname)
     {
@@ -66,37 +62,50 @@ class EmployeeService
                 'pm' => $request->workhour_pm,
             ]);
 
-            $employee = Employee::create([
-                'fname' => $request->fname,
-                'lname' => $request->lname,
-                'mname' => $request->extname ? str_replace('.', '', strtolower(trim($request->extname))) : null,
-                'extname'=> $request->extname,
-                'username_id' => $user->username,
-                'biod' => '1144',
-                'workhour_id' => $workhour->id,
-                'position_id' => $position->id,
-                'department_id' => $department->id,
-                'email' => $request->email,
-                'contactno' => $request->contactno,
-                'telno' => $request->telno,
-            ]);
+            return DB::transaction(function () use ($workhour, $request, $user, $position, $department) {
+                $employee = Employee::create([
+                    'fname' => $request->fname,
+                    'lname' => $request->lname,
+                    'mname' => $request->mname,
+                    'extname' => $request->extname,
+                    'username_id' => $user->username,
+                    'bioid' => $request->biod,
+                    'workhour_id' => $workhour->id,
+                    'position_id' => $position->id,
+                    'department_id' => $department->id,
+                    'email' => $request->email,
+                    'contactno' => $request->contactno,
+                    'telno' => $request->telno,
+                ]);
 
-           return [
-                'id' => $employee->id,
-                'fname' => $employee->fname,
-                'lname' => $employee->lname,
-                'mname' => $employee->mname,
-                'extname' => $employee->extname,
-                'username' => $employee->user->username ?? null,
-                'biod' => $employee->biod,
-                'position' => $position->title ?? null,
-                'department' => $department->name ?? null,
-                'email' => $employee->email,
-                'contactno' => $employee->contactno,
-                'workhours_am' =>  $request->workhour_am ?? null,
-                'workhours_pm' => $request->workhour_pm ?? null,
-                'telno' => $employee->telno,
-            ];
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'created',
+                    'description' => "Created employee {$employee->fname} {$employee->lname}",
+                    'entity_type' => Employee::class,
+                    'entity_id' => $employee->id,
+                ]);
+
+                return [
+                    'id' => $employee->id,
+                    'fname' => $employee->fname,
+                    'lname' => $employee->lname,
+                    'mname' => $employee->mname,
+                    'extname' => $employee->extname,
+                    'username' => $employee->user->username ?? null,
+                    'biod' => $employee->biod,
+                    'position' => $position->title ?? null,
+                    'department' => $department->name ?? null,
+                    'email' => $employee->email,
+                    'contactno' => $employee->contactno,
+                    'workhours_am' =>  $request->workhour_am ?? null,
+                    'workhours_pm' => $request->workhour_pm ?? null,
+                    'telno' => $employee->telno,
+                ];
+            });
+
+
+
             // return $data;
         });
     }

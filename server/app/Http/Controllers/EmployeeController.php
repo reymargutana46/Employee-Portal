@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EmployeeStoreRequest;
 use App\Http\Requests\EmployeeUpdateRequest;
+use App\Models\ActivityLog;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
@@ -11,6 +12,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Workhour;
 use App\Services\EmployeeService;
+use Auth;
 use DB;
 use Hash;
 use Illuminate\Http\Request;
@@ -90,6 +92,13 @@ class EmployeeController extends Controller
         $employee = Employee::findOrFail($id);
         $employee->update($validated);
 
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'updated',
+            'description' => "Updated employee {$employee->fname} {$employee->lname}",
+            'entity_type' => Employee::class,
+            'entity_id' => $employee->id,
+        ]);
         return $this->ok();
     }
 
@@ -98,8 +107,25 @@ class EmployeeController extends Controller
      */
     public function destroy(string $id)
     {
-        $employee = Employee::findOrFail($id);
-        $employee = $employee->delete();
+
+        DB::transaction(function () use ($id) {
+            $employee = Employee::with('user')->findOrFail($id);
+            $user = User::where('username', $employee->username_id)->first();
+
+
+
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'deleted',
+                'description' => "Deleted employee {$employee->fname} {$employee->lname}",
+                'entity_type' => Employee::class,
+                'entity_id' => $employee->id,
+            ]);
+            if ($user) {
+                $user->forceDelete();
+            }
+            $employee = $employee->delete();
+        });
 
         return $this->ok();
     }

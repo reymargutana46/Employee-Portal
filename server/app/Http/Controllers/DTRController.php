@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BulkDtrRequest;
+use App\Models\ActivityLog;
 use App\Models\DtrAmtime;
 use App\Models\DTRPmtime;
 use App\Models\Employee;
@@ -212,6 +213,13 @@ class DTRController extends Controller
                 if (!empty($pmRecord)) {
                     $employee->DTRPmTimes()->create($pmRecord);
                 }
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'created',
+                    'description' => "Created DTR for {$employee->fname} {$employee->lname}",
+                    'entity_type' => Employee::class,
+                    'entity_id' => $employee->id,
+                ]);
             }, 2);
         } catch (\Throwable $th) {
             return $this->serverError($th->getMessage());
@@ -288,6 +296,13 @@ class DTRController extends Controller
                     'type' => $data['type'],
                 ]);
             }
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'updated',
+                'description' => "Updated DTR for {$data['employee']}",
+                'entity_type' => Employee::class,
+                'entity_id' => $data['employee_id'],
+            ]);
         });
 
         return $this->ok();

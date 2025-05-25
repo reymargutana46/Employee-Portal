@@ -1,15 +1,18 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\AuthenticationController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DTRController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\WorkloadController;
+use App\Models\ActivityLog;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,10 +35,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('accounts')
         ->controller(AccountController::class)->group(
             function () {
+
                 Route::get('/', 'index');
+                Route::get('/page/dashboard', 'dashboard');
+                Route::get('/me', 'me');
                 Route::get('/{id}', 'show');
+
                 Route::post('/', 'store')->middleware('role:Admin');
+
                 Route::put('/{username}', 'update')->middleware('role:Admin|Principal|Secretary');
+                Route::put('/update/profile', 'updateProfile');
+
                 Route::delete('/{id}', 'destroy')->middleware('role:Admin');
             }
         );
@@ -99,6 +109,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/', 'index');
         Route::post('/', 'store');
+        Route::get('/schedule', 'show');
         Route::post('/staff', 'storeStaff');
         Route::post('/faculty', 'storeFaculty');
         Route::post('/staff/assign', 'assignStaff');
@@ -114,5 +125,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/department', 'departments');
         Route::get('/position', 'positions');
         Route::get('/rooms', 'rooms');
+    });
+
+
+    Route::prefix('activity-logs')->controller(ActivityLogController::class)->group(function () {
+        Route::get('/', 'index');
+    });
+
+    Route::prefix('notifications')->controller(NotificationController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::put('/{id}', 'update');
+        Route::put('/{id}/read', 'markAsRead');
+        Route::delete('/{id}', 'destroy');
+        Route::delete('/clear/all', 'deleteAll');
+        Route::get('/{id}', 'show');
+        Route::put('/mark/all/read', 'markAllAsRead');
     });
 });

@@ -58,6 +58,8 @@ const Employees = () => {
     deleteEmployee,
     fetchEmployee,
     fetchsetup,
+
+    getFullName
   } = useEmployeeStore();
 
   const { toast } = useToast();
@@ -120,6 +122,7 @@ const Employees = () => {
   };
 
   const handleDelete = (id: number, name: string) => {
+
     deleteEmployee(id);
     toast({
       title: "Employee Removed",
@@ -263,7 +266,7 @@ const Employees = () => {
                       key={employee.id}
                       className="border-b hover:bg-muted/50"
                     >
-                      <td className="py-3 px-4">{`${employee.fname} ${employee.lname}`}</td>
+                      <td className="py-3 px-4">{getFullName(employee)}</td>
                       <td className="py-3 px-4">{employee.position}</td>
                       <td className="py-3 px-4">{employee.department}</td>
                       <td className="py-3 px-4">{`${employee.workhours_am}AM - ${employee.workhours_pm}`}</td>

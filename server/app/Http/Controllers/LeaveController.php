@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use App\Models\Leaves\Leave;
 use App\Models\Leaves\LeaveType;
@@ -21,13 +22,13 @@ class LeaveController extends Controller
 
 
         $hasAccess = Auth::user()->hasRole(["Principal", "Admin"]);
-        if($hasAccess){
-            $leaves = Leave::with(['leaveRejection', 'employee','leaveType' ])->get();
+        if ($hasAccess) {
+            $leaves = Leave::with(['leaveRejection', 'employee', 'leaveType'])->get();
 
             return $this->ok($leaves);
         }
-        $leave = Leave::with(['leaveRejection', 'employee','leaveType' ])
-        ->where('employee_id', Auth::user()->employee->id )->get();
+        $leave = Leave::with(['leaveRejection', 'employee', 'leaveType'])
+            ->where('employee_id', Auth::user()->employee->id)->get();
         return $this->ok($leave);
     }
 
@@ -54,7 +55,7 @@ class LeaveController extends Controller
         $fromDate = Carbon::parse($request->from)->startOfDay();
         $toDate = Carbon::parse($request->to)->startOfDay();
 
-     Leave::create([
+        $leave = Leave::create([
             'status'      => 'Pending',
             'type_id'     => $type->id,
             'from'        => $fromDate,
@@ -73,6 +74,14 @@ class LeaveController extends Controller
             'leave_rejection' => null,
             'leave_type' => $type
         ];
+
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'created',
+            'description' => "Send leave {$employee->fname} {$employee->lname}",
+            'entity_type' => Leave::class,
+            'entity_id' => $leave->id,
+        ]);
 
         return $this->created($data);
     }
@@ -98,6 +107,13 @@ class LeaveController extends Controller
             if ($status === 'approved') {
                 $leave->status = 'Approved';
                 $leave->save();
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'approved',
+                    'description' => "Approved leave {$leave->employee->fname} {$leave->employee->lname}",
+                    'entity_type' => Leave::class,
+                    'entity_id' => $leave->id,
+                ]);
                 return $this->ok($leave, "Leave Approved");
             }
 
@@ -109,6 +125,13 @@ class LeaveController extends Controller
             $leave->leaveRejection()->create([
                 'rejected_by' => Auth::user()->username,
                 'rejreason' => $request->reason
+            ]);
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'reject',
+                'description' => "Rejected leave {$leave->employee->fname} {$leave->employee->lname}",
+                'entity_type' => Leave::class,
+                'entity_id' => $leave->id,
             ]);
 
             return $this->ok($leave, "Leave Rejected");
@@ -144,8 +167,7 @@ class LeaveController extends Controller
 
         $type = LeaveType::where('name', $request->type)->firstOrFail();
         $leave = Leave::findOrFail($id);
-        if($leave->status !== "Pending")
-        {
+        if ($leave->status !== "Pending") {
             return $this->badRequest("Leave is already Updated");
         }
         $leave->type_id = $type->id;
@@ -161,7 +183,7 @@ class LeaveController extends Controller
     public function destroy(string $id)
     {
         $leave = Leave::findOrFail($id);
-        if($leave->status != "Pending"){
+        if ($leave->status != "Pending") {
             return $this->badRequest("you cannot delete leave that is already " . $leave->status);
         }
         $leave->delete();

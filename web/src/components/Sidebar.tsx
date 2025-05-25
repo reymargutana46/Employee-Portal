@@ -193,33 +193,14 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         },
       ],
     },
-    // {
-    //   title: "Students",
-    //   href: "/students",
-    //   icon: GraduationCap,
-    //   allowedRoles: [
-    //     {
-    //       name: "admin",
-    //     },
-    //     {
-    //       name: "faculty",
-    //     },
-    //   ],
-    // },
+
     {
       title: "Workload",
       href: "/workload",
       icon: BriefcaseBusiness,
-      // allowedRoles: ["admin", "principal", "faculty"],
       allowedRoles: [
         {
-          name: "admin",
-        },
-        {
           name: "principal",
-        },
-        {
-          name: "faculty",
         },
       ],
     },
@@ -227,7 +208,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       title: "System Logs",
       href: "/logs",
       icon: ClipboardList,
-      // allowedRoles: ["admin"],
       allowedRoles: [
         {
           name: "admin",

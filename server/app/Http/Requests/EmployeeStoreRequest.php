@@ -28,7 +28,7 @@ class EmployeeStoreRequest extends FormRequest
             'extname'=> ['nullable', 'string'],
             'username' => ['required', 'unique:users,username'],
             'password' => 'required',
-            "biod",
+            "bioid",
             'position',
             'department',
             'email' => ['required', 'unique:employees,email', 'email'],

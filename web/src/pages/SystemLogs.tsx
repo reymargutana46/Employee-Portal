@@ -1,9 +1,15 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useSystemLogsStore, LogAction } from "@/store/useSystemLogsStore";
+import { useSystemLogsStore, type LogAction } from "@/store/useSystemLogsStore";
 import { Search, Filter, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -12,18 +18,29 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useEffect } from "react";
 
 const SystemLogs = () => {
-  const { searchTerm, setSearchTerm, setFilterAction, exportLogs, getFilteredLogs } = useSystemLogsStore();
+  const {
+    searchTerm,
+    setSearchTerm,
+    setFilterAction,
+    exportLogs,
+    getFilteredLogs,
+    fetchLogs,
+  } = useSystemLogsStore();
   const { toast } = useToast();
-  
+
   const filteredLogs = getFilteredLogs();
-  
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
   const handleFilterAction = (action: LogAction | null) => {
     setFilterAction(action);
-    
+
     if (action) {
       toast({
         title: "Filter Applied",
@@ -36,7 +53,7 @@ const SystemLogs = () => {
       });
     }
   };
-  
+
   const handleExport = () => {
     exportLogs();
     toast({
@@ -50,10 +67,12 @@ const SystemLogs = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">System Logs</h1>
-          <p className="text-muted-foreground">Track system activities and user actions</p>
+          <p className="text-muted-foreground">
+            Track system activities and user actions
+          </p>
         </div>
       </div>
-      
+
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-grow">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -74,23 +93,38 @@ const SystemLogs = () => {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Filter By Action</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleFilterAction('User Login')}>User Login</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('User Logout')}>User Logout</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('Data Created')}>Data Created</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('Data Updated')}>Data Updated</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('Data Deleted')}>Data Deleted</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('Permission Changed')}>Permission Changed</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('Role Changed')}>Role Changed</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('System Update')}>System Update</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleFilterAction('System Error')}>System Error</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction("created")}>
+              Created
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction("updated")}>
+              Updated
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction("deleted")}>
+              Deleted
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction("approved")}>
+              Approved
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction("assign")}>
+              Assign
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction("completed")}>
+              Completed
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleFilterAction(null)}>Clear Filter</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterAction(null)}>
+              Clear Filter
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" onClick={handleExport} className="flex items-center gap-2">
+        {/* <Button
+          variant="outline"
+          onClick={handleExport}
+          className="flex items-center gap-2"
+        >
           <Download className="h-4 w-4" />
           <span className="hidden sm:inline">Export</span>
-        </Button>
+        </Button> */}
       </div>
 
       <Card>
@@ -102,43 +136,54 @@ const SystemLogs = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>User</TableHead>
+                  <TableHead>Performed By</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Details</TableHead>
-                  <TableHead>IP Address</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Entity Type</TableHead>
+                  <TableHead>Entity ID</TableHead>
+                  <TableHead>Created At</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLogs.length > 0 ? (
                   filteredLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell>{log.timestamp}</TableCell>
-                      <TableCell>{log.user}</TableCell>
+                      <TableCell>{log.performed_by}</TableCell>
                       <TableCell>
                         <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            log.action === 'User Login' || log.action === 'User Logout'
-                              ? 'bg-blue-100 text-blue-800'
-                              : log.action.includes('Data')
-                              ? 'bg-green-100 text-green-800'
-                              : log.action.includes('Role') || log.action.includes('Permission')
-                              ? 'bg-purple-100 text-purple-800'
-                              : log.action === 'System Error'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
+                          className={`capitalize inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            log.action === "created"
+                              ? "bg-green-100 text-green-800"
+                              : log.action === "updated"
+                              ? "bg-amber-100 text-amber-800"
+                              : log.action === "deleted"
+                              ? "bg-red-100 text-red-800"
+                              : log.action === "approved"
+                              ? "bg-blue-100 text-blue-800"
+                              : log.action === "assign"
+                              ? "bg-purple-100 text-purple-800"
+                              : log.action === "completed"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-gray-100 text-gray-800"
                           }`}
                         >
                           {log.action}
                         </span>
                       </TableCell>
-                      <TableCell>{log.details}</TableCell>
-                      <TableCell className="font-mono">{log.ipAddress}</TableCell>
+                      <TableCell>{log.description}</TableCell>
+                      <TableCell>{log.entity_type}</TableCell>
+                      <TableCell className="font-mono">
+                        {log.entity_id}
+                      </TableCell>
+                      <TableCell>{log.created_at}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-6 text-muted-foreground"
+                    >
                       No logs found
                     </TableCell>
                   </TableRow>

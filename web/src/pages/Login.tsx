@@ -57,16 +57,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary">School Management System</h1>
-          <p className="text-muted-foreground mt-2">Sign in to access your account</p>
+          <h1 className="text-3xl font-bold text-primary">Emport</h1>
+          <p className="text-muted-foreground mt-2">Employee Task Management System</p>
         </div>
 
-        <Card>
+        <Card className='shadow-md'>
           <form onSubmit={handleLogin}>
-            <CardHeader>
+            <CardHeader className='mx-auto text-center pb-10'>
               <CardTitle>Sign In</CardTitle>
               <CardDescription>
                 Enter your credentials to access your account
@@ -75,22 +75,7 @@ const Login = () => {
 
             <CardContent className="space-y-4">
               <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab}>
-                {/* <TabsList className="grid grid-cols-2 mb-4">
-                  <TabsTrigger value="single">Single Role</TabsTrigger>
-                  <TabsTrigger value="multi">Multi Role</TabsTrigger>
-                </TabsList> */}
 
-                <TabsContent value="single" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Login with a single role account (admin, principal, secretary, faculty, or staff)
-                  </p>
-                </TabsContent>
-
-                <TabsContent value="multi" className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Login with a multi-role account (e.g., Will Smith - faculty and staff)
-                  </p>
-                </TabsContent>
               </Tabs>
 
               <div className="space-y-2">
@@ -118,7 +103,7 @@ const Login = () => {
               </div>
             </CardContent>
 
-            <CardFooter>
+            <CardFooter className='pt-6'>
               <Button type="submit" className="w-full">Sign in</Button>
             </CardFooter>
           </form>

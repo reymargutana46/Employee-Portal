@@ -7,6 +7,7 @@ interface WorkloadState {
   facultyWorkloads: Workload[]
   staffWorkloads: Workload[]
   unassignedWorkloads: Workload[]
+  mySchedule: Workload[]
   rooms: Room[]
   isLoading: boolean
   error: string | null
@@ -27,6 +28,7 @@ interface WorkloadState {
   updateStaffWorkload: (id: string, workload: Partial<StaffWorkload>) => Promise<void>
   updateFacultyWorkload: (id: string, workload: Partial<FacultyWorkload>) => Promise<void>
   deleteWorkload: (id: string) => Promise<void>
+  fetchMySchedule: () => Promise<void>
 
   // Helper methods
   getWorkloadById: (id: string) => Workload | undefined
@@ -37,6 +39,7 @@ export const useWorkloadStore = create<WorkloadState>((set, get) => ({
   facultyWorkloads: [],
   staffWorkloads: [],
   unassignedWorkloads: [],
+  mySchedule: [],
   rooms: [],
   isLoading: false,
   error: null,
@@ -260,6 +263,21 @@ export const useWorkloadStore = create<WorkloadState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to delete workload",
+        isLoading: false,
+      })
+    }
+  },
+  fetchMySchedule: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await axios.get<Res<Workload[]>>(`/workload/schedule`)
+      set({
+        mySchedule: response.data.data || [],
+        isLoading: false,
+      })
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch my schedule",
         isLoading: false,
       })
     }

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\ServiceRequestResource;
+use App\Models\ActivityLog;
 use App\Models\Employee;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
 
 class ServiceRequestController extends Controller
 {
@@ -69,6 +71,13 @@ class ServiceRequestController extends Controller
 
             ]
         );
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'created',
+            'description' => "Created service request {$service->title} for {$request_to->fname} {$request_to->lname}",
+            'entity_type' => ServiceRequest::class,
+            'entity_id' => $service->id,
+        ]);
         return $this->created(new ServiceRequestResource($service));
     }
 
@@ -110,7 +119,13 @@ class ServiceRequestController extends Controller
         $service->rating = $request->rating;
         $service->remarks = $request->remarks;
         $service->save();
-
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'completed',
+            'description' => "Service request {$service->title} Completed",
+            'entity_type' => ServiceRequest::class,
+            'entity_id' => $service->id,
+        ]);
         return $this->ok($service);
     }
 
@@ -122,6 +137,13 @@ class ServiceRequestController extends Controller
         $service = ServiceRequest::findOrFail($id);
         $service->status = $request->status;
         $service->save();
+         ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'updated',
+            'description' => "Service request {$service->title} updated to {$request->status}",
+            'entity_type' => ServiceRequest::class,
+            'entity_id' => $service->id,
+        ]);
         return $this->ok($service);
     }
 

@@ -31,6 +31,13 @@ class User extends Authenticatable
     public $incrementing = false;
     protected $primaryKey = 'username';
 
+    protected static function booted()
+    {
+        static::deleting(function ($user) {
+            $user->roles()->detach();
+        });
+    }
+
     public function leaveRejection()
     {
         return $this->hasMany(LeaveRejection::class, 'rejected_by');
@@ -63,6 +70,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Employee::class, 'username_id', 'username');
     }
+    public function notifications()
+    {
+        return $this->hasMany(Employee::class, 'username_id', 'username');
+    }
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'role_user', 'username_id', 'role_id');
@@ -74,7 +85,7 @@ class User extends Authenticatable
      */
     public function WorkLoadHdr(): HasMany
     {
-        return $this->hasMany(WorkLoadHdr::class,'created_by', 'username');
+        return $this->hasMany(WorkLoadHdr::class, 'created_by', 'username');
     }
     /**
      * Get all of the UserRequestee for the User
@@ -93,7 +104,7 @@ class User extends Authenticatable
      */
     public function userRequester(): HasMany
     {
-        return $this->hasMany(ServiceRequest::class,'request_by','username');
+        return $this->hasMany(ServiceRequest::class, 'request_by', 'username');
     }
 
     /**
@@ -115,6 +126,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(DTRPmtime::class);
     }
+
 
     /**
      * Get the attributes that should be cast.

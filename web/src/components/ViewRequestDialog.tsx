@@ -110,9 +110,11 @@ export function ViewRequestDialog({
 
         <DialogFooter className="flex justify-between sm:justify-between">
           {/* For the requester - can add rating if completed */}
-          {request.status === "Completed" && !request.rating && request.requestor === user.username && (
-            <Button onClick={onOpenRating}>Add Rating & Remarks</Button>
-          )}
+          {request.status === "Completed" &&
+            !request.rating &&
+            request.requestor === user.username && (
+              <Button onClick={onOpenRating}>Add Rating & Remarks</Button>
+            )}
           {request.status === "Pending" && !request.rating && (
             <Button onClick={() => onUpdateStatus(request.id, "In Progress")}>
               Start
@@ -120,7 +122,8 @@ export function ViewRequestDialog({
           )}
           {/* For the Principal - can update status if Approve */}
           {request.status === "For Approval" &&
-            canDoAction(["principal", "staff"]) && (
+            canDoAction(["principal", "staff"]) &&
+            request.requestToId === user.employee_id && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"

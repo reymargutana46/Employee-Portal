@@ -72,6 +72,7 @@ class AuthenticationController extends Controller
                 'username' => $user->username,
                 'fullname' => $user->employee->getFullName(),
                 'lastname' => $user->employee->lname,
+                'employee_id' => $user->employee->id,
                 'email' => $user->employee->email,
                 'roles' => $user->roles->map(fn($role) => ['name' => Str::lower($role->name)]),
 
@@ -89,18 +90,7 @@ class AuthenticationController extends Controller
             'message' => 'Logged out successfully'
         ]);
     }
-    public function me(Request $request)
-    {
-        return response()->json([
-            'user' => $request->user()->load([
-                'employee',
-                'employee.workhour',
-                'employee.department',
-                'employee.position',
-                'roles',
-            ]),
-        ]);
-    }
+
     public function accounts()
     {
 

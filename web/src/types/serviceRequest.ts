@@ -2,6 +2,7 @@ export interface ServiceRequest {
   id: number
   requestor: string
   requestTo: string
+  requestToId: string
   title: string
   details: string
   type: string

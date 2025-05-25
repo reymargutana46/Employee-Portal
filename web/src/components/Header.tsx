@@ -1,17 +1,17 @@
-
-import React from 'react';
-import { Bell, Search, Menu, X, Moon, Sun, User } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { Bell, Menu, X, User, User2, UserRoundCog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore } from "@/store/useAuthStore";
+import { useNavigate } from "react-router-dom";
+import { Separator } from "./ui/separator";
+import { useNotificationStore } from "@/store/useNotificationStore";
+import { useEffect } from "react";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -20,12 +20,29 @@ interface HeaderProps {
 
 const Header = ({ toggleSidebar, isSidebarCollapsed }: HeaderProps) => {
   const { user, userRoles, logout } = useAuthStore();
+  const { notifications, unreadCount, fecthNotifications } =
+    useNotificationStore();
+  const navigate = useNavigate();
 
+  const handleProfile = () => {
+    navigate("/profile");
+  };
 
+  const handleNotifications = () => {
+    navigate("/notifications");
+  };
+  useEffect(() => {
+    // Run the function immediately
+    fecthNotifications();
 
-  // Get user name
-  const userName = user?.lastname || "User";
+    // Set interval to run it every 3 seconds
+    const intervalId = setInterval(() => {
+      fecthNotifications();
+    }, 3000);
 
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
       <div className="flex items-center">
@@ -36,31 +53,24 @@ const Header = ({ toggleSidebar, isSidebarCollapsed }: HeaderProps) => {
         >
           {isSidebarCollapsed ? <Menu /> : <X />}
         </button>
-
-        {/* <div className="hidden md:flex relative w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Search..."
-            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-4 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </div> */}
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {/* <button
-          className="rounded-full p-2 text-muted-foreground hover:bg-accent/10 hover:text-accent"
-          aria-label="Toggle theme"
-        >
-          <Sun className="h-5 w-5" />
-        </button> */}
-
-        {/* <button
-          className="rounded-full p-2 text-muted-foreground hover:bg-accent/10 hover:text-accent"
+        <button
+          onClick={handleNotifications}
+          className="relative rounded-full p-2 text-muted-foreground hover:bg-accent/10 hover:text-accent"
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
-        </button> */}
+          {unreadCount > 0 && (
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          )}
+        </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -69,23 +79,37 @@ const Header = ({ toggleSidebar, isSidebarCollapsed }: HeaderProps) => {
                 <User className="h-6 w-6 absolute top-1 left-1 text-white" />
               </div>
               <span className="hidden text-sm font-medium md:inline-block">
-                {userName}
+                {user.username}
               </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{userName}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Roles</DropdownMenuLabel>
+            <DropdownMenuItem
+              className="gap-2 mb-4 font-semibold"
+              onClick={handleProfile}
+            >
+              <User2 className="w-4 h-4" />
+              Profile
+            </DropdownMenuItem>
+            <Separator />
+            <DropdownMenuLabel>
+              <span className="flex gap-2">
+                <UserRoundCog className="w-4 h-4 mt-1" /> Roles
+              </span>
+            </DropdownMenuLabel>
             <div className="px-2 py-1.5 flex flex-wrap gap-1">
-              {userRoles.map(role =>{ return (
-                <Badge key={role.name} variant="outline" className="capitalize">
-                  {role.name}
-                </Badge>
-              )})}
+              {userRoles.map((role) => {
+                return (
+                  <Badge
+                    key={role.name}
+                    variant="secondary"
+                    className="capitalize"
+                  >
+                    {role.name}
+                  </Badge>
+                );
+              })}
             </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

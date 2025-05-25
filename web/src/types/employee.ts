@@ -11,6 +11,7 @@ export interface Employee {
   department: string;
   email: string;
   contactno: string;
+  workhours_id: string | undefined;
   workhours_am: string;
   workhours_pm: string;
   telno: string;
@@ -20,27 +21,6 @@ export interface Position {
   id: number;
   title: string;
 }
-// export interface Employee {
-//     id: number;
-//     fname: string;
-//     lname: string;
-//     mname: string;
-//     extname: string | null;
-//     username_id: string;
-//     biod: string;
-//     deleted_at: string | null;
-//     position_id: number;
-//     department_id: number;
-//     workhour_id: number;
-//     email: string;
-//     contactno: string;
-//     telno: string;
-//     created_at: string;
-//     updated_at: string;
-//     position: Position;
-//     department: Department;
-//     workhour: Workhour;
-//   }
 
 export interface Position {
   id: number;

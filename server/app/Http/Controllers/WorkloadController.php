@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Employee;
 use App\Models\FacultyWL;
 use App\Models\Room;
@@ -57,6 +58,14 @@ class WorkloadController extends Controller
             'to' => $validated['to'],
             'from' => $validated['from'],
         ]);
+
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'create',
+            'description' => "Created a new workload {$workload->title}",
+            'entity_type' => WorkLoadHdr::class,
+            'entity_id' => $workload->id,
+        ]);
         return $this->created($workload);
     }
 
@@ -81,12 +90,19 @@ class WorkloadController extends Controller
                 'assignee_id' => $validated['assignee_id'],
             ]);
 
-            StaffWL::create([
+            $staff = StaffWL::create([
                 'description' => $validated['description'],
                 'sched_from' => $validated['schedFrom'],
                 'sched_to' => $validated['schedTo'],
                 'title' => $validated['title'],
                 'workload_id' => $workload->id,
+            ]);
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'assigned',
+                'description' => "Workload {$workload->title} Assigned to {$workload->employee->fname} {$workload->employee->lname}",
+                'entity_type' => StaffWL::class,
+                'entity_id' => $staff->id,
             ]);
             return $workload->load(['staffWL', 'employee']);
         });
@@ -115,7 +131,7 @@ class WorkloadController extends Controller
             ]);
 
             $room = Room::findOrFail($validated['roomId']);
-            FacultyWL::create([
+            $faculty = FacultyWL::create([
                 'acadyearId' => $validated['academyearId'],
                 'classId' => $validated['classId'],
                 'quarter' => $validated['quarter'],
@@ -125,6 +141,13 @@ class WorkloadController extends Controller
                 'subject' => $validated['subject'],
                 'workload_id' => $workload->id,
             ]);
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'assigned',
+                'description' => "Workload {$workload->title} Assigned to {$workload->employee->fname} {$workload->employee->lname}",
+                'entity_type' => FacultyWL::class,
+                'entity_id' => $faculty->id,
+            ]);
             return $workload->load(['staffWL', 'employee']);
         });
         return $this->ok($data);
@@ -133,15 +156,18 @@ class WorkloadController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show()
     {
-        $workload = WorkloadHdr::findOrFail($id);
+        $auth = Auth::user();
+        $workload = WorkloadHdr::with([
+            'facultyWL.room',
+            'staffWL',
+            'employee'
+        ])->where('assignee_id', $auth->employee->id)->get();
 
-        if ($workload->workload_type === 'faculty') {
-            $workload->load('facultywls');
-        } elseif ($workload->workload_type === 'staff') {
-            $workload->load('staffwls');
-        }
+
+
+
 
         return $this->ok($workload);
     }

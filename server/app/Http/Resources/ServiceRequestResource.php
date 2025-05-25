@@ -21,10 +21,10 @@ class ServiceRequestResource extends JsonResource
             // Full name with optional extname
             'requestTo' => trim(
                 ($this->requestTo?->fname ?? '') . ' ' .
-                ($this->requestTo?->lname ?? '') .
-                ($this->requestTo?->extname ? ' ' . $this->requestTo->extname : '')
+                    ($this->requestTo?->lname ?? '') .
+                    ($this->requestTo?->extname ? ' ' . $this->requestTo->extname : '')
             ),
-
+            'requestToId' => $this->requestTo->id,
             'title' => $this->title,
             'details' => $this->details,
             'type' => 'Request', // Replace with real type if available

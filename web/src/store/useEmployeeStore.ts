@@ -3,21 +3,12 @@ import axios from '../utils/axiosInstance'
 import { Res } from '@/types/response';
 import { Department, Employee, Position } from '@/types/employee';
 import { Role } from '@/types/user';
-export type EmployeeStatus = 'Active' | 'On Leave' | 'Inactive' | 'Suspended';
-// export type Department = 'Science & Math' | 'Languages' | 'PE & Health' | 'Medical' | 'Administration' | 'Library' | 'ICT';
 
-// export interface Employee {
-//   id: number;
-//   name: string;
-//   position: string;
-//   department: Department;
-//   status: EmployeeStatus;
-//   dateHired: string;
-//   email?: string;
-//   phone?: string;
-// }
+export type EmployeeStatus = 'Active' | 'On Leave' | 'Inactive' | 'Suspended';
 
 interface EmployeeState {
+  isLoading: boolean;
+  employee: Employee | null;
   employees: Employee[];
   searchTerm: string;
   sortField: keyof Employee | null;
@@ -31,6 +22,7 @@ interface EmployeeState {
   setSearchTerm: (term: string) => void;
   fetchsetup: () => void;
   fetchEmployee: () => Promise<void>;
+  fetchMe: () => Promise<void>;
   setSorting: (field: keyof Employee) => void;
   setFilterDepartment: (department: Department | null) => void;
   setFilterStatus: (status: EmployeeStatus | null) => void;
@@ -38,7 +30,8 @@ interface EmployeeState {
   updateEmployee: (id: number, updates: Partial<Employee>) => void;
   deleteEmployee: (id: number) => void;
   exportData: () => void;
-
+  updateProfile: (id: number, profileData: Partial<Employee>) => Promise<void>
+  updatePassword: (passwordData: { userId: number; currentPassword: string; newPassword: string }) => Promise<void>
   // Computed
   getFilteredEmployees: () => Employee[];
   getFullName: (employee: Employee) => string;
@@ -47,8 +40,9 @@ interface EmployeeState {
 
 
 export const useEmployeeStore = create<EmployeeState>((set, get) => ({
+  employee: null,
+  isLoading: false,
   employees: [],
-
   searchTerm: '',
   sortField: null,
   sortDirection: 'asc',
@@ -68,6 +62,11 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
     } catch (error) {
       console.error('Failed to fetch employees:', error);
     }
+  },
+  fetchMe: async () => {
+    set({ isLoading: true });
+    const res = await axios.get<Res<Employee>>('/accounts/me');
+    set({ employee: res.data.data, isLoading: false });
   },
   fetchsetup: async () => {
     const response = await axios.get<Res<Role[]>>('/set-up/role');
@@ -109,9 +108,17 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
     });
   },
 
-  deleteEmployee: (id) => set((state) => ({
-    employees: state.employees.filter(emp => emp.id !== id)
-  })),
+  deleteEmployee: (id) => {
+
+    axios.delete('employee/' + id)
+      .then(() => {
+        set((state) => ({
+
+          employees: state.employees.filter(emp => emp.id !== id)
+        }));
+
+      })
+  },
 
   exportData: () => {
     const { employees } = get();
@@ -175,5 +182,53 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
   getFullName: (employee) => {
     return `${employee.fname} ${employee.mname ? employee.mname + ' ' : ''}${employee.lname}${employee.extname ? ', ' + employee.extname : ''}`;
   },
+  updateProfile: async (id, profileData) => {
+    try {
+      // Send PUT request to update employee profile
+      const response = await axios.put<Res<Employee>>(`/accounts/update/profile`, profileData)
 
+      // Update the employee in the store
+      set((state) => {
+        // Assuming 'employees' is available in the state
+        if (!state.employees) {
+          console.warn("Employees array is not initialized in the store.")
+          return state // Return the current state if 'employees' is not available
+        }
+
+        const updatedEmployees = state.employees.map((emp: Employee) =>
+          emp.id === id ? { ...emp, ...response.data.data } : emp,
+        )
+
+        // Also update the current employee if it's the same one
+        const updatedEmployee =
+          state.employee?.id === id ? { ...state.employee, ...response.data.data } : state.employee
+
+        return {
+          employees: updatedEmployees,
+          employee: updatedEmployee,
+        }
+      })
+
+      console.log("Profile updated successfully:", response.data.data)
+    } catch (error) {
+      console.error("Failed to update profile:", error)
+      throw error // Re-throw to handle in component
+    }
+  },
+
+  updatePassword: async (passwordData) => {
+    try {
+      // Send POST request to change password
+      const response = await axios.post("/accounts/change-password", {
+        userId: passwordData.userId,
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      })
+
+      console.log("Password updated successfully:", response.data)
+    } catch (error) {
+      console.error("Failed to update password:", error)
+      throw error // Re-throw to handle in component
+    }
+  },
 }));

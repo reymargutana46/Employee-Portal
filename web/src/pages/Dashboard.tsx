@@ -1,5 +1,5 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import {
   Users,
@@ -8,14 +8,118 @@ import {
   FileText,
   CheckSquare,
   AlertTriangle,
+  TrendingUp,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { RecentActivities } from "@/components/charts/RecentActivities";
+import DtrMonthlyChart from "@/components/charts/DtrMonthlyChart";
+import { WorkloadChart } from "@/components/charts/WorkloadChart";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import axios from "@/utils/axiosInstance";
 
+import { Res } from "@/types/response";
+import { ServiceRequestChart } from "@/components/ServiceRequestChart";
+
+export interface DashboardCard {
+  totalEmployees: number;
+  employeeDiff: number;
+  attendanceRate: number;
+  attendanceRateDiff: number;
+  avgWorkload: number;
+  avgWorkloadDiff: number;
+  leaveRequests: number;
+  leaveRequestsDiff: number;
+}
+
+export interface MonthlyAttendance {
+  attendanceData: attendanceData[];
+  quarter: number;
+}
+export interface attendanceData {
+  month: string;
+  attendance: number;
+  fill: string;
+}
+
+export interface RecentLog {
+  performed_by: string;
+  action: string;
+  description: string;
+  time: string;
+}
+
+export interface DashboardData {
+  card: DashboardCard;
+  monthlyAttendance: MonthlyAttendance;
+  recentlogs: RecentLog[];
+  workloads: WorkloadData[];
+  serviceRequests: ServiceRequestDate[];
+}
+export interface WorkloadData {
+  role: string;
+  workload: number;
+  fill: string;
+}
+export interface ServiceRequestDate {
+  month: string;
+  pending: number;
+  inProgress: number;
+  completed: number;
+  rejected: number;
+  forApproval: number;
+}
 const Dashboard = () => {
-  const { user, token } = useAuthStore();
-  console.log(user);
-  console.log(token);
+  const [isLoading, setIsLoading] = useState(true);
+  const [monthlyAttendance, setMonthlyAttendance] =
+    useState<MonthlyAttendance | null>(null);
+  const [card, setCard] = useState<DashboardCard | null>(null);
+  const [workload, setWorkload] = useState<WorkloadData[]>([]);
+  const [recentLogs, setRecentLogs] = useState<RecentLog[]>([]);
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequestDate[]>(
+    []
+  );
+
   const { userRoles } = useAuth();
+
+  useEffect(() => {
+    setIsLoading(true);
+    axios
+      .get<Res<DashboardData>>("/accounts/page/dashboard")
+      .then((response) => {
+        const { monthlyAttendance, card, recentlogs, workloads, serviceRequests } =
+          response.data.data;
+        console.log(monthlyAttendance);
+        setWorkload(workloads);
+        setMonthlyAttendance(monthlyAttendance);
+        setRecentLogs(recentlogs);
+        setCard(card);
+        console.log(serviceRequests)
+        setServiceRequests(serviceRequests);
+
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.log(err.name);
+        setIsLoading(false);
+      });
+  }, []);
 
   // Find the first applicable role for stats display
   const userRole = userRoles.length > 0 ? userRoles[0] : null;
@@ -177,136 +281,284 @@ const Dashboard = () => {
   // Get the appropriate stats for the current user role
   const currentRoleStats = userRole ? stats[userRole.name] : [];
 
-  // Activity log demo data
-  const activities = [
+  const topPerformers = [
     {
-      user: "John Doe",
-      action: "submitted leave request",
-      time: "10 minutes ago",
+      name: "Jennifer Adams",
+      department: "Faculty",
+      performance: 98,
+      image: "/placeholder.svg?height=40&width=40",
+      initials: "JA",
     },
     {
-      user: "Maria Garcia",
-      action: "updated PDS information",
-      time: "25 minutes ago",
+      name: "Michael Torres",
+      department: "Faculty",
+      performance: 96,
+      image: "/placeholder.svg?height=40&width=40",
+      initials: "MT",
     },
-    { user: "Robert Smith", action: "clocked in", time: "1 hour ago" },
     {
-      user: "Jane Wilson",
-      action: "approved service request",
-      time: "2 hours ago",
+      name: "Sarah Johnson",
+      department: "Admin",
+      performance: 95,
+      image: "/placeholder.svg?height=40&width=40",
+      initials: "SJ",
     },
-    { user: "David Brown", action: "clocked out", time: "4 hours ago" },
+    {
+      name: "David Chen",
+      department: "Support",
+      performance: 94,
+      image: "/placeholder.svg?height=40&width=40",
+      initials: "DC",
+    },
+    {
+      name: "Emily Rodriguez",
+      department: "Faculty",
+      performance: 93,
+      image: "/placeholder.svg?height=40&width=40",
+      initials: "ER",
+    },
   ];
 
   // Announcements demo data
-  const announcements = [
+  const overloadedEmployees = [
     {
-      title: "System Maintenance",
-      content:
-        "The system will be down for maintenance on Saturday from 10pm to 2am.",
-      date: "2025-04-15",
+      name: "Dr. James Wilson",
+      department: "Science",
+      role: "Professor",
+      workload: 42,
+      threshold: 35,
     },
     {
-      title: "New DTR Policy",
-      content:
-        "Starting next month, all staff must clock in and out using the mobile app.",
-      date: "2025-04-14",
+      name: "Dr. Patricia Moore",
+      department: "Medicine",
+      role: "Associate Professor",
+      workload: 40,
+      threshold: 35,
     },
     {
-      title: "Faculty Meeting",
-      content: "Reminder: Faculty meeting in Room 301 tomorrow at 2pm.",
-      date: "2025-04-13",
+      name: "Robert Davis",
+      department: "IT",
+      role: "System Administrator",
+      workload: 45,
+      threshold: 40,
+    },
+    {
+      name: "Susan Martinez",
+      department: "Admin",
+      role: "Department Coordinator",
+      workload: 43,
+      threshold: 40,
+    },
+    {
+      name: "Dr. Thomas Lee",
+      department: "Engineering",
+      role: "Professor",
+      workload: 41,
+      threshold: 35,
     },
   ];
 
+  function formatDiff(diff: number): string {
+    if (diff > 0) return `+${diff}`;
+    if (diff < 0) return `${diff}`; // negative already has '-'
+    return "0";
+  }
+
+  // Show loading state while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render the dashboard if card data is not available
+  if (!card) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg text-red-500">
+            Failed to load dashboard data
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back to your dashboard</p>
-      </div>
-
-      {/* Stats Cards */}
+    <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {currentRoleStats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <div className={`${stat.color} rounded-full p-2 text-white`}>
-                <stat.icon className="h-4 w-4" />
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Employees
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{card.totalEmployees}</div>
+            <p className="text-xs text-muted-foreground">
+              {formatDiff(card.employeeDiff)} from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Attendance Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{card.attendanceRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {formatDiff(card.attendanceRateDiff)}% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Workload</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{card.avgWorkload}h</div>
+            <p className="text-xs text-muted-foreground">
+              {formatDiff(card.avgWorkloadDiff)}h from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Leave Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{card.leaveRequests}</div>
+            <p className="text-xs text-muted-foreground">
+              {formatDiff(card.leaveRequestsDiff)} from last month
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-5">
+          <CardHeader>
+            <CardTitle>Monthly Attendance</CardTitle>
+            <CardDescription>
+              {monthlyAttendance.quarter === 1
+                ? "January - June "
+                : "July - December"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="w-full">
+            <DtrMonthlyChart
+              monthlyAttendance={monthlyAttendance.attendanceData}
+            />
+          </CardContent>
+          <CardFooter className="flex-col items-start gap-2 text-sm">
+            <div className="leading-none text-muted-foreground">
+              Showing total attendance for the last 6 months
+            </div>
+          </CardFooter>
+        </Card>
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Recent Logs</CardTitle>
+            <CardDescription>
+              Latest activities across the system
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RecentActivities activities={recentLogs} />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
+        <Card className="col-span-5">
+          <CardHeader>
+            <CardTitle>Workload</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <WorkloadChart workload={workload} />
+          </CardContent>
+          <CardFooter className="flex-col gap-2 text-sm">
+            <div className="leading-none text-muted-foreground">
+              Showing total Workload assigned and unassigned
+            </div>
+          </CardFooter>
+        </Card>
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Overloaded Employees</CardTitle>
+            <CardDescription>
+              Employees exceeding workload thresholds
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Workload</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {overloadedEmployees.map((employee) => (
+                  <TableRow key={employee.name}>
+                    <TableCell className="font-medium">
+                      {employee.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="bg-red-100 text-red-800 hover:bg-red-100"
+                      >
+                        {employee.workload} hrs
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+      <ServiceRequestChart services={serviceRequests}/>
+      <Card className="">
+        <CardHeader>
+          <CardTitle>Service Requests</CardTitle>
+          <CardDescription>Top Performers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">
+            {topPerformers.map((employee, index) => (
+              <div className="flex items-center" key={index}>
+                <div className="ml-4 space-y-1 flex-1">
+                  <div className="flex justify-between">
+                    <p className="text-sm font-medium leading-none">
+                      {employee.name}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {employee.performance}%
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {employee.department}
+                  </p>
+                  <Progress
+                    value={employee.performance}
+                    className="h-2"
+                    color="black"
+                  />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              {stat.change && (
-                <p className="text-xs text-muted-foreground">
-                  {stat.change.startsWith("+") ? (
-                    <span className="text-emerald-500">{stat.change}</span>
-                  ) : stat.change.startsWith("-") ? (
-                    <span className="text-red-500">{stat.change}</span>
-                  ) : (
-                    <span>{stat.change}</span>
-                  )}
-                  {" from last month"}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-6">
-        {/* Recent Activity */}
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {activities.map((activity, index) => (
-                <div key={index} className="flex items-start gap-4">
-                  <div className="rounded-full bg-primary p-2">
-                    <Users className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm">
-                      <span className="font-medium">{activity.user}</span>{" "}
-                      {activity.action}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Announcements */}
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Announcements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {announcements.map((announcement, index) => (
-                <div key={index} className="rounded-lg border p-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold">{announcement.title}</h4>
-                    <span className="text-xs text-muted-foreground">
-                      {announcement.date}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm">{announcement.content}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\ActivityLog;
 use App\Models\Employee;
 use App\Models\Leaves\Leave;
+use Auth;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -124,6 +126,14 @@ class DTRService
             if (!empty($pmRecords)) {
                 $employee->DTRPmTimes()->createMany($pmRecords);
             }
+
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'imported',
+                'description' => "Imported DTR records for {$employee->fname} {$employee->lname}",
+                'entity_type' => Employee::class,
+                'entity_id' => $employee->id,
+            ]);
         },2);
         // Save the records to database
 
