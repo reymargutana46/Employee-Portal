@@ -17,4 +17,11 @@ export interface ServiceRequest {
 export type RequestStatus = "Pending" | "In Progress" | "Completed" | "Rejected" | "For Approval"
 export type RequestPriority = "Low" | "Medium" | "High" | "Urgent"
 
-export const requestTypes = ["Document Request", "Facility Request", "IT Support", "Leave Request", "Reimbursement"]
+export const requestTypes =
+  [
+    "Document Request",
+    "Facility Request",
+    "IT Support",
+    "Leave Request",
+    "Reimbursement"
+  ]

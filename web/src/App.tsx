@@ -251,15 +251,15 @@ const AppRoutes = () => {
         },
       ],
     },
-    {
-      path: "/settings",
-      element: <Settings />,
-      allowedRoles: [
-        {
-          name: "admin",
-        },
-      ],
-    },
+    // {
+    //   path: "/settings",
+    //   element: <Settings />,
+    //   allowedRoles: [
+    //     {
+    //       name: "admin",
+    //     },
+    //   ],
+    // },
     {
       path: "/notifications",
       element: <Notifications />,

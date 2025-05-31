@@ -31,7 +31,6 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         try {
             const response = await axios.get<Res<Notification[]>>("/notifications")
             const notifications = response.data.data
-            console.log(notifications)
             const unreadCount = notifications.filter((n) => !n.is_read).length
 
             set({ notifications, unreadCount })

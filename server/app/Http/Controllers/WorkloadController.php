@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Employee;
+use App\Models\Notification;
 use App\Models\FacultyWL;
 use App\Models\Room;
 use App\Models\StaffWL;
+use App\Models\User;
 use App\Models\WorkLoadHdr;
 use DB;
 use Illuminate\Http\JsonResponse;
@@ -104,6 +106,16 @@ class WorkloadController extends Controller
                 'entity_type' => StaffWL::class,
                 'entity_id' => $staff->id,
             ]);
+            $employee = Employee::findOrFail($validated['assignee_id']);
+            $user = User::where('username', $employee->username_id)->first();
+            Notification::create([
+                'username_id' => $user->username,
+                'title' => "New Workload Assigned to You",
+                'message' => "You have been assigned a new workload: {$workload->title} by " . Auth::user()->employee->fname . " " . Auth::user()->employee->lname,
+                'type' => "info",
+                'url' => "/workload",
+            ]);
+
             return $workload->load(['staffWL', 'employee']);
         });
 
@@ -148,6 +160,16 @@ class WorkloadController extends Controller
                 'entity_type' => FacultyWL::class,
                 'entity_id' => $faculty->id,
             ]);
+
+            $employee = Employee::findOrFail($validated['assignee_id']);
+            $user = User::where('username', $employee->username_id)->first();
+            Notification::create([
+                'username_id' => $user->username,
+                'title' => "New Workload Assigned to You",
+                'message' => "You have been assigned a new workload: {$workload->title} by " . Auth::user()->employee->fname . " " . Auth::user()->employee->lname,
+                'type' => "info",
+                'url' => "/workload",
+            ]);
             return $workload->load(['staffWL', 'employee']);
         });
         return $this->ok($data);
@@ -164,10 +186,6 @@ class WorkloadController extends Controller
             'staffWL',
             'employee'
         ])->where('assignee_id', $auth->employee->id)->get();
-
-
-
-
 
         return $this->ok($workload);
     }

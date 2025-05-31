@@ -19,6 +19,8 @@ use Illuminate\Http\Request;
 use App\Http\Resources\EmployeeResource;
 use Illuminate\Support\Facades\DB;
 use App\Services\DashboardService;
+use Illuminate\Support\Facades\Hash;
+
 class AccountController extends Controller
 {
     protected $DashboardService;
@@ -52,6 +54,50 @@ class AccountController extends Controller
         //
     }
 
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'currentPassword' => 'required',
+            'newPassword' => 'required|min:8',
+        ]);
+
+        $auth = Auth::user();
+        $user = User::where('username', $auth->username)->first();
+
+        // Check if user exists and current password is correct
+        if (!$user || !Hash::check($request->currentPassword, $user->password)) {
+            return $this->unauthorized('Current password is incorrect');
+        }
+
+        // Additional validation to ensure new password is not empty
+        if (empty($request->newPassword)) {
+            return $this->unauthorized('New password is required');
+        }
+
+        // Check if new password is different from current password
+        if (Hash::check($request->newPassword, $user->password)) {
+            return $this->unauthorized('New password must be different from current password');
+        }
+
+        try {
+            // Update password with consistent naming
+            $user->password = Hash::make($request->newPassword);
+            $user->save();
+
+            // Optional: Log out other devices for security
+            // Auth::logoutOtherDevices($request->newPassword);
+
+            // Optional: Log the password change activity
+            // Log::info('Password changed for user: ' . $user->username);
+
+            return $this->ok(null, 'Password changed successfully');
+        } catch (\Exception $e) {
+            // Log the error for debugging
+
+            return $this->badRequest('Failed to change password. Please try again.');
+        }
+    }
+
     /**
      * Update the specified resource in storage.
      */
@@ -76,14 +122,14 @@ class AccountController extends Controller
 
     public function dashboard()
     {
-       $cards = $this->DashboardService->cards();
-       $monthlyAttendance = $this->DashboardService->monthlyAttendance();
+        $cards = $this->DashboardService->cards();
+        $monthlyAttendance = $this->DashboardService->monthlyAttendance();
         return $this->ok([
             'card' => $cards,
             'monthlyAttendance' => $monthlyAttendance,
             'recentlogs' => $this->DashboardService->ActivityLogs(),
             'workloads' => $this->DashboardService->workloadsData(),
-            'serviceRequests'=> $this->DashboardService->getServiceRequestCountPerMonthByStatus(),
+            'serviceRequests' => $this->DashboardService->getServiceRequestCountPerMonthByStatus(),
         ]);
     }
 

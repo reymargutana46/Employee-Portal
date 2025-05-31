@@ -46,4 +46,18 @@ abstract class Controller
             'message' => $message,
         ], 500);
     }
+    public function unauthorized(string $message = 'Unauthorized'): JsonResponse
+    {
+        return response()->json([
+            'status' => false,
+            'message' => $message,
+        ], 401);
+    }
+    public function forbidden(string $message = 'Forbidden'): JsonResponse
+    {
+        return response()->json([
+            'status' => false,
+            'message' => $message,
+        ], 403);
+    }
 }

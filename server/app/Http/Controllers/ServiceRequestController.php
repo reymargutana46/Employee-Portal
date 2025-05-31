@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Resources\ServiceRequestResource;
 use App\Models\ActivityLog;
 use App\Models\Employee;
+use App\Models\Notification;
 use App\Models\ServiceRequest;
+use App\Models\User;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
@@ -54,30 +57,45 @@ class ServiceRequestController extends Controller
 
 
         ]);
+        $service = DB::transaction(function () use ($request) {
+            $request_to = Employee::findOrFail($request->requestTo);
+
+            $service = ServiceRequest::create(
+                [
+                    'title' => $request->title,
+                    'details' => $request->details,
+                    'request_by' => Auth::user()->username,
+                    'request_to' => $request_to->id,
+                    'status' => $request->status,
+                    'from' => $request->fromDate,
+                    'to' => $request->toDate,
+                    'priority' => $request->priority,
+                    'rating' => 0,
+
+                ]
+            );
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'created',
+                'description' => "Created service request {$service->title} for {$request_to->fname} {$request_to->lname}",
+                'entity_type' => ServiceRequest::class,
+                'entity_id' => $service->id,
+            ]);
+
+            $user = User::where('username', $request_to->username_id)->first();
+
+            Notification::create([
+                'username_id' => $user->username,
+                'title' => "New Service Request",
+                'message' => "You have a new service request from " . Auth::user()->employee->fname . " " . Auth::user()->employee->lname,
+
+                'type' => "info",
+                'url' => "/service-requests",
+            ]);
+            return $service;
+        });
         // echo $request;
-        $request_to = Employee::findOrFail($request->requestTo);
 
-        $service = ServiceRequest::create(
-            [
-                'title' => $request->title,
-                'details' => $request->details,
-                'request_by' => Auth::user()->username,
-                'request_to' => $request_to->id,
-                'status' => $request->status,
-                'from' => $request->fromDate,
-                'to' => $request->toDate,
-                'priority' => $request->priority,
-                'rating' => 0,
-
-            ]
-        );
-        ActivityLog::create([
-            'performed_by' => Auth::user()->username,
-            'action' => 'created',
-            'description' => "Created service request {$service->title} for {$request_to->fname} {$request_to->lname}",
-            'entity_type' => ServiceRequest::class,
-            'entity_id' => $service->id,
-        ]);
         return $this->created(new ServiceRequestResource($service));
     }
 
@@ -115,17 +133,33 @@ class ServiceRequestController extends Controller
             'rating' => 'required',
             'remarks' => 'required'
         ]);
-        $service = ServiceRequest::findOrFail($id);
-        $service->rating = $request->rating;
-        $service->remarks = $request->remarks;
-        $service->save();
-        ActivityLog::create([
-            'performed_by' => Auth::user()->username,
-            'action' => 'completed',
-            'description' => "Service request {$service->title} Completed",
-            'entity_type' => ServiceRequest::class,
-            'entity_id' => $service->id,
-        ]);
+
+        $service = DB::transaction(function () use ($request, $id) {
+            $service = ServiceRequest::with("requestTo")->findOrFail($id);
+            $service->rating = $request->rating;
+            $service->remarks = $request->remarks;
+            $service->save();
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'completed',
+                'description' => "Service request {$service->title} Completed",
+                'entity_type' => ServiceRequest::class,
+                'entity_id' => $service->id,
+            ]);
+
+            $user = User::where('username', $service->requestTo->username_id)->first();
+
+            Notification::create([
+                'username_id' => $user->username,
+                'title' => "Service Request " . $service->title . " is completed",
+                'message' => "Service request {$service->title} has been completed and rated by " . Auth::user()->employee->fname . " " . Auth::user()->employee->lname,
+                'type' => "completed",
+                'url' => "/service-requests",
+            ]);
+
+            return $service;
+        });
+
         return $this->ok($service);
     }
 
@@ -134,16 +168,29 @@ class ServiceRequestController extends Controller
         $request->validate([
             'status' => 'required',
         ]);
-        $service = ServiceRequest::findOrFail($id);
-        $service->status = $request->status;
-        $service->save();
-         ActivityLog::create([
-            'performed_by' => Auth::user()->username,
-            'action' => 'updated',
-            'description' => "Service request {$service->title} updated to {$request->status}",
-            'entity_type' => ServiceRequest::class,
-            'entity_id' => $service->id,
-        ]);
+
+        $service = DB::transaction(function () use ($request, $id) {
+            $service = ServiceRequest::with("requestTo")->findOrFail($id);
+            $service->status = $request->status;
+            $service->save();
+            $user = User::where('username', $service->requestTo->username_id)->first();
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'updated',
+                'description' => "Service request {$service->title} updated to {$request->status}",
+                'entity_type' => ServiceRequest::class,
+                'entity_id' => $service->id,
+            ]);
+            Notification::create([
+                'username_id' => $user->username,
+                'title' => "Service Request " . $service->title . " is updated",
+                'message' => "Service request {$service->title} has been updated ",
+                'type' => "info",
+                'url' => "/service-requests",
+            ]);
+            return $service;
+        });
+
         return $this->ok($service);
     }
 

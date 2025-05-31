@@ -214,17 +214,17 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         },
       ],
     },
-    {
-      title: "Settings",
-      href: "/settings",
-      icon: Settings,
-      allowedRoles: [
-        {
-          name: "admin",
-        },
-      ],
-      // allowedRoles: ["admin"],
-    },
+    // {
+    //   title: "Settings",
+    //   href: "/settings",
+    //   icon: Settings,
+    //   allowedRoles: [
+    //     {
+    //       name: "admin",
+    //     },
+    //   ],
+    //   // allowedRoles: ["admin"],
+    // },
   ];
 
   // Show nav items if user has ANY of the allowed roles

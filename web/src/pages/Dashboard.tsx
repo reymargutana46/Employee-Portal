@@ -103,14 +103,19 @@ const Dashboard = () => {
     axios
       .get<Res<DashboardData>>("/accounts/page/dashboard")
       .then((response) => {
-        const { monthlyAttendance, card, recentlogs, workloads, serviceRequests } =
-          response.data.data;
+        const {
+          monthlyAttendance,
+          card,
+          recentlogs,
+          workloads,
+          serviceRequests,
+        } = response.data.data;
         console.log(monthlyAttendance);
         setWorkload(workloads);
         setMonthlyAttendance(monthlyAttendance);
         setRecentLogs(recentlogs);
         setCard(card);
-        console.log(serviceRequests)
+        console.log(serviceRequests);
         setServiceRequests(serviceRequests);
 
         setIsLoading(false);
@@ -492,6 +497,38 @@ const Dashboard = () => {
         </Card>
         <Card className="col-span-4">
           <CardHeader>
+            <CardTitle>Service Requests</CardTitle>
+            <CardDescription>Top Performers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {topPerformers.map((employee, index) => (
+                <div className="flex items-center" key={index}>
+                  <div className="ml-4 space-y-1 flex-1">
+                    <div className="flex justify-between">
+                      <p className="text-sm font-medium leading-none">
+                        {employee.name}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {employee.performance}%
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {employee.department}
+                    </p>
+                    <Progress
+                      value={employee.performance}
+                      className="h-2"
+                      color="black"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        {/* <Card className="col-span-4">
+          <CardHeader>
             <CardTitle>Overloaded Employees</CardTitle>
             <CardDescription>
               Employees exceeding workload thresholds
@@ -524,41 +561,9 @@ const Dashboard = () => {
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
-      <ServiceRequestChart services={serviceRequests}/>
-      <Card className="">
-        <CardHeader>
-          <CardTitle>Service Requests</CardTitle>
-          <CardDescription>Top Performers</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-8">
-            {topPerformers.map((employee, index) => (
-              <div className="flex items-center" key={index}>
-                <div className="ml-4 space-y-1 flex-1">
-                  <div className="flex justify-between">
-                    <p className="text-sm font-medium leading-none">
-                      {employee.name}
-                    </p>
-                    <p className="text-sm font-medium">
-                      {employee.performance}%
-                    </p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {employee.department}
-                  </p>
-                  <Progress
-                    value={employee.performance}
-                    className="h-2"
-                    color="black"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <ServiceRequestChart services={serviceRequests} />
     </div>
   );
 };

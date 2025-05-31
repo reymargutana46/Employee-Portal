@@ -22,27 +22,15 @@ import { WorkloadData } from "@/pages/Dashboard";
 
 const chartConfig = {
   visitors: {
-    label: "Visitors",
+    label: "Workloads",
   },
   chrome: {
-    label: "Chrome",
+    label: "faculty",
     color: "hsl(var(--chart-1))",
   },
   safari: {
-    label: "Safari",
+    label: "staff",
     color: "hsl(var(--chart-2))",
-  },
-  firefox: {
-    label: "Firefox",
-    color: "hsl(var(--chart-3))",
-  },
-  edge: {
-    label: "Edge",
-    color: "hsl(var(--chart-4))",
-  },
-  other: {
-    label: "Other",
-    color: "hsl(var(--chart-5))",
   },
 } satisfies ChartConfig;
 
@@ -60,7 +48,7 @@ export function WorkloadChart({ workload }: WorkloadChartProps) {
       config={chartConfig}
       className="mx-auto aspect-square max-h-[250px]"
     >
-      <PieChart>
+      <PieChart className="">
         <ChartTooltip
           cursor={false}
           content={<ChartTooltipContent hideLabel />}

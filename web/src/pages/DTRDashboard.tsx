@@ -148,14 +148,16 @@ const DTRDashboard = () => {
           <Button variant="secondary" onClick={handleDownloadTemplate}>
             <Download className="mr-2 h-4 w-4" /> Download Template
           </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">Export</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto">
-              <DTRExport DTRs={records} />
-            </DialogContent>
-          </Dialog>
+          {isSecretary && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Export</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto">
+                <DTRExport DTRs={records} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 

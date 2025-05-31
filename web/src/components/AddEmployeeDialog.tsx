@@ -258,6 +258,29 @@ const AddEmployeeDialog = () => {
                   )}
                 />
               </div>
+                <div className="w-full">
+                <FormField
+                  control={form.control}
+                  name="bioid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex flex-col  gap-4">
+                        <FormLabel htmlFor="name" className="">
+                          Bio ID
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="col-span-3"
+                            type="text"
+                            required
+                          />
+                        </FormControl>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
               <div className="flex justify-between space-x-10">
                 <div className="w-[70%]">
                   <FormField

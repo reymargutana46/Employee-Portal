@@ -8,6 +8,7 @@ use App\Http\Controllers\DTRController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PersonalDataSheetController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\SetupController;
@@ -42,7 +43,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::get('/{id}', 'show');
 
                 Route::post('/', 'store')->middleware('role:Admin');
-
+                Route::post('/change-password', 'changePassword');
                 Route::put('/{username}', 'update')->middleware('role:Admin|Principal|Secretary');
                 Route::put('/update/profile', 'updateProfile');
 
@@ -68,13 +69,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
             Route::middleware('role:Admin|Faculty|Secretary')->group(function () {
 
-                Route::post('/', 'store');
+
 
                 Route::put('/{id}', 'update');
 
                 Route::delete('/{id}', 'destroy');
             });
-
+            Route::post('/', 'store');
             Route::get('/', 'index');
             Route::get('/types/all', 'leaveTypes');
             Route::get('/{id}', 'show');
@@ -141,5 +142,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/clear/all', 'deleteAll');
         Route::get('/{id}', 'show');
         Route::put('/mark/all/read', 'markAllAsRead');
+    });
+
+
+    Route::prefix('pds')->controller(PersonalDataSheetController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/upload', 'upload');
+        Route::get('/files/{id}', 'getFile');
+        Route::delete('/files/{id}', 'deleteFile');
+        Route::get('/files/{id}/view', 'viewFile');
     });
 });

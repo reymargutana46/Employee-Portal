@@ -19,16 +19,11 @@ class LeaveController extends Controller
      */
     public function index()
     {
-
-
-        $hasAccess = Auth::user()->hasRole(["Principal", "Admin"]);
-        if ($hasAccess) {
-            $leaves = Leave::with(['leaveRejection', 'employee', 'leaveType'])->get();
-
-            return $this->ok($leaves);
-        }
         $leave = Leave::with(['leaveRejection', 'employee', 'leaveType'])
-            ->where('employee_id', Auth::user()->employee->id)->get();
+            ->when(!Auth::user()->hasRole(['Principal', 'Admin']), function ($query) {
+                return $query->where('employee_id', Auth::user()->employee->id);
+            })->get();
+
         return $this->ok($leave);
     }
 

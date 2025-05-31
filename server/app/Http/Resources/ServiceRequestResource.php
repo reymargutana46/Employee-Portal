@@ -17,7 +17,6 @@ class ServiceRequestResource extends JsonResource
         return [
             'id' => $this->id,
             'requestor' => $this->requestBy?->username ?? 'Unknown',
-
             // Full name with optional extname
             'requestTo' => trim(
                 ($this->requestTo?->fname ?? '') . ' ' .

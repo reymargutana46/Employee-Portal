@@ -69,7 +69,7 @@ class EmployeeService
                     'mname' => $request->mname,
                     'extname' => $request->extname,
                     'username_id' => $user->username,
-                    'bioid' => $request->biod,
+                    'biod' => $request->bioid,
                     'workhour_id' => $workhour->id,
                     'position_id' => $position->id,
                     'department_id' => $department->id,

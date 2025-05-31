@@ -10,61 +10,85 @@ use App\Models\ActivityLog;
 use App\Models\WorkLoadHdr;
 use App\Models\DtrAmtime;
 use App\Models\DtrPmtime;
+use Auth;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class DashboardService
 {
+    protected $user;
+    protected $allowedRoles = ['Admin', 'Principal', 'Secretary'];
+    protected $employee;
+
+    public function __construct()
+    {
+        $this->user = Auth::user();
+        $this->employee = Employee::where('username_id', $this->user->username)->first();
+    }
+
+    protected function restrictQuery($query, $field = 'employee_id')
+    {
+        if (!$this->user->hasRole($this->allowedRoles)) {
+            $employee = Employee::where('username_id', $this->user->username)->first();
+            return $query->where($field, optional($employee)->id);
+        }
+        return $query;
+    }
+
     public function cards()
     {
         $now = Carbon::now();
         $lastMonth = $now->copy()->subMonth();
 
-        // Total Employees
-        $totalEmployees = Employee::count();
+        $employeeQuery = Employee::query();
+        if (!$this->user->hasRole($this->allowedRoles)) {
+            $employeeQuery->where('id', $this->employee->id);
+        }
 
-        $newEmployeesLastMonth = Employee::whereMonth('created_at', $lastMonth->month)
+        $totalEmployees = $employeeQuery->count();
+
+        $newEmployeesLastMonth = $employeeQuery->whereMonth('created_at', $lastMonth->month)
             ->whereYear('created_at', $lastMonth->year)
             ->count();
 
         $deletedEmployeesLastMonth = Employee::onlyTrashed()
             ->whereMonth('deleted_at', $lastMonth->month)
             ->whereYear('deleted_at', $lastMonth->year)
+            ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
+                $query->where('id', $this->employee->id);
+            })
             ->count();
 
         $totalEmployeesLastMonth = $totalEmployees - ($newEmployeesLastMonth - $deletedEmployeesLastMonth);
         $employeeDifference = $totalEmployees - $totalEmployeesLastMonth;
 
-        // Attendance Rate (employees with both AM and PM time-in this month)
-        $employeeIds = Employee::pluck('id');
+        $employeeIds = $employeeQuery->pluck('id');
 
-        $amIds = DtrAmtime::whereMonth('time_in', $now->month)
-            ->whereYear('time_in', $now->year)
-            ->pluck('employee_id');
+        $amIds = $this->restrictQuery(DtrAmtime::whereMonth('time_in', $now->month)
+            ->whereYear('time_in', $now->year))->pluck('employee_id');
 
-        $pmIds = DtrPmtime::whereMonth('time_in', $now->month)
-            ->whereYear('time_in', $now->year)
-            ->pluck('employee_id');
+        $pmIds = $this->restrictQuery(DtrPmtime::whereMonth('time_in', $now->month)
+            ->whereYear('time_in', $now->year))->pluck('employee_id');
 
         $attendingIds = $amIds->intersect($pmIds)->unique();
         $attendanceRate = ($attendingIds->count() / max($employeeIds->count(), 1)) * 100;
 
-        $amLastMonth = DtrAmtime::whereMonth('time_in', $lastMonth->month)
-            ->whereYear('time_in', $lastMonth->year)
-            ->pluck('employee_id');
+        $amLastMonth = $this->restrictQuery(DtrAmtime::whereMonth('time_in', $lastMonth->month)
+            ->whereYear('time_in', $lastMonth->year))->pluck('employee_id');
 
-        $pmLastMonth = DtrPmtime::whereMonth('time_in', $lastMonth->month)
-            ->whereYear('time_in', $lastMonth->year)
-            ->pluck('employee_id');
+        $pmLastMonth = $this->restrictQuery(DtrPmtime::whereMonth('time_in', $lastMonth->month)
+            ->whereYear('time_in', $lastMonth->year))->pluck('employee_id');
 
         $attendingLastMonth = $amLastMonth->intersect($pmLastMonth)->unique();
         $attendanceRateLastMonth = ($attendingLastMonth->count() / max($employeeIds->count(), 1)) * 100;
 
         $attendanceRateDiff = $attendanceRate - $attendanceRateLastMonth;
 
-        // Average Workload based on `from` and `to` date range
         $workloads = WorkLoadHdr::whereDate('from', '<=', $now->endOfMonth())
             ->whereDate('to', '>=', $now->startOfMonth())
+            ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
+                $query->where('assignee_id', $this->employee->id);
+            })
             ->get();
 
         $uniqueEmployeesThisMonth = $workloads->pluck('assignee_id')->unique()->count();
@@ -74,6 +98,9 @@ class DashboardService
 
         $workloadsLastMonth = WorkLoadHdr::whereDate('from', '<=', $lastMonth->endOfMonth())
             ->whereDate('to', '>=', $lastMonth->startOfMonth())
+            ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
+                $query->where('assignee_id', $this->employee->id);
+            })
             ->get();
 
         $uniqueEmployeesLastMonth = $workloadsLastMonth->pluck('assignee_id')->unique()->count();
@@ -83,17 +110,22 @@ class DashboardService
 
         $avgWorkloadDiff = $avgWorkload - $avgWorkloadLastMonth;
 
-        // Leave Requests
         $leaveRequests = Leave::whereMonth('created_at', $now->month)
             ->whereYear('created_at', $now->year)
+            ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
+                $query->where('employee_id', $this->employee->id);
+            })
             ->count();
 
         $leaveRequestsLastMonth = Leave::whereMonth('created_at', $lastMonth->month)
             ->whereYear('created_at', $lastMonth->year)
+            ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
+                $query->where('employee_id', $this->employee->id);
+            })
             ->count();
+
         $leaveRequestsDiff = $leaveRequests - $leaveRequestsLastMonth;
 
-        // Final response
         return [
             'totalEmployees' => $totalEmployees,
             'employeeDiff' => $employeeDifference,
@@ -108,13 +140,11 @@ class DashboardService
             'leaveRequestsDiff' => $leaveRequestsDiff,
         ];
     }
+
     public function MonthlyAttendance()
     {
-
         $now = Carbon::now();
         $year = $now->year;
-
-        // Determine quarter
         $quarter = ($now->month <= 6) ? 1 : 2;
         $startMonth = ($quarter === 1) ? 1 : 7;
         $endMonth = ($quarter === 1) ? 6 : 12;
@@ -122,76 +152,83 @@ class DashboardService
         $startDate = Carbon::create($year, $startMonth, 1)->startOfMonth();
         $endDate = Carbon::create($year, $endMonth, 1)->endOfMonth();
 
-        // Define full list of months in quarter (e.g., ['2025-01', ..., '2025-06'])
         $months = collect(range($startMonth, $endMonth))->map(function ($m) use ($year) {
             return Carbon::create($year, $m)->format('Y-m');
         });
 
-        // Query AM Attendance
-        $amAttendance = DtrAmtime::selectRaw("strftime('%Y-%m', time_in) as month, COUNT(*) as count")
-            ->whereBetween('time_in', [$startDate, $endDate])
+        $amQuery = DtrAmtime::whereBetween('time_in', [$startDate, $endDate]);
+        $pmQuery = DtrPmtime::whereBetween('time_in', [$startDate, $endDate]);
+
+        if (!$this->user->hasRole($this->allowedRoles)) {
+            $amQuery->where('employee_id', $this->employee->id);
+            $pmQuery->where('employee_id', $this->employee->id);
+        }
+
+        $amAttendance = $amQuery->selectRaw("strftime('%Y-%m', time_in) as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
 
-        // Query PM Attendance
-        $pmAttendance = DTRPmtime::selectRaw("strftime('%Y-%m', time_in) as month, COUNT(*) as count")
-            ->whereBetween('time_in', [$startDate, $endDate])
+        $pmAttendance = $pmQuery->selectRaw("strftime('%Y-%m', time_in) as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
 
-        // Merge and fill missing months with 0
-        $filler = 1; // Moved outside
-
+        $filler = 1;
         $attendanceData = $months->map(function ($month) use ($amAttendance, $pmAttendance, &$filler) {
-            $count = ($amAttendance[$month] ?? 0) + ($pmAttendance[$month] ?? 0);
-            $data = [
+            $count = ($amAttendance[$month] ?? 0) ;
+            return [
                 'month' => Carbon::createFromFormat('Y-m', $month)->format('F'),
                 'attendance' => $count,
-                'fill' => "hsl(var(--chart-" . $filler . "))"
+                'fill' => "hsl(var(--chart-" . $filler++ . "))"
             ];
-            $filler += 1; // Now properly increments across iterations
-            return $data;
         });
+
         return [
             'attendanceData' => $attendanceData,
             'quarter' => $quarter,
         ];
     }
 
-
     public function ActivityLogs()
     {
-        $activityLogs = ActivityLog::orderBy('created_at', 'desc')->take(5)->get();
-        return $activityLogs->map(function ($log) {
+        $activity = ActivityLog::orderBy('created_at', 'desc')->take(5)->get();
+        if (!$this->user->hasRole($this->allowedRoles)) {
+            $activity = $activity->where('performed_by', $this->user->username);
+        }
+        return $activity->map(function ($log) {
             return [
                 'performed_by' => $log->performed_by,
                 'action' => $log->action,
                 'description' => $log->description,
-                'time' => Carbon::parse($log->created_at)->diffForHumans(),
+                'created_at' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
             ];
         });
     }
 
     public function workloadsData()
     {
-        $workloads = WorkLoadHdr::all();
+        $query = WorkLoadHdr::query();
+        if (!$this->user->hasRole($this->allowedRoles)) {
+            $query->where('assignee_id', $this->employee->id);
+        }
+
+        $workloads = $query->get();
+
         return [
             ['role' => 'Faculty', 'workload' => $workloads->where('type', 'FACULTY')->count(), 'fill' => "hsl(var(--chart-1))"],
             ['role' => 'Staff', 'workload' => $workloads->where('type', 'STAFF')->count(), 'fill' => "hsl(var(--chart-2))"],
             ['role' => 'Unassigned', 'workload' => $workloads->where('assignee_id', null)->count(), 'fill' => "hsl(var(--chart-3))"],
-
         ];
     }
 
-
     public function getServiceRequestCountPerMonthByStatus()
     {
-        // Fetch all records for the current year
         $rawData = ServiceRequest::whereYear('created_at', now()->year)
+            ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
+                $query->where('request_by', $this->user->username); // or whatever is applicable
+            })
             ->select('status', 'created_at')
             ->get();
 
-        // Original statuses as saved in the DB
         $statuses = [
             "Pending" => "pending",
             "In Progress" => "inProgress",
@@ -200,9 +237,8 @@ class DashboardService
             "For Approval" => "forApproval",
         ];
 
-        // Group data in PHP
         $grouped = $rawData->groupBy(function ($item) {
-            return Carbon::parse($item->created_at)->format('F'); // e.g., "January"
+            return Carbon::parse($item->created_at)->format('F');
         })->map(function ($items, $month) use ($statuses) {
             $row = ['month' => $month];
             foreach ($statuses as $dbStatus => $camelKey) {
@@ -211,24 +247,11 @@ class DashboardService
             return $row;
         });
 
-        // Fill in missing months from January to last month in the data
-        $firstMonth = 1;
-        $lastMonth = $rawData->max(fn($item) => Carbon::parse($item->created_at)->month);
         $final = collect();
-
-        for ($m = $firstMonth; $m <= $lastMonth; $m++) {
+        for ($m = 1; $m <= now()->month; $m++) {
             $monthName = Carbon::create()->month($m)->format('F');
             $existing = $grouped->firstWhere('month', $monthName);
-
-            if ($existing) {
-                $final->push($existing);
-            } else {
-                $emptyRow = ['month' => $monthName];
-                foreach ($statuses as $camelKey) {
-                    $emptyRow[$camelKey] = 0;
-                }
-                $final->push($emptyRow);
-            }
+            $final->push($existing ?: array_merge(['month' => $monthName], array_fill_keys(array_values($statuses), 0)));
         }
 
         return $final->values();

@@ -35,6 +35,7 @@ export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) =>
             set({ error: "Failed to fetch requests", isLoading: false });
         }
     },
+
     createRequest: async (request) => {
         set({ isLoading: true });
         try {
@@ -45,6 +46,7 @@ export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) =>
             set({ error: "Failed to create request", isLoading: false });
         }
     },
+
     updateRequest: async (id, request) => {
         set({ isLoading: true });
         try {
@@ -58,6 +60,7 @@ export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) =>
             set({ error: "Failed to update request", isLoading: false });
         }
     },
+
     updateStatus: async (id, status) => {
         set({ isLoading: true });
         try {
