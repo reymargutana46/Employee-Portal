@@ -1,18 +1,23 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LockKeyhole, User } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { LockKeyhole, User } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 
-
-type UserRole = 'admin' | 'principal' | 'secretary' | 'faculty' | 'staff';
+type UserRole = "admin" | "principal" | "secretary" | "faculty" | "staff";
 
 interface PredefinedUser {
   id: string;
@@ -22,35 +27,29 @@ interface PredefinedUser {
   userRoles: UserRole[];
 }
 
-
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('single');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [activeTab, setActiveTab] = useState("single");
   const navigate = useNavigate();
   const { login } = useAuth();
 
   // Predefined users
 
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!username || !password) {
-      toast.error('Please fill all fields');
+      toast.error("Please fill all fields");
       return;
     }
 
     login({ username, password });
 
-    // Find user with matching credentials
-    // const foundUser = predefinedUsers.find(
-    //   user => user.username === username && user.password === password
-    // );
 
     // if (foundUser) {
     //   toast.success(`Welcome back, ${foundUser.name}`);
-      navigate('/dashboard');
+    // navigate('/dashboard');
     // } else {
     //   toast.error('Invalid credentials');
     // }
@@ -61,12 +60,14 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary">Emport</h1>
-          <p className="text-muted-foreground mt-2">Employee Task Management System</p>
+          <p className="text-muted-foreground mt-2">
+            Employee Task Management System
+          </p>
         </div>
 
-        <Card className='shadow-md'>
+        <Card className="shadow-md">
           <form onSubmit={handleLogin}>
-            <CardHeader className='mx-auto text-center pb-10'>
+            <CardHeader className="mx-auto text-center pb-10">
               <CardTitle>Sign In</CardTitle>
               <CardDescription>
                 Enter your credentials to access your account
@@ -74,9 +75,11 @@ const Login = () => {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab}>
-
-              </Tabs>
+              <Tabs
+                defaultValue="single"
+                value={activeTab}
+                onValueChange={setActiveTab}
+              ></Tabs>
 
               <div className="space-y-2">
                 <Label htmlFor="username" className="flex items-center gap-2">
@@ -103,8 +106,10 @@ const Login = () => {
               </div>
             </CardContent>
 
-            <CardFooter className='pt-6'>
-              <Button type="submit" className="w-full">Sign in</Button>
+            <CardFooter className="pt-6">
+              <Button type="submit" className="w-full">
+                Sign in
+              </Button>
             </CardFooter>
           </form>
         </Card>

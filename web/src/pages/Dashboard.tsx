@@ -481,6 +481,8 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+      <ServiceRequestChart services={serviceRequests} />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
         <Card className="col-span-5">
           <CardHeader>
@@ -495,38 +497,7 @@ const Dashboard = () => {
             </div>
           </CardFooter>
         </Card>
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Service Requests</CardTitle>
-            <CardDescription>Top Performers</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              {topPerformers.map((employee, index) => (
-                <div className="flex items-center" key={index}>
-                  <div className="ml-4 space-y-1 flex-1">
-                    <div className="flex justify-between">
-                      <p className="text-sm font-medium leading-none">
-                        {employee.name}
-                      </p>
-                      <p className="text-sm font-medium">
-                        {employee.performance}%
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {employee.department}
-                    </p>
-                    <Progress
-                      value={employee.performance}
-                      className="h-2"
-                      color="black"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+
         {/* <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Overloaded Employees</CardTitle>
@@ -563,7 +534,6 @@ const Dashboard = () => {
           </CardContent>
         </Card> */}
       </div>
-      <ServiceRequestChart services={serviceRequests} />
     </div>
   );
 };

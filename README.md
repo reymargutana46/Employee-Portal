@@ -54,14 +54,20 @@ Make sure this file is located in the `server/` directory (same level as `.env`)
 php artisan key:generate
 ```
 
-### 7. Run migrations and seed the database
+### 7. To create the symbolic link
+
+```bash
+php artisan storage:link
+```
+
+### 8. Run migrations and seed the database
 
 ```bash
 php artisan migrate:fresh --seed
 php artisan db:seed --class=RoomSeeder
 ```
 
-### 8. Start the Laravel development server
+### 9. Start the Laravel development server
 
 ```bash
 php artisan serve
