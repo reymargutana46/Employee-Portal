@@ -81,7 +81,7 @@ const AddEmployeeDialog = () => {
       password: "",
       role: "Faculty",
       telno: "",
-      workhour_am: "08:00",
+      workhour_am: "07:30",
       workhour_pm: "17:00",
     },
   });
@@ -102,7 +102,7 @@ const AddEmployeeDialog = () => {
         addEmployee(employee);
         toast({
           title: "Employee Created",
-          description: `${name} has been added as ${data.role} with work hours from `,
+          description: `${data.fname} ${data.lname} has been added as ${data.role} with work hours from ${data.workhour_am} to ${data.workhour_pm}`,
         });
         setOpen(false);
         form.reset();

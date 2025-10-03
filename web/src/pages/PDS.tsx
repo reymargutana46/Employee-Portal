@@ -330,14 +330,29 @@ const PDS = () => {
   // Updated view function to use file_url or API endpoint
   const handleViewFile = async (file: UploadedFile) => {
     try {
-      // Option 1: Use direct file URL if available
-      if (file.file_path) {
-        window.open(file.file_path, "_blank", "noopener,noreferrer");
-        return;
-      }
 
-      // Option 2: Use API endpoint to view file
-      const viewUrl = `/api/pds/files/${file.id}/view`;
+      const viewUrl = `http://127.0.0.1:8000/api/pds/files/${file.id}/view`;
+      fetch(viewUrl, { method: "GET"})
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to fetch file for viewing");
+          }
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, "_blank", "noopener,noreferrer");
+          // Optionally revoke the object URL after some time
+          setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+        })
+        .catch((err) => {
+          console.error("View error:", err);
+          toast({
+            title: "View failed",
+            description: "Failed to open the file for viewing.",
+            variant: "destructive",
+          });
+        });
       window.open(viewUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("View error:", error);

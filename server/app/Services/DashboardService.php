@@ -164,11 +164,11 @@ class DashboardService
             $pmQuery->where('employee_id', $this->employee->id);
         }
 
-        $amAttendance = $amQuery->selectRaw("strftime('%Y-%m', time_in) as month, COUNT(*) as count")
+        $amAttendance = $amQuery->selectRaw("to_char(time_in, 'YYYY-MM') as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
 
-        $pmAttendance = $pmQuery->selectRaw("strftime('%Y-%m', time_in) as month, COUNT(*) as count")
+        $pmAttendance = $pmQuery->selectRaw("to_char(time_in, 'YYYY-MM') as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
 

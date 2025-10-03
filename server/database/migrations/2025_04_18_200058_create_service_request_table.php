@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('service_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('request_to')->references('id')->on('employees')->onDelete('cascade');
-            $table->foreignId('request_by')->references('username')->on('users')->onDelete('cascade');
+            $table->string('request_by');
+            $table->foreign('request_by')->references('username')->on('users')->onDelete('cascade');
             $table->string('title');
             $table->string('priority');
             $table->string('status');

@@ -107,9 +107,6 @@ const AppRoutes = () => {
           name: "admin",
         },
         {
-          name: "principal",
-        },
-        {
           name: "secretary",
         },
       ],
@@ -152,6 +149,9 @@ const AppRoutes = () => {
         {
           name: "staff",
         },
+        {
+          name: "principal",
+        },
       ],
       // allowedRoles: ["admin", "secretary", "faculty", "staff"],
     },
@@ -170,6 +170,9 @@ const AppRoutes = () => {
         },
         {
           name: "staff",
+        },
+        {
+          name: "faculty",
         },
       ],
       // allowedRoles: ["admin", "secretary", "staff"],
@@ -201,10 +204,13 @@ const AppRoutes = () => {
       element: <Schedule />,
       allowedRoles: [
         {
-          name: "admin",
+          name: "faculty",
         },
         {
-          name: "faculty",
+          name: "staff",
+        },
+        {
+          name: "principal",
         },
       ],
       // allowedRoles: ["admin", "faculty"],

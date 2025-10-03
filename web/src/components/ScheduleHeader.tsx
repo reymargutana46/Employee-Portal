@@ -1,6 +1,6 @@
 
 import type React from "react"
-import { Calendar, ChevronLeft, ChevronRight, List, CalendarIcon, Clock, Filter } from "lucide-react"
+import { Calendar, ChevronLeft, ChevronRight, List, CalendarIcon, Clock, Filter, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -9,6 +9,7 @@ import { format, addMonths, subMonths } from "date-fns"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { ScheduleCreator } from "./ScheduleCreator"
 import {
   Sheet,
   SheetContent,
@@ -89,6 +90,18 @@ export function ScheduleHeader({
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
+          {/*    <Button 
+            onClick={() => {
+              // TODO: Implement create schedule functionality
+              console.log('Create teacher schedule clicked')
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Schedule
+          </Button> */}
+          <ScheduleCreator />
+
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={handlePrevious} aria-label="Previous period">
               <ChevronLeft className="h-4 w-4" />
@@ -121,30 +134,8 @@ export function ScheduleHeader({
             </SelectContent>
           </Select>
 
-
         </div>
       </div>
-
-      <Card className="bg-muted/40">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div>
-              <h2 className="text-sm font-medium">
-                {currentEmployee.fname} {currentEmployee.lname}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                {currentEmployee.position}, {currentEmployee.department}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>
-                Work Hours: {currentEmployee.workhours_am} AM, {currentEmployee.workhours_pm} PM
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

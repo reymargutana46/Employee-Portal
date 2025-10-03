@@ -44,8 +44,8 @@ class UserSeeder extends Seeder
 
         // Create Workhour
         $workhour = Workhour::create([
-            'am' => '12:00',
-            'pm' => '11:59',
+            'am' => '7:30',
+            'pm' => '4:30',
         ]);
 
         // Create Employee (assuming username_id is user id)
@@ -66,7 +66,7 @@ class UserSeeder extends Seeder
 
 
 
-        // // Create Principal
+        // Create Principal
         // $principalUser = User::create([
         //     'username' => 'Principal01',
         //     'email' => 'principal@example.com',

@@ -15,6 +15,7 @@ export interface Employee {
   workhours_am: string;
   workhours_pm: string;
   telno: string;
+  profile_picture?: string;
 }
 
 export interface Position {

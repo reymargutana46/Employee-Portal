@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('username_id')->references('username')->on('users')->onDelete('cascade');
+            $table->string('username_id');
+            $table->foreign('username_id')->references('username')->on('users')->onDelete('cascade');
             $table->string('title');
             $table->text('message');
             $table->boolean('is_read')->default(false);

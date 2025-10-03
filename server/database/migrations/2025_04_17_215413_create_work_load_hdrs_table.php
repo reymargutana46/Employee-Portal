@@ -17,7 +17,8 @@ return new class extends Migration
             $table->date('from');
             $table->date('to');
             $table->foreignId('assignee_id')->nullable()->references('id')->on('employees')->onDelete('cascade');
-            $table->foreignId('created_by')->references('username')->on('users')->onDelete('cascade');;
+            $table->string("created_by");
+            $table->foreign('created_by')->references('username')->on('users')->onDelete('cascade');;
             $table->string('type')->default('staff'); // 'faculty' or 'staff'
             $table->softDeletes();
             $table->timestamps();

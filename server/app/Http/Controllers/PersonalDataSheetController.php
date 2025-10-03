@@ -39,7 +39,7 @@ class PersonalDataSheetController extends Controller
         $url = Storage::disk('public')->url($path); // Full URL for use in frontend
         $pds = PersonalDataSheet::create([
             'uploader' => Auth::user()->username, // Assuming user is authenticated
-            'file_path' => $url,
+            'file_path' => $path,
             'file_name' => $filename,
             'file_size' => $file->getSize(),
             'file_type' => $file->getMimeType(),
@@ -54,13 +54,20 @@ class PersonalDataSheetController extends Controller
             $pds = PersonalDataSheet::findOrFail($id);
 
             // Check if file exists
-            if (!Storage::disk('public')->exists($pds->file_path)) {
-                return $this->badRequest('File not found');
-            }
+            // if (!Storage::disk('public')->exists($pds->file_path)) {
+            //     return $this->badRequest('File not found');
+            // }
 
             // Return file for viewing/download
-            echo $pds->file_path, $pds->original_name;
-            return Storage::disk('public')->response($pds->file_path, $pds->original_name);
+            $mimeType = Storage::disk('public')->mimeType($pds->file_path);
+
+            return response()->file(
+                storage_path("app/public/" . $pds->file_path),
+                [
+                    'Content-Type' => $mimeType,
+                    'Content-Disposition' => 'inline; filename="' . $pds->original_name . '"'
+                ]
+            );
         } catch (\Exception $e) {
             return $this->badRequest('Unable to retrieve file');
         }

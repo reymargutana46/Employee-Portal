@@ -15,15 +15,18 @@ class PositionSeeder extends Seeder
     {
 
         $positions = [
-            'Teacher',
-            'Principal',
-            'Vice Principal',
-            'Guidance Counselor',
-            'Registrar',
-            'Secretary',
-            'School Nurse',
-            'IT Staff',
-            'Librarian'
+            'Teacher I',
+            'Teacher II',
+            'Teacher III',
+            'Master Teacher I',
+            'Master Teacher II',
+            'SPED Teacher I',
+            'Administrative Aide IV',
+            'Administrative Officer II',
+            'Principal I',
+            'Project Development Officer',
+            'Nurse II',
+            'J.O (Job Order)',
         ];
         foreach($positions as $position)
         Position::create([

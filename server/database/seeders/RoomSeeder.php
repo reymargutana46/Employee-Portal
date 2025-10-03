@@ -15,15 +15,19 @@ class RoomSeeder extends Seeder
     public function run(): void
     {
         $locations = [
-            ['location_name' => 'Building A'],
-            ['location_name' => 'Building B'],
-            ['location_name' => 'Building C'],
-            ['location_name' => 'Building D'],
-            ['location_name' => 'Building E'],
+            ['location_name' => 'Building 1'],
+            ['location_name' => 'Building 2'],
+            ['location_name' => 'Building 3'],
+            ['location_name' => 'Building 4'],
+            ['location_name' => 'Building 5'],
+            ['location_name' => 'Building 6'],
+            ['location_name' => 'Building 7'],
+            ['location_name' => 'Building 8'],
+
         ];
 
         $rooms = [
-            ['room_name' => 'Room 101'],
+            ['room_name' => 'MATATAG'],
             ['room_name' => 'Room 102'],
             ['room_name' => 'Room 103'],
             ['room_name' => 'Room 104'],

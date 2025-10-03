@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('performed_by')->constrained('users', 'username')->onDelete('cascade');
+            $table->string('performed_by');
+            $table->foreign('performed_by')->references('username')->on('users')->onDelete('cascade');
             $table->string('action');
             $table->string('description');
             $table->string('entity_type');

@@ -17,7 +17,8 @@ return new class extends Migration
             $table->string('lname');
             $table->string('mname')->nullable();
             $table->string('extname')->nullable();
-            $table->foreignId('username_id')->references('username')->on('users')->onDelete('cascade');
+            $table->string("username_id");
+            $table->foreign('username_id')->references('username')->on('users')->onDelete('cascade');
             $table->string('biod');
             $table->softDeletes();
             $table->foreignId('position_id')->references('id')->on('positions')->onDelete('cascade');

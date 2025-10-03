@@ -59,11 +59,17 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary">Emport</h1>
-          <p className="text-muted-foreground mt-2">
-            Employee Task Management System
-          </p>
-        </div>
+        <img
+          src="/src/images/logos.png"
+          alt="Naawan Central School Logo"
+          className="mx-auto mb-2 w-20 h-25 object-contain"
+          />
+        <h1 className="text-3xl font-bold text-primary">Emport</h1>
+        <p className="text-muted-foreground mt-2">
+          Employee Task Management System
+        </p>
+    </div>
+
 
         <Card className="shadow-md">
           <form onSubmit={handleLogin}>

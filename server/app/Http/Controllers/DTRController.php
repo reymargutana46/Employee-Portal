@@ -26,7 +26,7 @@ class DTRController extends Controller
     {
         $this->dtrService = $dtrService;
         $this->employeeService = $employeeService;
-        $this->hasAccess = Auth::user()->hasRole(['Secretary', 'Admin']);
+        $this->hasAccess = Auth::user()->hasRole(['Secretary', 'Admin', 'Principal']);
     }
     /**
      * Display a listing of the resource.

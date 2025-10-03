@@ -17,7 +17,9 @@ return new class extends Migration
             $table->string('file_name'); // Original name of the file
             $table->string('file_size'); // Size of the file
             $table->string('file_type'); // MIME type of the file
-            $table->foreignId('uploader')->references('username')->on('users')->onDelete('cascade');
+            $table->string('uploader');
+            $table->foreign('uploader')->references('username')->on('users')->onDelete('cascade');
+            //$table->string('owner_name');
             $table->timestamps();
         });
     }

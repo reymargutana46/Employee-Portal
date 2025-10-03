@@ -23,20 +23,11 @@ class RoleSeeder extends Seeder
 
             ],
             [
-                'name' => 'Campus Secretary',
-
-            ],
-            [
                 'name' => 'Faculty',
 
             ],
             [
                 'name' => 'Staff',
-
-            ],
-
-            [
-                'name' => 'Secretary',
 
             ],
         ];

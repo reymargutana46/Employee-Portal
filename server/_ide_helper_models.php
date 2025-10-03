@@ -16,7 +16,7 @@ namespace App\Models{
  * 
  *
  * @property int $id
- * @property int $performed_by
+ * @property string $performed_by
  * @property string $action
  * @property string $description
  * @property string $entity_type
@@ -138,7 +138,7 @@ namespace App\Models{
  * @property string $lname
  * @property string|null $mname
  * @property string|null $extname
- * @property int $username_id
+ * @property string $username_id
  * @property string $biod
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property int $position_id
@@ -269,7 +269,7 @@ namespace App\Models\Leaves{
  * 
  *
  * @property int $id
- * @property int $rejected_by
+ * @property string $rejected_by
  * @property int $leave_id
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -339,7 +339,7 @@ namespace App\Models{
  * 
  *
  * @property int $id
- * @property int $username_id
+ * @property string $username_id
  * @property string $title
  * @property string $message
  * @property bool $is_read
@@ -375,9 +375,28 @@ namespace App\Models{
 /**
  * 
  *
+ * @property int $id
+ * @property string $file_path
+ * @property string $file_name
+ * @property string $file_size
+ * @property string $file_type
+ * @property string $uploader
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string|null $owner_name
+ * @property-read \App\Models\User $user
  * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereFileName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereFilePath($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereFileSize($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereFileType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereOwnerName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PersonalDataSheet whereUploader($value)
  */
 	class PersonalDataSheet extends \Eloquent {}
 }
@@ -469,7 +488,7 @@ namespace App\Models{
  *
  * @property int $id
  * @property int $request_to
- * @property int $request_by
+ * @property string $request_by
  * @property string $title
  * @property string|null $priority
  * @property string $status
@@ -599,7 +618,7 @@ namespace App\Models{
  * @property string $from
  * @property string $to
  * @property int|null $assignee_id
- * @property int $created_by
+ * @property string $created_by
  * @property string $type
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at

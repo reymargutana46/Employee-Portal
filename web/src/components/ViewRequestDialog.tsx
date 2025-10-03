@@ -123,7 +123,7 @@ export function ViewRequestDialog({
           {/* For the Principal - can update status if Approve */}
 
           {request.status === "For Approval" &&
-            canDoAction(["principal", "staff"]) &&
+            canDoAction(["principal", "staff", "faculty"]) &&
             request.requestor === user.username && (
               <div className="flex gap-2">
                 <Button

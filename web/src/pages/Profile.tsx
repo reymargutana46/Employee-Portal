@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Save, Loader2, User, Briefcase, KeyRound, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Save, Loader2, User, Briefcase, KeyRound, CheckCircle2, Camera, Upload } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEmployeeStore } from "@/store/useEmployeeStore"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function Profile() {
-  const { fetchMe, employee, isLoading, departments, fetchsetup, updateEmployee, updateProfile, updatePassword } =
+  const { fetchMe, employee, isLoading, departments, fetchsetup, updateEmployee, updateProfile, updatePassword, updateProfileWithFile } =
     useEmployeeStore()
   const { toast } = useToast()
 
@@ -72,6 +72,10 @@ export default function Profile() {
   // Add state for confirmation dialogs after the existing state declarations:
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false)
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false)
+  
+  // Profile picture state
+  const [profilePicture, setProfilePicture] = useState(null)
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null)
 
   // Load employee data when available
   useEffect(() => {
@@ -126,42 +130,119 @@ export default function Profile() {
     setIsPasswordModified(true)
   }
 
+  // Handle profile picture upload
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file (JPG, PNG, GIF, etc.)",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      setProfilePicture(file)
+      
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setProfilePicturePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+      setIsFormModified(true)
+    }
+  }
+
+  // Remove profile picture
+  const removeProfilePicture = () => {
+    setProfilePicture(null)
+    setProfilePicturePreview(null)
+    setIsFormModified(true)
+  }
+
   // Handle form submission
   const handleSaveChanges = async () => {
     if (!employee) return
 
     setIsSaving(true)
     try {
-      // Map form data back to the employee structure
-      const updatedEmployeeData = {
-        id: employee.id,
-        fname: formData.firstName,
-        lname: formData.lastName,
-        mname: formData.middleName,
-        extname: formData.extensionName,
-        contactno: formData.contactNumber,
-        telno: formData.telephoneNumber,
-        email: formData.email,
-        department: formData.department,
-        position: formData.position,
-        workhours_id: formData.workhours_id,
-        workhours_am: formData.workHoursAm,
-        workhours_pm: formData.workHoursPm,
-        username: formData.username,
-      }
+      // If there's a profile picture to upload, create FormData
+      if (profilePicture) {
+        const formDataWithFile = new FormData()
+        
+        // Add profile picture file
+        formDataWithFile.append('profile_picture', profilePicture)
+        
+        // Add other form data
+        formDataWithFile.append('id', employee.id.toString())
+        formDataWithFile.append('fname', formData.firstName)
+        formDataWithFile.append('lname', formData.lastName)
+        formDataWithFile.append('mname', formData.middleName)
+        formDataWithFile.append('extname', formData.extensionName)
+        formDataWithFile.append('contactno', formData.contactNumber)
+        formDataWithFile.append('telno', formData.telephoneNumber)
+        formDataWithFile.append('email', formData.email)
+        formDataWithFile.append('department', formData.department)
+        formDataWithFile.append('position', formData.position)
+        formDataWithFile.append('workhours_id', formData.workhours_id)
+        formDataWithFile.append('workhours_am', formData.workHoursAm)
+        formDataWithFile.append('workhours_pm', formData.workHoursPm)
+        formDataWithFile.append('username', formData.username)
+        
+        // Call the store function with FormData for file upload
+        await updateProfileWithFile(employee.id, formDataWithFile)
+      } else {
+        // No file upload needed, use regular object
+        const updatedEmployeeData = {
+          id: employee.id,
+          fname: formData.firstName,
+          lname: formData.lastName,
+          mname: formData.middleName,
+          extname: formData.extensionName,
+          contactno: formData.contactNumber,
+          telno: formData.telephoneNumber,
+          email: formData.email,
+          department: formData.department,
+          position: formData.position,
+          workhours_id: formData.workhours_id,
+          workhours_am: formData.workHoursAm,
+          workhours_pm: formData.workHoursPm,
+          username: formData.username,
+        }
 
-      // Call the store function to update profile
-      await updateProfile(employee.id, updatedEmployeeData)
+        // Call the store function to update profile
+        await updateProfile(employee.id, updatedEmployeeData)
+      }
 
       // Show success message
       toast({
         title: "Profile updated successfully",
-        description: "Your profile information has been saved.",
+        description: profilePicture 
+          ? "Your profile information and picture have been saved."
+          : "Your profile information has been saved.",
         variant: "default",
       })
 
-      // Reset form modified state
+      // Reset form modified state and clear profile picture after successful save
       setIsFormModified(false)
+      setProfilePicture(null)
+      setProfilePicturePreview(null)
+      
+      // Refresh the profile data to get the updated profile picture URL
+      await fetchMe()
     } catch (error) {
       console.error("Error updating profile:", error)
       toast({
@@ -290,22 +371,95 @@ export default function Profile() {
   return (
     <div className="container mx-auto py-10 px-4 max-w-5xl">
       <div className="flex flex-col space-y-6">
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">User Profile</h1>
-          <p className="text-muted-foreground">View and manage your personal information and account settings</p>
-
-          {!isLoading && employee && (
-            <div className="flex items-center space-x-2 mt-2">
-              <Badge variant="outline" className="text-sm font-medium">
-                Employee ID: {employee.biod}
-              </Badge>
-              {employee.department && (
-                <Badge variant="secondary" className="text-sm font-medium">
-                  {employee.department}
-                </Badge>
+        <div className="flex flex-col lg:flex-row lg:items-start space-y-4 lg:space-y-0 lg:space-x-6">
+          {/* Profile Picture Section */}
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full border-4 border-gray-200 overflow-hidden bg-gray-100 flex items-center justify-center">
+                {profilePicturePreview || employee?.profile_picture ? (
+                  <img
+                    src={profilePicturePreview || employee?.profile_picture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-16 h-16 text-gray-400" />
+                )}
+              </div>
+              
+              {/* Edit Profile Picture Button */}
+              <div className="absolute -bottom-2 -right-2">
+                <label
+                  htmlFor="profile-picture-upload"
+                  className="inline-flex items-center justify-center w-10 h-10 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors shadow-lg"
+                >
+                  <Camera className="w-4 h-4" />
+                  <input
+                    id="profile-picture-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePictureChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+            
+            {/* Profile Picture Actions */}
+            <div className="flex flex-col space-y-2">
+              <label
+                htmlFor="profile-picture-upload"
+                className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-primary bg-transparent border border-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Photo
+              </label>
+              
+              {(profilePicturePreview || employee?.profile_picture) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={removeProfilePicture}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Remove Photo
+                </Button>
               )}
             </div>
-          )}
+          </div>
+          
+          {/* Profile Information Section */}
+          <div className="flex-1 space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">User Profile</h1>
+            <p className="text-muted-foreground">View and manage your personal information and account settings</p>
+
+            {!isLoading && employee && (
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                <Badge variant="outline" className="text-sm font-medium">
+                  Employee ID: {employee.biod}
+                </Badge>
+                {employee.department && (
+                  <Badge variant="secondary" className="text-sm font-medium">
+                    {employee.department}
+                  </Badge>
+                )}
+                {employee.position && (
+                  <Badge variant="outline" className="text-sm font-medium">
+                    {employee.position}
+                  </Badge>
+                )}
+              </div>
+            )}
+            
+            {!isLoading && employee && (
+              <div className="mt-4 space-y-1">
+                <h2 className="text-xl font-semibold">
+                  {employee.fname} {employee.mname && employee.mname.charAt(0) + '.'} {employee.lname} {employee.extname}
+                </h2>
+                <p className="text-muted-foreground">{employee.email}</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <Tabs defaultValue="personal" className="w-full">
@@ -447,6 +601,9 @@ export default function Profile() {
                         username: employee.username || "",
                         workhours_id: employee.workhours_id || "",
                       })
+                      // Reset profile picture states
+                      setProfilePicture(null)
+                      setProfilePicturePreview(null)
                       setIsFormModified(false)
                     }
                   }}
@@ -576,6 +733,9 @@ export default function Profile() {
                         workHoursAm: employee.workhours_am || "",
                         workHoursPm: employee.workhours_pm || "",
                       })
+                      // Reset profile picture states
+                      setProfilePicture(null)
+                      setProfilePicturePreview(null)
                       setIsFormModified(false)
                     }
                   }}

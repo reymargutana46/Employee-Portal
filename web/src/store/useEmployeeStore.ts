@@ -31,6 +31,7 @@ interface EmployeeState {
   deleteEmployee: (id: number) => void;
   exportData: () => void;
   updateProfile: (id: number, profileData: Partial<Employee>) => Promise<void>
+  updateProfileWithFile: (id: number, formData: FormData) => Promise<void>
   updatePassword: (passwordData: { userId: number; currentPassword: string; newPassword: string }) => Promise<void>
   // Computed
   getFilteredEmployees: () => Employee[];
@@ -212,6 +213,44 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
       console.log("Profile updated successfully:", response.data.data)
     } catch (error) {
       console.error("Failed to update profile:", error)
+      throw error // Re-throw to handle in component
+    }
+  },
+
+  updateProfileWithFile: async (id, formData) => {
+    try {
+      // Send PUT request to update employee profile with file upload
+      const response = await axios.put<Res<Employee>>(`/accounts/update/profile`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      // Update the employee in the store
+      set((state) => {
+        // Assuming 'employees' is available in the state
+        if (!state.employees) {
+          console.warn("Employees array is not initialized in the store.")
+          return state // Return the current state if 'employees' is not available
+        }
+
+        const updatedEmployees = state.employees.map((emp: Employee) =>
+          emp.id === id ? { ...emp, ...response.data.data } : emp,
+        )
+
+        // Also update the current employee if it's the same one
+        const updatedEmployee =
+          state.employee?.id === id ? { ...state.employee, ...response.data.data } : state.employee
+
+        return {
+          employees: updatedEmployees,
+          employee: updatedEmployee,
+        }
+      })
+
+      console.log("Profile with file updated successfully:", response.data.data)
+    } catch (error) {
+      console.error("Failed to update profile with file:", error)
       throw error // Re-throw to handle in component
     }
   },

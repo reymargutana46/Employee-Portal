@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\AuthenticationController;
+use App\Http\Controllers\ClassProgramController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DTRController;
 use App\Http\Controllers\EmployeeController;
@@ -27,7 +28,9 @@ Route::post('/register', [AuthenticationController::class, 'register']);
 
 Route::post('/login', [AuthenticationController::class, 'login']);
 
-
+Route::prefix('pds')->controller(PersonalDataSheetController::class)->group(function () {
+    Route::get('/files/{id}/view', 'viewFile');
+});
 
 Route::middleware(['auth:sanctum'])->group(function () {
 
@@ -121,6 +124,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
 
+    Route::prefix('class-programs')->controller(ClassProgramController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{id}', 'show');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
+
+
     Route::prefix('/set-up')->controller(SetupController::class)->group(function () {
         Route::get('/role', 'roles');
         Route::get('/department', 'departments');
@@ -150,6 +162,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/upload', 'upload');
         Route::get('/files/{id}', 'getFile');
         Route::delete('/files/{id}', 'deleteFile');
-        Route::get('/files/{id}/view', 'viewFile');
+        // Route::get('/files/{id}/view', 'viewFile');
     });
 });
+

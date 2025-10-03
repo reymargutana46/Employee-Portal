@@ -33,8 +33,8 @@ const ViewLeaveDetailsDialog = ({
     if (!win) return;
 
     // School information
-    const schoolName = "ADCS Elementary School";
-    const schoolAddress = "123 Education Way, Springfield, IL 12345";
+    const schoolName = "Naawan Central School";
+    const schoolAddress = "Magsaysay St. Poblacion 9023 Naawan, Philippines";
     const schoolLogo = "/api/placeholder/150/80"; // Placeholder for school logo
 
     win.document.write(`

@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('leave_rejections', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('rejected_by')->references('username')->on('users')->onDelete('cascade');
+            $table->string("rejected_by");
+            $table->foreign('rejected_by')->references('username')->on('users')->onDelete('cascade');
             $table->foreignId('leave_id')->references('id')->on('leaves')->onDelete('cascade');
             $table->timestamps();
         });

@@ -86,9 +86,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
           name: "admin",
         },
         {
-          name: "principal",
-        },
-        {
           name: "secretary",
         },
       ],
@@ -134,6 +131,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "staff",
         },
+        {
+          name: "principal",
+        },
       ],
     },
     {
@@ -154,6 +154,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "staff",
         },
+        {
+          name: "faculty",
+        }
       ],
     },
     {
@@ -186,10 +189,13 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "faculty"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "faculty",
         },
         {
-          name: "faculty",
+          name: "staff",
+        },
+        {
+          name: "principal",
         },
       ],
     },
