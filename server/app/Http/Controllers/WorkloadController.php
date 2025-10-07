@@ -59,6 +59,7 @@ class WorkloadController extends Controller
             'type' => $validated['type'],
             'to' => $validated['to'],
             'from' => $validated['from'],
+            'status' => 'PENDING',
         ]);
 
         ActivityLog::create([
@@ -270,5 +271,78 @@ class WorkloadController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function myCreated()
+    {
+        $auth = Auth::user();
+        $workloads = WorkLoadHdr::with([
+            'facultyWL.room',
+            'staffWL',
+            'employee'
+        ])->where('created_by', $auth->username)->orderBy('created_at', 'desc')->get();
+
+        return $this->ok($workloads);
+    }
+
+    public function approve(Request $request, string $id)
+    {
+        $workload = WorkLoadHdr::findOrFail($id);
+        $workload->update([
+            'status' => 'APPROVED',
+            'approved_by' => Auth::user()->username,
+            'approved_at' => now(),
+            'approval_remarks' => $request->input('remarks'),
+        ]);
+
+        // Notify assignee (teacher) if assigned
+        if ($workload->assignee_id) {
+            $employee = Employee::findOrFail($workload->assignee_id);
+            $user = User::where('username', $employee->username_id)->first();
+            Notification::create([
+                'username_id' => $user->username,
+                'title' => "Schedule Approved",
+                'message' => "Your schedule '{$workload->title}' has been approved by the Principal.",
+                'type' => "success",
+                'url' => "/schedule",
+            ]);
+        }
+
+        // Notify creator (grade leader)
+        Notification::create([
+            'username_id' => $workload->created_by,
+            'title' => "Schedule Approved",
+            'message' => "Your schedule '{$workload->title}' has been approved.",
+            'type' => "success",
+            'url' => "/schedule",
+        ]);
+
+        return $this->ok($workload->load(['facultyWL.room','staffWL','employee']));
+    }
+
+    public function reject(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
+        $workload = WorkLoadHdr::findOrFail($id);
+        $workload->update([
+            'status' => 'REJECTED',
+            'rejected_by' => Auth::user()->username,
+            'rejected_at' => now(),
+            'approval_remarks' => $validated['remarks'] ?? null,
+        ]);
+
+        // Notify creator (grade leader)
+        Notification::create([
+            'username_id' => $workload->created_by,
+            'title' => "Schedule Rejected",
+            'message' => "Your schedule '{$workload->title}' was rejected by the Principal." . ($workload->approval_remarks ? " Remarks: {$workload->approval_remarks}" : ""),
+            'type' => "error",
+            'url' => "/schedule",
+        ]);
+
+        return $this->ok($workload->load(['facultyWL.room','staffWL','employee']));
     }
 }

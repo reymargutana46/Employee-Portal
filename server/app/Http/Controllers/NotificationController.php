@@ -13,11 +13,10 @@ class NotificationController extends Controller
      */
     public function index()
     {
-
-        $notiofications = Notification::where('username_id', Auth::user()->username)
+        $notifications = Notification::where('username_id', Auth::user()->username)
             ->orderBy('created_at', 'desc')
             ->get();
-        return $this->ok($notiofications);
+        return $this->ok($notifications);
     }
 
     /**
@@ -51,22 +50,32 @@ class NotificationController extends Controller
     {
         $notification = Notification::find($id);
         if ($notification) {
+            // Verify the notification belongs to the authenticated user
+            if ($notification->username_id !== Auth::user()->username) {
+                return $this->forbidden('You can only delete your own notifications');
+            }
+            
             $notification->delete();
             return $this->ok(['message' => 'Notification deleted successfully']);
         }
-        return $this->badRequest('Notification not found', 404);
+        return $this->notFound('Notification not found');
     }
 
-    public function markAsRead(Request $request)
+    public function markAsRead(Request $request, string $id)
     {
-        $notification = Notification::find($request->id);
+        $notification = Notification::find($id);
         if ($notification) {
+            // Verify the notification belongs to the authenticated user
+            if ($notification->username_id !== Auth::user()->username) {
+                return $this->forbidden('You can only mark your own notifications as read');
+            }
+            
             $notification->read_at = now();
             $notification->is_read = true;
             $notification->save();
             return $this->ok($notification);
         }
-        return $this->badRequest('Notification not found', 404);
+        return $this->notFound('Notification not found');
     }
     public function markAllAsRead()
     {

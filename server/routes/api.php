@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\AuthenticationController;
 use App\Http\Controllers\ClassProgramController;
+use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DTRController;
 use App\Http\Controllers\EmployeeController;
@@ -112,24 +113,31 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('workload')->controller(WorkloadController::class)->group(function () {
 
         Route::get('/', 'index');
-        Route::post('/', 'store');
         Route::get('/schedule', 'show');
-        Route::post('/staff', 'storeStaff');
-        Route::post('/faculty', 'storeFaculty');
-        Route::post('/staff/assign', 'assignStaff');
-        Route::post('/faculty/assign', 'assignFaculty');
-        Route::put('/{id}/staff', 'updateStaff');
-        Route::put('/{id}/faculty', 'updateFaculty');
-        Route::delete('/{id}', 'destroy');
+
+        Route::post('/', 'store')->middleware('role:GradeLeader');
+        Route::post('/staff', 'storeStaff')->middleware('role:GradeLeader');
+        Route::post('/faculty', 'storeFaculty')->middleware('role:GradeLeader');
+        Route::post('/staff/assign', 'assignStaff')->middleware('role:GradeLeader');
+        Route::post('/faculty/assign', 'assignFaculty')->middleware('role:GradeLeader');
+        Route::put('/{id}/staff', 'updateStaff')->middleware('role:GradeLeader');
+        Route::put('/{id}/faculty', 'updateFaculty')->middleware('role:GradeLeader');
+        Route::delete('/{id}', 'destroy')->middleware('role:GradeLeader');
+
+        Route::get('/my-created', 'myCreated')->middleware('role:GradeLeader');
+        Route::post('/{id}/approve', 'approve')->middleware('role:Principal');
+        Route::post('/{id}/reject', 'reject')->middleware('role:Principal');
     });
 
-
-    Route::prefix('class-programs')->controller(ClassProgramController::class)->group(function () {
+    Route::prefix('class-schedules')->controller(ClassScheduleController::class)->group(function () {
         Route::get('/', 'index');
-        Route::post('/', 'store');
+        Route::get('/my-created', 'myCreated')->middleware('role:GradeLeader');
+        Route::post('/', 'store')->middleware('role:GradeLeader');
         Route::get('/{id}', 'show');
-        Route::put('/{id}', 'update');
-        Route::delete('/{id}', 'destroy');
+        Route::put('/{id}', 'update')->middleware('role:GradeLeader');
+        Route::delete('/{id}', 'destroy')->middleware('role:GradeLeader');
+        Route::post('/{id}/approve', 'approve')->middleware('role:Principal');
+        Route::post('/{id}/reject', 'reject')->middleware('role:Principal');
     });
 
 

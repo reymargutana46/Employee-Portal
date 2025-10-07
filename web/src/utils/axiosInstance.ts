@@ -1,4 +1,3 @@
-import { useAuth } from "@/context/AuthContext";
 import { Auth } from "@/types/user";
 import axios, { AxiosError } from "axios";
 import { toast } from "sonner";
@@ -27,12 +26,24 @@ instance.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
 instance.interceptors.response.use(
     (response) => response, // Pass successful responses through
     (error: AxiosError<ErrorResponse>) => {
         if (error.response) {
             const errorData = error.response.data;
             const message = errorData?.message || 'An error occurred';
+            
+            // Handle authentication errors
+            if (error.response.status === 401) {
+                // Clear authentication state
+                localStorage.removeItem('auth');
+                toast.error('Session expired', { description: 'Please log in again' });
+                // Redirect to login page
+                window.location.href = '/login';
+                return Promise.reject(error);
+            }
+            
             toast.error(`Error ${error.response.status}`, { description: message });
         } else {
             toast.error('Network Error', { description: 'Unable to connect to server' });

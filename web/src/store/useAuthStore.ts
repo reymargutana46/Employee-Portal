@@ -21,7 +21,9 @@ interface AuthState {
   canDoAction: (allowedRoles: string[]) => boolean;
   fetchUser: () => Promise<void>;
   UpdateUserRole: (roles: Role[]) => void;
-  clearAuthState: () => void; // New method for complete cleanup
+  updateUserProfile: (updates: Partial<User>) => void;
+  clearAuthState: () => void;
+  validateAuth: () => Promise<boolean>; // New method for auth validation
 }
 
 // Load initial state from localStorage if available
@@ -230,7 +232,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false;
     }
     return user.roles.some(role =>
-      allowedRoles.some(allowedRole => allowedRole.name === role.name)
+      allowedRoles.some(allowedRole => allowedRole.name.toLowerCase() === role.name.toLowerCase())
     );
   },
 
@@ -239,7 +241,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!isAuthenticated || !userRoles || userRoles.length === 0 || allowedRoles.length === 0) {
       return false;
     }
-    return userRoles.some(role => allowedRoles.includes(role.name));
+    // Normalize role names to lowercase for comparison
+    const normalizedUserRoles = userRoles.map(role => role.name.toLowerCase());
+    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
+    return normalizedUserRoles.some(role => normalizedAllowedRoles.includes(role));
   },
 
   fetchUser: async () => {
@@ -288,5 +293,56 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: updatedUser
     };
     localStorage.setItem('auth', JSON.stringify(updatedAuth));
+  },
+
+  updateUserProfile: (updates) => {
+    const { user, isAuthenticated } = get();
+    if (!isAuthenticated || !user) {
+      console.warn('Cannot update user profile: not authenticated');
+      return;
+    }
+
+    const updatedUser = {
+      ...user,
+      ...updates
+    };
+
+    set({
+      user: updatedUser
+    });
+
+    // Update localStorage
+    const currentAuth = JSON.parse(localStorage.getItem('auth') || '{}');
+    const updatedAuth = {
+      ...currentAuth,
+      user: updatedUser
+    };
+    localStorage.setItem('auth', JSON.stringify(updatedAuth));
+  },
+
+  validateAuth: async () => {
+    const { token, isAuthenticated } = get();
+    
+    if (!isAuthenticated || !token) {
+      get().clearAuthState();
+      return false;
+    }
+
+    try {
+      // Try to fetch user data to validate token
+      const response = await axios.get('/accounts/me');
+      return true;
+    } catch (error: any) {
+      console.error('Token validation failed:', error);
+      
+      // If token is invalid, clear auth state
+      if (error.response?.status === 401) {
+        get().clearAuthState();
+        localStorage.removeItem('auth');
+        return false;
+      }
+      
+      return false;
+    }
   }
 }));

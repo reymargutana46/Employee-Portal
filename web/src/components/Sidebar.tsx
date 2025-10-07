@@ -57,6 +57,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -111,6 +114,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -134,6 +140,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "principal",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -156,7 +165,10 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         },
         {
           name: "faculty",
-        }
+        },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -180,6 +192,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -196,6 +211,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         },
         {
           name: "principal",
+        },
+        {
+          name: "gradeleader",
         },
       ],
     },
@@ -236,7 +254,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   // Show nav items if user has ANY of the allowed roles
   const filteredNavItems = navItems.filter((item) =>
     userRoles.some((role) =>
-      item.allowedRoles.some((r) => r.name === role.name)
+      item.allowedRoles.some((r) => r.name.toLowerCase() === role.name.toLowerCase())
     )
   );
 

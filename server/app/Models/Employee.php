@@ -25,7 +25,8 @@ class Employee extends Model
         'email',
         'contactno',
         'workhour_id',
-        'telno'
+        'telno',
+        'profile_picture'
     ];
 
     public function getFullName()

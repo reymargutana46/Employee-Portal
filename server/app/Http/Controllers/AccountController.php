@@ -20,6 +20,7 @@ use App\Http\Resources\EmployeeResource;
 use Illuminate\Support\Facades\DB;
 use App\Services\DashboardService;
 use Illuminate\Support\Facades\Hash;
+use App\Models\ActivityLog;
 
 class AccountController extends Controller
 {
@@ -34,8 +35,31 @@ class AccountController extends Controller
      */
     public function index()
     {
-        $users = User::with(['employee', 'roles'])->get();
-        return $this->ok(UserResource::collection($users), 'Users retrieved successfully');
+        // Get all employees with their associated user accounts and roles
+        $employees = Employee::with(['user.roles', 'department', 'position'])
+            ->get()
+            ->map(function ($employee) {
+                return [
+                    'employee_id' => $employee->id,
+                    'username' => $employee->user->username ?? null,
+                    'fullname' => $employee->getFullName(),
+                    'firstname' => $employee->fname,
+                    'lastname' => $employee->lname,
+                    'middlename' => $employee->mname,
+                    'extension' => $employee->extname,
+                    'email' => $employee->email,
+                    'contactno' => $employee->contactno,
+                    'department' => $employee->department->name ?? null,
+                    'position' => $employee->position->title ?? null,
+                    'has_account' => $employee->user !== null,
+                    'profile_picture' => $employee->profile_picture ? asset('storage/' . $employee->profile_picture) : null,
+                    'roles' => $employee->user ? $employee->user->roles : [],
+                    'created_at' => $employee->created_at,
+                    'updated_at' => $employee->updated_at,
+                ];
+            });
+
+        return $this->ok($employees, 'Employees and accounts retrieved successfully');
     }
 
     /**
@@ -43,7 +67,48 @@ class AccountController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'username' => 'required|string|unique:users,username',
+            'password' => 'required|string|min:8',
+            'role_ids' => 'required|array',
+            'role_ids.*' => 'exists:roles,id'
+        ]);
+
+        try {
+            DB::transaction(function () use ($validated) {
+                // Check if employee already has a user account
+                $employee = Employee::findOrFail($validated['employee_id']);
+                
+                if ($employee->user) {
+                    throw new \Exception('Employee already has a user account');
+                }
+
+                // Create user account
+                $user = User::create([
+                    'username' => $validated['username'],
+                    'password' => Hash::make($validated['password']),
+                ]);
+
+                // Attach roles
+                $user->roles()->attach($validated['role_ids']);
+
+                // Update employee to link with user
+                $employee->update(['username_id' => $user->username]);
+
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'created',
+                    'description' => "Created user account for employee {$employee->fname} {$employee->lname}",
+                    'entity_type' => User::class,
+                    'entity_id' => $user->username,
+                ]);
+            });
+
+            return $this->ok(null, 'User account created successfully');
+        } catch (\Exception $e) {
+            return $this->badRequest($e->getMessage());
+        }
     }
 
     /**
@@ -115,9 +180,38 @@ class AccountController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $username)
     {
-        //
+        try {
+            DB::transaction(function () use ($username) {
+                $user = User::where('username', $username)->first();
+                
+                if (!$user) {
+                    throw new \Exception('User not found');
+                }
+
+                $employee = $user->employee;
+                
+                // Remove user account but keep employee record
+                if ($employee) {
+                    $employee->update(['username_id' => null]);
+                }
+
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'deleted',
+                    'description' => "Deleted user account for {$username}",
+                    'entity_type' => User::class,
+                    'entity_id' => $username,
+                ]);
+
+                $user->forceDelete();
+            });
+
+            return $this->ok(null, 'User account deleted successfully');
+        } catch (\Exception $e) {
+            return $this->badRequest($e->getMessage());
+        }
     }
 
     public function dashboard()
@@ -150,7 +244,6 @@ class AccountController extends Controller
             'lname' => 'required|string',
             'mname' => 'nullable|string',
             'extname' => 'nullable|string',
-
             'contactno' => 'required|string',
             'telno' => 'nullable|string',
             'email' => 'required|email',
@@ -160,9 +253,10 @@ class AccountController extends Controller
             'workhours_am' => 'required',
             'workhours_pm' => 'required',
             'username' => 'required|string',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
         ]);
 
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $request) {
             $employee = Employee::findOrFail($validated['id']);
 
             // Update User
@@ -180,13 +274,24 @@ class AccountController extends Controller
             $department = Department::where('name', $validated['department'])->firstOrFail();
             $position = Position::where('title', $validated['position'])->firstOrFail();
 
+            // Handle profile picture upload if present
+            $profilePicturePath = $employee->profile_picture; // Keep existing if no new upload
+            if ($request->hasFile('profile_picture')) {
+                // Delete old profile picture if exists
+                if ($employee->profile_picture && file_exists(storage_path('app/public/' . $employee->profile_picture))) {
+                    unlink(storage_path('app/public/' . $employee->profile_picture));
+                }
+                
+                // Store new profile picture
+                $profilePicturePath = $request->file('profile_picture')->store('profile_pictures', 'public');
+            }
+
             // Update Employee
             $employee->update([
                 'fname' => $validated['fname'],
                 'lname' => $validated['lname'],
                 'mname' => $validated['mname'],
                 'extname' => $validated['extname'],
-
                 'contactno' => $validated['contactno'],
                 'telno' => $validated['telno'],
                 'email' => $validated['email'],
@@ -194,6 +299,7 @@ class AccountController extends Controller
                 'position_id' => $position->id,
                 'username_id' => $user->username,
                 'workhour_id' => $workhour->id,
+                'profile_picture' => $profilePicturePath,
             ]);
         });
 

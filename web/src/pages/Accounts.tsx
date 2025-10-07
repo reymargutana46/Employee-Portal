@@ -10,6 +10,9 @@ import {
   Plus,
   ChevronUp,
   ChevronDown,
+  UserPlus,
+  UserMinus,
+  AlertCircle,
 } from "lucide-react";
 
 import type { Role } from "@/types/user";
@@ -26,6 +29,17 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEmployeeStore } from "@/store/useEmployeeStore";
+import UserWithAvatar from "@/components/ui/user-with-avatar";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export default function Accounts() {
   // Get users and auth functions from Zustand store
@@ -38,6 +52,16 @@ export default function Accounts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  
+  // New states for account creation
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [createAccountData, setCreateAccountData] = useState({
+    username: '',
+    password: '',
+    confirmPassword: '',
+    selectedRoles: [] as number[]
+  });
+  const [creatingAccount, setCreatingAccount] = useState(false);
 
   // Check if current user can manage roles
   const canManage = canManageRoles();
@@ -72,8 +96,10 @@ export default function Accounts() {
     (user) =>
       user.fullname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.lastname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.position?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSelectUser = (user: UserType) => {
@@ -84,10 +110,11 @@ export default function Accounts() {
         (role) => !user.roles?.some((userRole) => userRole.name === role.name)
       )
     );
+    setActiveTab(user.has_account ? "details" : "details"); // Always start with details tab
   };
 
   const addRole = (role: Role) => {
-    if (!selectedUser) return;
+    if (!selectedUser || !selectedUser.has_account) return;
 
     if (!userRoles.some((r) => r.name === role.name)) {
       const updatedUserRoles = [...userRoles, role];
@@ -97,7 +124,7 @@ export default function Accounts() {
   };
 
   const removeRole = (role: Role) => {
-    if (!selectedUser) return;
+    if (!selectedUser || !selectedUser.has_account) return;
 
     const updatedUserRoles = userRoles.filter((r) => r.name !== role.name);
     setUserRoles(updatedUserRoles);
@@ -128,7 +155,7 @@ export default function Accounts() {
   };
 
   const saveUserChanges = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !selectedUser.username) return;
 
     setSaving(true);
     try {
@@ -150,6 +177,66 @@ export default function Accounts() {
     }
   };
 
+  const createUserAccount = async () => {
+    if (!selectedUser) return;
+    
+    if (createAccountData.password !== createAccountData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (createAccountData.selectedRoles.length === 0) {
+      toast.error("Please select at least one role");
+      return;
+    }
+
+    setCreatingAccount(true);
+    try {
+      await axios.post('/accounts', {
+        employee_id: selectedUser.employee_id,
+        username: createAccountData.username,
+        password: createAccountData.password,
+        role_ids: createAccountData.selectedRoles
+      });
+
+      // Reset form
+      setCreateAccountData({
+        username: '',
+        password: '',
+        confirmPassword: '',
+        selectedRoles: []
+      });
+      
+      // Refresh user list
+      await fetchUser();
+      
+      toast.success("User account created successfully");
+      setShowCreateAccount(false);
+    } catch (error: any) {
+      console.error("Failed to create account:", error);
+      toast.error(error.response?.data?.message || "Failed to create user account");
+    } finally {
+      setCreatingAccount(false);
+    }
+  };
+
+  const deleteUserAccount = async () => {
+    if (!selectedUser || !selectedUser.username) return;
+
+    if (!confirm(`Are you sure you want to delete the account for ${selectedUser.fullname}? This will remove their login access but keep their employee record.`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/accounts/${selectedUser.username}`);
+      await fetchUser();
+      toast.success("User account deleted successfully");
+    } catch (error: any) {
+      console.error("Failed to delete account:", error);
+      toast.error(error.response?.data?.message || "Failed to delete user account");
+    }
+  };
+
   // Get initials for avatar
   const getInitials = (firstName?: string, lastName?: string) => {
     const first = firstName?.charAt(0) || "";
@@ -167,7 +254,7 @@ export default function Accounts() {
             Account Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            View and manage user accounts and permissions
+            View and manage user accounts and permissions for all employees
           </p>
         </div>
       </div>
@@ -178,12 +265,12 @@ export default function Accounts() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              <CardTitle>Users</CardTitle>
+              <CardTitle>Employees</CardTitle>
             </div>
             <div className="relative mt-2">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search users..."
+                placeholder="Search employees..."
                 className="pl-9 w-full"
                 onChange={(e) => setSearchQuery(e.target.value)}
                 value={searchQuery}
@@ -195,41 +282,53 @@ export default function Accounts() {
               <div className="px-4 pb-4">
                 {filteredUsers.length > 0 ? (
                   <div className="space-y-1">
-                    {filteredUsers.map((user) => {
-
+                    {filteredUsers.map((employee) => {
                       return (
                         <button
-                          key={user.username}
+                          key={employee.employee_id || employee.username}
                           className={`w-full text-left p-3 rounded-md flex items-center gap-3 transition-colors ${
-                            selectedUser?.username === user.username
+                            selectedUser?.employee_id === employee.employee_id || selectedUser?.username === employee.username
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted"
                           }`}
-                          onClick={() => handleSelectUser(user)}
+                          onClick={() => handleSelectUser(employee)}
                         >
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="text-xs">
-                              {getInitials(user.firstname, user.lastname)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserWithAvatar 
+                            user={{
+                              firstname: employee.firstname,
+                              lastname: employee.lastname,
+                              profile_picture: employee.profile_picture
+                            }}
+                            size="sm"
+                            showFullName={false}
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <p className="font-medium truncate">
-                                {user.firstname} {user.lastname}
+                                {employee.firstname} {employee.lastname}
                               </p>
-                              <ChevronRight
-                                className={`h-4 w-4 ${
-                                  selectedUser?.username === user.username
-                                    ? "text-primary"
-                                    : "text-muted-foreground"
-                                }`}
-                              />
+                              <div className="flex items-center gap-1">
+                                {employee.has_account === false && (
+                                  <AlertCircle className="h-3 w-3 text-orange-500" />
+                                )}
+                                <ChevronRight
+                                  className={`h-4 w-4 ${
+                                    selectedUser?.employee_id === employee.employee_id || selectedUser?.username === employee.username
+                                      ? "text-primary"
+                                      : "text-muted-foreground"
+                                  }`}
+                                />
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <p className="text-xs text-muted-foreground truncate">
-                                @{user.username}
+                                {employee.has_account !== false && employee.username ? `@${employee.username}` : 'No account'}
                               </p>
-
+                              {employee.has_account !== false && employee.username ? (
+                                <Badge variant="secondary" className="text-xs">Account</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">No Account</Badge>
+                              )}
                             </div>
                           </div>
                         </button>
@@ -240,7 +339,7 @@ export default function Accounts() {
                   <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                     <User className="h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-muted-foreground font-medium">
-                      No users found
+                      No employees found
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Try adjusting your search
@@ -258,27 +357,160 @@ export default function Accounts() {
             <>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {getInitials(
-                        selectedUser.firstname,
-                        selectedUser.lastname
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
+                  <UserWithAvatar 
+                    user={{
+                      firstname: selectedUser.firstname,
+                      lastname: selectedUser.lastname,
+                      profile_picture: selectedUser.profile_picture
+                    }}
+                    size="lg"
+                    showFullName={false}
+                    layout="vertical"
+                    className="items-start"
+                  />
+                  <div className="flex-1">
                     <CardTitle className="text-xl">
                       {selectedUser.firstname} {selectedUser.lastname}
                     </CardTitle>
-                    {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      @{selectedUser.username}
-                      {getPrimaryRole(selectedUser.roles) && (
-                        <Badge variant="secondary" className="capitalize">
-                          {getPrimaryRole(selectedUser.roles)?.name}
-                        </Badge>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {selectedUser.has_account !== false && selectedUser.username ? (
+                        <>
+                          @{selectedUser.username}
+                          <Badge variant="secondary">Has Account</Badge>
+                        </>
+                      ) : (
+                        <>
+                          <span>No user account</span>
+                          <Badge variant="outline">Employee Only</Badge>
+                        </>
                       )}
-                    </div> */}
+                    </div>
                   </div>
+                  {canManage && (
+                    <div className="flex gap-2">
+                      {(selectedUser.has_account === false || !selectedUser.username) && (
+                        <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="flex items-center gap-2">
+                              <UserPlus className="h-4 w-4" />
+                              Create Account
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create User Account</DialogTitle>
+                              <DialogDescription>
+                                Create a user account for {selectedUser.fullname} to allow system access.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="username">Username</Label>
+                                <Input
+                                  id="username"
+                                  value={createAccountData.username}
+                                  onChange={(e) => setCreateAccountData(prev => ({
+                                    ...prev,
+                                    username: e.target.value
+                                  }))}
+                                  placeholder="Enter username"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                  id="password"
+                                  type="password"
+                                  value={createAccountData.password}
+                                  onChange={(e) => setCreateAccountData(prev => ({
+                                    ...prev,
+                                    password: e.target.value
+                                  }))}
+                                  placeholder="Enter password"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                <Input
+                                  id="confirmPassword"
+                                  type="password"
+                                  value={createAccountData.confirmPassword}
+                                  onChange={(e) => setCreateAccountData(prev => ({
+                                    ...prev,
+                                    confirmPassword: e.target.value
+                                  }))}
+                                  placeholder="Confirm password"
+                                />
+                              </div>
+                              <div>
+                                <Label>Roles</Label>
+                                <div className="space-y-2 mt-2">
+                                  {roles.map((role) => (
+                                    <div key={role.id} className="flex items-center space-x-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`role-${role.id}`}
+                                        checked={createAccountData.selectedRoles.includes(role.id!)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setCreateAccountData(prev => ({
+                                              ...prev,
+                                              selectedRoles: [...prev.selectedRoles, role.id!]
+                                            }));
+                                          } else {
+                                            setCreateAccountData(prev => ({
+                                              ...prev,
+                                              selectedRoles: prev.selectedRoles.filter(id => id !== role.id)
+                                            }));
+                                          }
+                                        }}
+                                        className="rounded"
+                                      />
+                                      <Label htmlFor={`role-${role.id}`} className="capitalize">
+                                        {role.name}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowCreateAccount(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={createUserAccount}
+                                disabled={creatingAccount}
+                              >
+                                {creatingAccount ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Creating...
+                                  </>
+                                ) : (
+                                  'Create Account'
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {selectedUser.has_account !== false && selectedUser.username && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={deleteUserAccount}
+                          className="flex items-center gap-2"
+                        >
+                          <UserMinus className="h-4 w-4" />
+                          Delete Account
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardHeader>
 
@@ -294,55 +526,74 @@ export default function Accounts() {
                       className="flex items-center gap-2"
                     >
                       <User className="h-4 w-4" />
-                      User Details
+                      Employee Details
                     </TabsTrigger>
-                    <TabsTrigger
-                      value="roles"
-                      className="flex items-center gap-2"
-                    >
-                      <Shield className="h-4 w-4" />
-                      Role Management
-                    </TabsTrigger>
+                    {selectedUser.has_account !== false && selectedUser.username && (
+                      <TabsTrigger
+                        value="roles"
+                        className="flex items-center gap-2"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Role Management
+                      </TabsTrigger>
+                    )}
                   </TabsList>
 
                   <TabsContent value="details">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-1">
                         <h3 className="text-sm font-medium text-muted-foreground">
-                          Username
+                          Full Name
                         </h3>
                         <p className="text-base font-medium">
-                          {selectedUser.username}
+                          {selectedUser.fullname}
                         </p>
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-sm font-medium text-muted-foreground">
                           Email
                         </h3>
-                        <p className="text-base font-medium flex items-center gap-2">
+                        <p className="text-base font-medium">
                           {selectedUser.email}
                         </p>
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-sm font-medium text-muted-foreground">
-                          First Name
+                          Department
                         </h3>
                         <p className="text-base font-medium">
-                          {selectedUser.firstname || "—"}
+                          {selectedUser.department || "—"}
                         </p>
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-sm font-medium text-muted-foreground">
-                          Last Name
+                          Position
                         </h3>
                         <p className="text-base font-medium">
-                          {selectedUser.lastname || "—"}
+                          {selectedUser.position || "—"}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Contact Number
+                        </h3>
+                        <p className="text-base font-medium">
+                          {selectedUser.contactno || "—"}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-medium text-muted-foreground">
+                          Username
+                        </h3>
+                        <p className="text-base font-medium">
+                          {selectedUser.username || "No account"}
                         </p>
                       </div>
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="roles">
+                  {selectedUser.has_account !== false && selectedUser.username && (
+                    <TabsContent value="roles">
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div>
@@ -474,6 +725,7 @@ export default function Accounts() {
                       </div>
                     </div>
                   </TabsContent>
+                  )}
                 </Tabs>
               </div>
             </>

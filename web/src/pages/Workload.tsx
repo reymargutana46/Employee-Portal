@@ -20,10 +20,13 @@ import { EditWorkloadDialog } from "@/components/EditWorkloadDialog"
 import { DeleteWorkloadDialog } from "@/components/DeleteWorkload"
 import { EditFacultyDetailsDialog } from "@/components/EditFacultyDialog"
 import { EditStaffDetailsDialog } from "@/components/EditStaffDialog"
+import { ClassScheduleApproval } from "@/components/ClassScheduleApproval"
+import { useNotificationStore } from "@/store/useNotificationStore"
 
 
 const WorkloadPage = () => {
   const { userRoles } = useAuth()
+  const { markNotificationsByUrlAsRead } = useNotificationStore()
   const {
     facultyWorkloads,
     staffWorkloads,
@@ -43,12 +46,19 @@ const WorkloadPage = () => {
   const [activeTab, setActiveTab] = useState<"FACULTY" | "STAFF" | "UNASSIGNED">("UNASSIGNED")
   const [selectedWorkload, setSelectedWorkload] = useState<Workload | null>(null)
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
-  const isPrincipal = userRoles.some((role) => role.name === "principal")
+  const isPrincipal = userRoles.some((role) => role.name.toLowerCase() === "principal")
+  const isGradeLeader = userRoles.some((role) => role.name.toLowerCase() === "gradeleader")
+  const canManageWorkloads = isPrincipal || isGradeLeader
 
   useEffect(() => {
     fetchRooms()
     fetchWorkloads()
-  }, [fetchWorkloads, fetchRooms])
+    
+    // Mark related notifications as read when Principal accesses this page
+    if (isPrincipal) {
+      markNotificationsByUrlAsRead('/workload')
+    }
+  }, [fetchWorkloads, fetchRooms, isPrincipal, markNotificationsByUrlAsRead])
 
   const handleCreateWorkload = async (data: Partial<Workload>) => {
     await createWorkload(data)
@@ -142,7 +152,7 @@ const WorkloadPage = () => {
           <h1 className="text-3xl font-bold">Workload Management</h1>
           <p className="text-muted-foreground mt-1">Create, assign, and track faculty and staff workloads</p>
         </div>
-        {isPrincipal && (
+        {canManageWorkloads && (
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -225,10 +235,11 @@ const WorkloadPage = () => {
       </div>
 
       <Tabs defaultValue="UNASSIGNED" onValueChange={(value) => setActiveTab(value as any)} className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className={`grid w-full ${isPrincipal ? 'max-w-lg grid-cols-4' : 'max-w-md grid-cols-3'}`}>
           <TabsTrigger value="UNASSIGNED">Unassigned</TabsTrigger>
           <TabsTrigger value="FACULTY">Faculty</TabsTrigger>
           <TabsTrigger value="STAFF">Staff</TabsTrigger>
+          {isPrincipal && <TabsTrigger value="SCHEDULES">Class Schedules</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="UNASSIGNED">
@@ -557,6 +568,12 @@ const WorkloadPage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isPrincipal && (
+          <TabsContent value="SCHEDULES">
+            <ClassScheduleApproval />
+          </TabsContent>
+        )}
       </Tabs>
 
       {selectedWorkload && (

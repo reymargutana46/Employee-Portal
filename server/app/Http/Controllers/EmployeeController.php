@@ -50,6 +50,7 @@ class EmployeeController extends Controller
                 'workhours_am' => $employee->workhour->am ?? null,
                 'workhours_pm' => $employee->workhour->pm ?? null,
                 'telno' => $employee->telno,
+                'profile_picture' => $employee->profile_picture ? asset('storage/' . $employee->profile_picture) : null,
             ];
         });
         return $this->ok($data);

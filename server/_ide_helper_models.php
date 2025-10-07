@@ -13,8 +13,6 @@
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $performed_by
  * @property string $action
@@ -39,7 +37,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog wherePerformedBy($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ActivityLog withoutTrashed()
  */
 	class ActivityLog extends \Eloquent {}
@@ -47,8 +45,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $time_in
  * @property string $time_out
@@ -68,7 +64,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DTRPmtime whereTimeIn($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DTRPmtime whereTimeOut($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DTRPmtime whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|DTRPmtime withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|DTRPmtime withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DTRPmtime withoutTrashed()
  */
 	class DTRPmtime extends \Eloquent {}
@@ -76,8 +72,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property \Illuminate\Support\Carbon|null $deleted_at
@@ -94,7 +88,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Department whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Department whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Department whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Department withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Department withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Department withoutTrashed()
  */
 	class Department extends \Eloquent {}
@@ -102,8 +96,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $time_in
  * @property string $time_out
@@ -123,7 +115,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DtrAmtime whereTimeIn($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DtrAmtime whereTimeOut($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DtrAmtime whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|DtrAmtime withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|DtrAmtime withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|DtrAmtime withoutTrashed()
  */
 	class DtrAmtime extends \Eloquent {}
@@ -131,8 +123,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $fname
  * @property string $lname
@@ -181,7 +171,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereUsernameId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereWorkhourId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee withoutTrashed()
  */
 	class Employee extends \Eloquent {}
@@ -189,8 +179,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property int $workload_id
  * @property string $subject
@@ -221,7 +209,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|FacultyWL whereSubject($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|FacultyWL whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|FacultyWL whereWorkloadId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|FacultyWL withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FacultyWL withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|FacultyWL withoutTrashed()
  */
 	class FacultyWL extends \Eloquent {}
@@ -229,8 +217,6 @@ namespace App\Models{
 
 namespace App\Models\Leaves{
 /**
- * 
- *
  * @property int $id
  * @property string $from
  * @property string $to
@@ -258,7 +244,7 @@ namespace App\Models\Leaves{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Leave whereTo($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Leave whereTypeId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Leave whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Leave withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Leave withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Leave withoutTrashed()
  */
 	class Leave extends \Eloquent {}
@@ -266,8 +252,6 @@ namespace App\Models\Leaves{
 
 namespace App\Models\Leaves{
 /**
- * 
- *
  * @property int $id
  * @property string $rejected_by
  * @property int $leave_id
@@ -291,8 +275,6 @@ namespace App\Models\Leaves{
 
 namespace App\Models\Leaves{
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -312,8 +294,6 @@ namespace App\Models\Leaves{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -328,7 +308,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Location whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Location whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Location whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Location withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Location withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Location withoutTrashed()
  */
 	class Location extends \Eloquent {}
@@ -336,8 +316,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $username_id
  * @property string $title
@@ -365,7 +343,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Notification whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Notification whereUrl($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Notification whereUsernameId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Notification withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Notification withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Notification withoutTrashed()
  */
 	class Notification extends \Eloquent {}
@@ -373,8 +351,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $file_path
  * @property string $file_name
@@ -403,8 +379,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $title
  * @property \Illuminate\Support\Carbon|null $deleted_at
@@ -421,7 +395,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Position whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Position whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Position whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Position withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Position withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Position withoutTrashed()
  */
 	class Position extends \Eloquent {}
@@ -429,8 +403,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property \Illuminate\Support\Carbon|null $deleted_at
@@ -447,7 +419,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Role whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Role whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Role whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Role withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Role withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Role withoutTrashed()
  */
 	class Role extends \Eloquent {}
@@ -455,8 +427,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $name
  * @property int $location_id
@@ -476,7 +446,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereLocationId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Room withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Room withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Room withoutTrashed()
  */
 	class Room extends \Eloquent {}
@@ -484,8 +454,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property int $request_to
  * @property string $request_by
@@ -520,7 +488,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ServiceRequest whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ServiceRequest whereTo($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ServiceRequest whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ServiceRequest withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ServiceRequest withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ServiceRequest withoutTrashed()
  */
 	class ServiceRequest extends \Eloquent {}
@@ -528,8 +496,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property int $workload_id
  * @property string $title
@@ -553,7 +519,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|StaffWL whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|StaffWL whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|StaffWL whereWorkloadId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|StaffWL withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|StaffWL withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|StaffWL withoutTrashed()
  */
 	class StaffWL extends \Eloquent {}
@@ -561,8 +527,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property string $username
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property string $password
@@ -603,7 +567,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRememberToken($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUsername($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|User withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User withoutTrashed()
  */
 	class User extends \Eloquent {}
@@ -611,8 +575,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $title
  * @property string $from
@@ -623,25 +585,39 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string $status
+ * @property string|null $approval_remarks
+ * @property string|null $approved_by
+ * @property string|null $approved_at
+ * @property string|null $rejected_by
+ * @property string|null $rejected_at
+ * @property-read \App\Models\User|null $approvedBy
  * @property-read \App\Models\Employee|null $employee
  * @property-read \App\Models\FacultyWL|null $facultyWL
+ * @property-read \App\Models\User|null $rejectedBy
  * @property-read \App\Models\StaffWL|null $staffWL
  * @property-read \App\Models\User $user
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr onlyTrashed()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereApprovalRemarks($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereApprovedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereApprovedBy($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereAssigneeId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereCreatedBy($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereDeletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereFrom($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereRejectedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereRejectedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereTo($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereType($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|WorkLoadHdr withoutTrashed()
  */
 	class WorkLoadHdr extends \Eloquent {}
@@ -649,8 +625,6 @@ namespace App\Models{
 
 namespace App\Models{
 /**
- * 
- *
  * @property int $id
  * @property string $am
  * @property string $pm
@@ -669,7 +643,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Workhour whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Workhour wherePm($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Workhour whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|Workhour withTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Workhour withTrashed(bool $withTrashed = true)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Workhour withoutTrashed()
  */
 	class Workhour extends \Eloquent {}

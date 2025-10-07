@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Separator } from "./ui/separator";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { useEffect } from "react";
+import UserWithAvatar from "@/components/ui/user-with-avatar";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -20,7 +21,7 @@ interface HeaderProps {
 
 const Header = ({ toggleSidebar, isSidebarCollapsed }: HeaderProps) => {
   const { user, userRoles, logout } = useAuthStore();
-  const { notifications, unreadCount, fecthNotifications } =
+  const { notifications, unreadCount, fetchNotifications } =
     useNotificationStore();
   const navigate = useNavigate();
 
@@ -33,11 +34,11 @@ const Header = ({ toggleSidebar, isSidebarCollapsed }: HeaderProps) => {
   };
   useEffect(() => {
     // Run the function immediately
-    fecthNotifications();
+    fetchNotifications();
 
     // Set interval to run it every 3 seconds
     const intervalId = setInterval(() => {
-      fecthNotifications();
+      fetchNotifications();
     }, 3000);
 
     // Cleanup interval on component unmount
@@ -75,12 +76,16 @@ const Header = ({ toggleSidebar, isSidebarCollapsed }: HeaderProps) => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-full p-1 hover:bg-accent/10">
-              <div className="relative h-8 w-8 overflow-hidden rounded-full bg-primary">
-                <User className="h-6 w-6 absolute top-1 left-1 text-white" />
-              </div>
-              <span className="hidden text-sm font-medium md:inline-block">
-                {user.username}
-              </span>
+              <UserWithAvatar 
+                user={{
+                  firstname: user.firstname,
+                  lastname: user.lastname,
+                  profile_picture: user.profile_picture
+                }}
+                size="md"
+                showFullName={false}
+                className="text-sm font-medium"
+              />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

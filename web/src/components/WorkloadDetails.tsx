@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, User, Phone, Mail, CalendarRange } from "lucide-react"
+import UserWithAvatar from "@/components/ui/user-with-avatar";
 
 interface WorkloadDetailsProps {
   workload: Workload
@@ -122,11 +123,13 @@ export function WorkloadDetails({ workload, onClose }: WorkloadDetailsProps): Re
             <User className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">Assigned To</p>
-              <p className="text-sm text-muted-foreground">
-                {employee.fname} {employee.mname ? `${employee.mname.charAt(0)}. ` : ""}
-                {employee.lname} {employee.extname || ""}
-              </p>
-              <p className="text-sm text-muted-foreground">
+              <UserWithAvatar 
+                user={employee}
+                size="sm"
+                showFullName={true}
+                className="mt-1"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
                 {employee.position}, {employee.department}
               </p>
             </div>

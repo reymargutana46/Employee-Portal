@@ -68,16 +68,14 @@ class AuthenticationController extends Controller
         $data = [
             'token' => $token,
             'user' => [
-
                 'username' => $user->username,
                 'fullname' => $user->employee->getFullName(),
                 'lastname' => $user->employee->lname,
                 'employee_id' => $user->employee->id,
                 'email' => $user->employee->email,
+                'profile_picture' => $user->employee->profile_picture ? asset('storage/' . $user->employee->profile_picture) : null,
                 'roles' => $user->roles->map(fn($role) => ['name' => Str::lower($role->name)]),
-
             ],
-
         ];
         return $this->ok($data);
     }

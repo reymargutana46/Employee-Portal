@@ -27,6 +27,8 @@ export interface Workload {
   assignee_id?: string;
   created_by: string;
   type: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  approval_remarks?: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

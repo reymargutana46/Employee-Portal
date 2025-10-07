@@ -6,13 +6,23 @@ export interface Auth {
 }
 
 export interface User {
-    username: string,
-    fullname: string,
-    firstname?: string,
-    lastname: string,
-    employee_id: string,
-    email: string,
-    roles: Role[]
+    employee_id?: number;
+    username: string | null;
+    fullname: string;
+    firstname?: string;
+    lastname: string;
+    middlename?: string;
+    extension?: string;
+    employee_id_string?: string; // Keep for backward compatibility
+    email: string;
+    contactno?: string;
+    department?: string;
+    position?: string;
+    has_account?: boolean;
+    profile_picture?: string;
+    roles: Role[];
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface Role {

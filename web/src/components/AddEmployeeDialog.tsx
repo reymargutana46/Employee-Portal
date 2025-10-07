@@ -60,10 +60,15 @@ const formSchema = z.object({
 });
 
 const AddEmployeeDialog = () => {
-  const { addEmployee } = useEmployeeStore();
+  const { addEmployee, fetchsetup } = useEmployeeStore();
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { roles, departments, positions} = useEmployeeStore()
+
+  // Fetch setup data when component mounts or dialog opens
+  useEffect(() => {
+    fetchsetup();
+  }, [fetchsetup]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

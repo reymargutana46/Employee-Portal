@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('staff_wls', function (Blueprint $table) {
-            $table->string('description')->nullable()->after('title');
-
+            if (!Schema::hasColumn('staff_wls', 'description')) {
+                $table->string('description')->nullable()->after('title');
+            }
         });
     }
 
@@ -23,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('staff_wls', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('staff_wls', 'description')) {
+                $table->dropColumn('description');
+            }
         });
     }
 };

@@ -17,7 +17,13 @@ class WorkLoadHdr extends Model
         'to',
         'type',
         'assignee_id',
-        'created_by'
+        'created_by',
+        'status',
+        'approval_remarks',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at'
     ];
 
     /**
@@ -37,6 +43,16 @@ class WorkLoadHdr extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by','username');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by','username');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by','username');
     }
 
     /**

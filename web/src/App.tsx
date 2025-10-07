@@ -26,6 +26,7 @@ import { Role } from "./types/user";
 import Accounts from "./pages/Accounts";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notification";
+import AuthValidator from "./components/AuthValidator";
 
 type UserRole = "admin" | "principal" | "secretary" | "faculty" | "staff";
 
@@ -80,6 +81,9 @@ const AppRoutes = () => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
       // allowedRoles: [name: "admin", "principal", "secretary", "faculty", "staff"],
     },
@@ -131,6 +135,9 @@ const AppRoutes = () => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -151,6 +158,9 @@ const AppRoutes = () => {
         },
         {
           name: "principal",
+        },
+        {
+          name: "gradeleader",
         },
       ],
       // allowedRoles: ["admin", "secretary", "faculty", "staff"],
@@ -174,6 +184,9 @@ const AppRoutes = () => {
         {
           name: "faculty",
         },
+        {
+          name: "gradeleader",
+        },
       ],
       // allowedRoles: ["admin", "secretary", "staff"],
     },
@@ -196,6 +209,9 @@ const AppRoutes = () => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
       // allowedRoles: ["admin", "principal", "secretary", "faculty", "staff"],
     },
@@ -211,6 +227,9 @@ const AppRoutes = () => {
         },
         {
           name: "principal",
+        },
+        {
+          name: "gradeleader",
         },
       ],
       // allowedRoles: ["admin", "faculty"],
@@ -255,6 +274,9 @@ const AppRoutes = () => {
         {
           name: "staff",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     // {
@@ -284,6 +306,9 @@ const AppRoutes = () => {
         },
         {
           name: "staff",
+        },
+        {
+          name: "gradeleader",
         },
       ],
     },
@@ -324,7 +349,9 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppRoutes />
+            <AuthValidator>
+              <AppRoutes />
+            </AuthValidator>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

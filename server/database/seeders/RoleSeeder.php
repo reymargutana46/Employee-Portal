@@ -30,10 +30,18 @@ class RoleSeeder extends Seeder
                 'name' => 'Staff',
 
             ],
+            [
+                'name' => 'Secretary',
+
+            ],
+            [
+                'name' => 'GradeLeader',
+
+            ],
         ];
 
         foreach ($roles as $role) {
-            Role::create($role);
+            Role::withTrashed()->firstOrCreate(['name' => $role['name']], $role);
         }
     }
 }

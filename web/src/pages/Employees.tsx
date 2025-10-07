@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/pagination";
 import { Department } from "@/types/employee";
 import { useAuthStore } from "@/store/useAuthStore";
+import UserWithAvatar from "@/components/ui/user-with-avatar";
 
 const Employees = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -266,7 +267,13 @@ const Employees = () => {
                       key={employee.id}
                       className="border-b hover:bg-muted/50"
                     >
-                      <td className="py-3 px-4">{getFullName(employee)}</td>
+                      <td className="py-3 px-4">
+                        <UserWithAvatar 
+                          user={employee}
+                          size="sm"
+                          showFullName={true}
+                        />
+                      </td>
                       <td className="py-3 px-4">{employee.position}</td>
                       <td className="py-3 px-4">{employee.department}</td>
                       <td className="py-3 px-4">{`${employee.workhours_am}AM - ${employee.workhours_pm}`}</td>

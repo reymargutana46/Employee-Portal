@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('class_programs', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('employees', function (Blueprint $table) {
+            $table->string('profile_picture')->nullable()->after('telno');
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('class_programs');
+        Schema::table('employees', function (Blueprint $table) {
+            $table->dropColumn('profile_picture');
+        });
     }
 };

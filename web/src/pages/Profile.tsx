@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, Save, Loader2, User, Briefcase, KeyRound, CheckCircle2, Camera, Upload } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useEmployeeStore } from "@/store/useEmployeeStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
@@ -29,6 +30,7 @@ import {
 export default function Profile() {
   const { fetchMe, employee, isLoading, departments, fetchsetup, updateEmployee, updateProfile, updatePassword, updateProfileWithFile } =
     useEmployeeStore()
+  const { updateUserProfile } = useAuthStore()
   const { toast } = useToast()
 
   // Local loading states
@@ -177,6 +179,107 @@ export default function Profile() {
   const handleSaveChanges = async () => {
     if (!employee) return
 
+    // Validate required fields
+    if (!formData.firstName.trim()) {
+      toast({
+        title: "First name is required",
+        description: "Please enter your first name.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.lastName.trim()) {
+      toast({
+        title: "Last name is required",
+        description: "Please enter your last name.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.email.trim()) {
+      toast({
+        title: "Email is required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.contactNumber.trim()) {
+      toast({
+        title: "Contact number is required",
+        description: "Please enter your contact number.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate contact number length
+    if (formData.contactNumber.length !== 10) {
+      toast({
+        title: "Invalid contact number",
+        description: "Contact number must be exactly 10 digits.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.department.trim()) {
+      toast({
+        title: "Department is required",
+        description: "Please select your department.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.position.trim()) {
+      toast({
+        title: "Position is required",
+        description: "Please enter your position.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.username.trim()) {
+      toast({
+        title: "Username is required",
+        description: "Please enter your username.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.workHoursAm.trim()) {
+      toast({
+        title: "Work hours AM is required",
+        description: "Please enter your morning work hours.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.workHoursPm.trim()) {
+      toast({
+        title: "Work hours PM is required",
+        description: "Please enter your afternoon work hours.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!formData.workhours_id) {
+      toast({
+        title: "Work hours ID is required",
+        description: "Please ensure work hours are properly configured.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSaving(true)
     try {
       // If there's a profile picture to upload, create FormData
@@ -243,6 +346,20 @@ export default function Profile() {
       
       // Refresh the profile data to get the updated profile picture URL
       await fetchMe()
+      
+      // Update the auth store with the new profile picture if it was uploaded
+      // We use a small delay to ensure the employee state is updated
+      if (profilePicture) {
+        setTimeout(() => {
+          // Get the current employee from the store which should now have the updated profile picture
+          const currentEmployee = useEmployeeStore.getState().employee
+          if (currentEmployee?.profile_picture) {
+            updateUserProfile({
+              profile_picture: currentEmployee.profile_picture
+            })
+          }
+        }, 100)
+      }
     } catch (error) {
       console.error("Error updating profile:", error)
       toast({
@@ -430,8 +547,17 @@ export default function Profile() {
           
           {/* Profile Information Section */}
           <div className="flex-1 space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">User Profile</h1>
-            <p className="text-muted-foreground">View and manage your personal information and account settings</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {!isLoading && employee ? `${employee.fname}` : 'User'}
+                </h1>
+                <span className="text-3xl font-bold tracking-tight text-muted-foreground">Profile</span>
+                <p className="text-sm text-muted-foreground hidden lg:block ml-4">
+                  View and manage your information
+                </p>
+              </div>
+            </div>
 
             {!isLoading && employee && (
               <div className="flex flex-wrap items-center gap-2 mt-4">
@@ -552,10 +678,25 @@ export default function Profile() {
                         <Label htmlFor="contactNumber">Contact Number</Label>
                         <Input
                           id="contactNumber"
-                          placeholder="Enter your contact number"
+                          placeholder="Enter your 10-digit contact number"
                           value={formData.contactNumber}
-                          onChange={handleInputChange}
+                          onChange={(e) => {
+                            // Only allow digits and limit to 10 characters
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 10)
+                            setFormData((prev) => ({
+                              ...prev,
+                              contactNumber: value,
+                            }))
+                            setIsFormModified(true)
+                          }}
+                          maxLength={10}
                         />
+                        {formData.contactNumber.length > 0 && formData.contactNumber.length < 10 && (
+                          <p className="text-xs text-red-600 mt-1">Contact number must be exactly 10 digits</p>
+                        )}
+                        {formData.contactNumber.length === 10 && (
+                          <p className="text-xs text-green-600 mt-1">✓ Valid contact number</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="telephoneNumber">Telephone Number</Label>
@@ -607,7 +748,7 @@ export default function Profile() {
                       setIsFormModified(false)
                     }
                   }}
-                  disabled={!isFormModified || isLoading || isSaving}
+                  disabled={!isFormModified || isLoading || isSaving || (formData.contactNumber.length > 0 && formData.contactNumber.length !== 10)}
                 >
                   Reset
                 </Button>
@@ -739,7 +880,7 @@ export default function Profile() {
                       setIsFormModified(false)
                     }
                   }}
-                  disabled={!isFormModified || isLoading || isSaving}
+                  disabled={!isFormModified || isLoading || isSaving || (formData.contactNumber.length > 0 && formData.contactNumber.length !== 10)}
                 >
                   Reset
                 </Button>

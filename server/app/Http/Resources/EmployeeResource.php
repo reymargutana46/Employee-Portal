@@ -30,6 +30,7 @@ class EmployeeResource extends JsonResource
                 'workhours_am' => $this->workhour->am ?? null,
                 'workhours_pm' => $this->workhour->pm ?? null,
                 'telno' => $this->telno,
+                'profile_picture' => $this->profile_picture ? asset('storage/' . $this->profile_picture) : null,
         ];
     }
 }

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { MonthPicker } from "./MonthPicker"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export type ViewType = "week" | "month"
 export type FilterOptions = {
@@ -80,6 +81,7 @@ export function ScheduleHeader({
   }
 
   const activeFiltersCount = Object.values(filters).filter(Boolean).length
+  const { canDoAction } = useAuthStore();
 
   return (
     <div className="space-y-4">
@@ -100,7 +102,7 @@ export function ScheduleHeader({
             <Plus className="h-4 w-4" />
             Create Schedule
           </Button> */}
-          <ScheduleCreator />
+          {canDoAction(['gradeleader']) && <ScheduleCreator />}
 
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={handlePrevious} aria-label="Previous period">

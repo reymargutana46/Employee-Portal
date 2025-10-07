@@ -221,6 +221,36 @@ const Dashboard = () => {
         color: "bg-purple-500",
       },
     ],
+    gradeleader: [
+      {
+        title: "My Grade Classes",
+        value: 8,
+        icon: Users,
+        change: "+1",
+        color: "bg-blue-500",
+      },
+      {
+        title: "Active Schedules",
+        value: 5,
+        icon: Calendar,
+        change: "",
+        color: "bg-emerald-500",
+      },
+      {
+        title: "Workload Created",
+        value: 12,
+        icon: CheckSquare,
+        change: "+3",
+        color: "bg-purple-500",
+      },
+      {
+        title: "Pending Approvals",
+        value: 3,
+        icon: Clock,
+        change: "-1",
+        color: "bg-amber-500",
+      },
+    ],
     staff: [
       {
         title: "Leave Balance",

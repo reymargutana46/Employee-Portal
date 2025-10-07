@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { Employee } from "@/types/employee";
+import UserWithAvatar from "@/components/ui/user-with-avatar";
 
 interface ViewEmployeeDialogProps {
   employee: Employee;
@@ -30,6 +31,18 @@ const ViewEmployeeDialog = ({ employee }: ViewEmployeeDialogProps) => {
             Full information about {employee.fname} {employee.lname}
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Profile Picture and Basic Info */}
+        <div className="flex items-center gap-4 mb-6">
+          <UserWithAvatar 
+            user={employee}
+            size="xl"
+            showFullName={true}
+            layout="vertical"
+            className="items-center"
+          />
+        </div>
+        
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h3 className="font-semibold">Personal Information</h3>

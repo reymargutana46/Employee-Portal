@@ -12,6 +12,17 @@ const Notifications = () => {
     useNotificationStore()
   const navigate = useNavigate()
 
+  const handleNotificationClick = (notification: any) => {
+    // Mark as read if not already read
+    if (!notification.is_read) {
+      markAsRead(notification.id)
+    }
+    // Navigate to the notification URL if it exists
+    if (notification.url) {
+      navigate(notification.url)
+    }
+  }
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "success":
@@ -91,9 +102,10 @@ const Notifications = () => {
           {notifications.map((notification) => (
             <Card
               key={notification.id}
-              className={`transition-all hover:shadow-md ${
+              className={`transition-all hover:shadow-md cursor-pointer ${
                 !notification.is_read ? "border-l-4 border-l-primary bg-muted/30" : ""
               }`}
+              onClick={() => handleNotificationClick(notification)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -122,7 +134,10 @@ const Notifications = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          markAsRead(notification.id)
+                        }}
                         className="h-8 px-2 text-xs"
                       >
                         Mark as read
@@ -131,7 +146,10 @@ const Notifications = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => deleteNotification(notification.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteNotification(notification.id)
+                      }}
                       className="h-8 px-2 text-xs text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-3 w-3" />
