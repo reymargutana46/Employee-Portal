@@ -64,10 +64,7 @@ const Login = () => {
           alt="Naawan Central School Logo"
           className="mx-auto mb-2 w-20 h-25 object-contain"
           />
-        <h1 className="text-3xl font-bold text-primary">Emport</h1>
-        <p className="text-muted-foreground mt-2">
-          Employee Task Management System
-        </p>
+        <h1 className="text-3xl font-bold text-primary">Employee Portal System</h1>
     </div>
 
 

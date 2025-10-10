@@ -39,6 +39,93 @@ class ClassScheduleController extends Controller
     }
 
     /**
+     * Get schedules assigned to the authenticated faculty member
+     */
+    public function myAssigned()
+    {
+        $auth = Auth::user();
+        $employee = Employee::where('username_id', $auth->username)->first();
+        
+        if (!$employee) {
+            return $this->notFound('Employee record not found');
+        }
+
+        // Get the full name of the current user for matching
+        $userFullName = trim($employee->fname . ' ' . $employee->lname);
+        $userFirstName = trim($employee->fname);
+        $userLastName = trim($employee->lname);
+        
+        \Log::info('Looking for schedules for user', [
+            'username' => $auth->username,
+            'full_name' => $userFullName,
+            'first_name' => $userFirstName,
+            'last_name' => $userLastName
+        ]);
+        
+        // Get all approved schedules
+        $allSchedules = ClassSchedule::with(['creator', 'approver', 'rejector'])
+            ->where('status', 'APPROVED')
+            ->get();
+            
+        \Log::info('Total approved schedules found', ['count' => $allSchedules->count()]);
+        
+        $assignedSchedules = $allSchedules->filter(function ($schedule) use ($userFullName, $userFirstName, $userLastName) {
+            // Check if user is the adviser teacher (multiple matching strategies)
+            $adviserMatches = [
+                stripos($schedule->adviser_teacher, $userFullName) !== false,
+                stripos($schedule->adviser_teacher, $userFirstName) !== false && stripos($schedule->adviser_teacher, $userLastName) !== false,
+                stripos($schedule->adviser_teacher, $userLastName) !== false && stripos($schedule->adviser_teacher, $userFirstName) !== false
+            ];
+            
+            if (array_filter($adviserMatches)) {
+                \Log::info('Found schedule match via adviser', [
+                    'schedule_id' => $schedule->id,
+                    'grade_section' => $schedule->grade_section,
+                    'adviser_teacher' => $schedule->adviser_teacher,
+                    'user_name' => $userFullName
+                ]);
+                return true;
+            }
+            
+            // Check if user is mentioned in any schedule data
+            foreach ($schedule->schedule_data as $row) {
+                $mondayThursdayMatches = [
+                    stripos($row['mondayThursday'], $userFullName) !== false,
+                    stripos($row['mondayThursday'], $userFirstName) !== false && stripos($row['mondayThursday'], $userLastName) !== false,
+                    stripos($row['mondayThursday'], $userLastName) !== false && stripos($row['mondayThursday'], $userFirstName) !== false
+                ];
+                
+                $fridayMatches = [
+                    stripos($row['friday'], $userFullName) !== false,
+                    stripos($row['friday'], $userFirstName) !== false && stripos($row['friday'], $userLastName) !== false,
+                    stripos($row['friday'], $userLastName) !== false && stripos($row['friday'], $userFirstName) !== false
+                ];
+                
+                if (array_filter($mondayThursdayMatches) || array_filter($fridayMatches)) {
+                    \Log::info('Found schedule match via schedule data', [
+                        'schedule_id' => $schedule->id,
+                        'grade_section' => $schedule->grade_section,
+                        'user_name' => $userFullName,
+                        'monday_thursday' => $row['mondayThursday'],
+                        'friday' => $row['friday']
+                    ]);
+                    return true;
+                }
+            }
+            
+            return false;
+        })->values(); // Reset array keys
+
+        \Log::info('Assigned schedules found for user', [
+            'username' => $auth->username,
+            'count' => $assignedSchedules->count(),
+            'schedules' => $assignedSchedules->pluck('grade_section')->toArray()
+        ]);
+
+        return $this->ok($assignedSchedules);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)

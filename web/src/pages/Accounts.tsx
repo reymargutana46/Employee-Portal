@@ -559,7 +559,7 @@ export default function Accounts() {
                       </div>
                       <div className="space-y-1">
                         <h3 className="text-sm font-medium text-muted-foreground">
-                          Department
+                          Building & Section
                         </h3>
                         <p className="text-base font-medium">
                           {selectedUser.department || "—"}

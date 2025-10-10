@@ -210,7 +210,7 @@ export default function Profile() {
     if (!formData.contactNumber.trim()) {
       toast({
         title: "Contact number is required",
-        description: "Please enter your contact number.",
+        description: "Please enter your 10-digit contact number (mobile phone number).",
         variant: "destructive",
       })
       return
@@ -220,7 +220,7 @@ export default function Profile() {
     if (formData.contactNumber.length !== 10) {
       toast({
         title: "Invalid contact number",
-        description: "Contact number must be exactly 10 digits.",
+        description: "Contact number must be exactly 10 digits. Please check your phone number.",
         variant: "destructive",
       })
       return
@@ -228,8 +228,8 @@ export default function Profile() {
 
     if (!formData.department.trim()) {
       toast({
-        title: "Department is required",
-        description: "Please select your department.",
+        title: "Building & section is required",
+        description: "Please select your building and section.",
         variant: "destructive",
       })
       return
@@ -347,18 +347,15 @@ export default function Profile() {
       // Refresh the profile data to get the updated profile picture URL
       await fetchMe()
       
-      // Update the auth store with the new profile picture if it was uploaded
-      // We use a small delay to ensure the employee state is updated
+      // Update the auth store with the new profile picture immediately
       if (profilePicture) {
-        setTimeout(() => {
-          // Get the current employee from the store which should now have the updated profile picture
-          const currentEmployee = useEmployeeStore.getState().employee
-          if (currentEmployee?.profile_picture) {
-            updateUserProfile({
-              profile_picture: currentEmployee.profile_picture
-            })
-          }
-        }, 100)
+        // Get the updated employee from the store
+        const currentEmployee = useEmployeeStore.getState().employee
+        if (currentEmployee?.profile_picture) {
+          updateUserProfile({
+            profile_picture: currentEmployee.profile_picture
+          })
+        }
       }
     } catch (error) {
       console.error("Error updating profile:", error)
@@ -660,25 +657,28 @@ export default function Profile() {
                     <Separator />
 
                     <div className="space-y-2">
-                      <Label htmlFor="biod">Bio ID</Label>
+                      <Label htmlFor="biod">Bio ID / Employee ID</Label>
                       <Input
                         id="biod"
                         placeholder="Employee ID"
                         value={formData.biod}
                         onChange={handleInputChange}
                         disabled
+                        className="bg-gray-50 text-gray-600"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">Your employee ID cannot be changed</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        🔒 Your employee ID cannot be changed. This is your unique identifier in the system.
+                      </p>
                     </div>
 
                     <Separator />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="contactNumber">Contact Number</Label>
+                        <Label htmlFor="contactNumber">Contact Number <span className="text-red-500">*</span></Label>
                         <Input
                           id="contactNumber"
-                          placeholder="Enter your 10-digit contact number"
+                          placeholder="Enter your 10-digit contact number (e.g., 9171234567)"
                           value={formData.contactNumber}
                           onChange={(e) => {
                             // Only allow digits and limit to 10 characters
@@ -690,12 +690,18 @@ export default function Profile() {
                             setIsFormModified(true)
                           }}
                           maxLength={10}
+                          className={formData.contactNumber.length > 0 && formData.contactNumber.length !== 10 ? "border-red-500" : ""}
                         />
                         {formData.contactNumber.length > 0 && formData.contactNumber.length < 10 && (
-                          <p className="text-xs text-red-600 mt-1">Contact number must be exactly 10 digits</p>
+                          <p className="text-xs text-red-600 mt-1">
+                            ⚠️ Contact number must be exactly 10 digits (currently {formData.contactNumber.length} digits)
+                          </p>
                         )}
                         {formData.contactNumber.length === 10 && (
-                          <p className="text-xs text-green-600 mt-1">✓ Valid contact number</p>
+                          <p className="text-xs text-green-600 mt-1">✓ Valid contact number format</p>
+                        )}
+                        {formData.contactNumber.length === 0 && (
+                          <p className="text-xs text-gray-500 mt-1">Required: Enter exactly 10 digits (no spaces or dashes)</p>
                         )}
                       </div>
                       <div className="space-y-2">
@@ -749,6 +755,7 @@ export default function Profile() {
                     }
                   }}
                   disabled={!isFormModified || isLoading || isSaving || (formData.contactNumber.length > 0 && formData.contactNumber.length !== 10)}
+                  title={(formData.contactNumber.length > 0 && formData.contactNumber.length !== 10) ? "Contact number must be exactly 10 digits" : ""}
                 >
                   Reset
                 </Button>
@@ -803,13 +810,13 @@ export default function Profile() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="department">Department</Label>
+                        <Label htmlFor="department">Building & Section</Label>
                         <Select
                           value={formData.department}
                           onValueChange={(value) => handleSelectChange(value, "department")}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
+                            <SelectValue placeholder="Select building & section" />
                           </SelectTrigger>
                           <SelectContent>
                             {departments && departments.length > 0 ? (
@@ -819,7 +826,7 @@ export default function Profile() {
                                 </SelectItem>
                               ))
                             ) : (
-                              <SelectItem value="no-departments">No departments available</SelectItem>
+                              <SelectItem value="no-departments">No building sections available</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
@@ -881,6 +888,7 @@ export default function Profile() {
                     }
                   }}
                   disabled={!isFormModified || isLoading || isSaving || (formData.contactNumber.length > 0 && formData.contactNumber.length !== 10)}
+                  title={(formData.contactNumber.length > 0 && formData.contactNumber.length !== 10) ? "Contact number must be exactly 10 digits" : ""}
                 >
                   Reset
                 </Button>

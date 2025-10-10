@@ -70,7 +70,10 @@ class AuthenticationController extends Controller
             'user' => [
                 'username' => $user->username,
                 'fullname' => $user->employee->getFullName(),
+                'firstname' => $user->employee->fname,
                 'lastname' => $user->employee->lname,
+                'middlename' => $user->employee->mname,
+                'extension' => $user->employee->extname,
                 'employee_id' => $user->employee->id,
                 'email' => $user->employee->email,
                 'profile_picture' => $user->employee->profile_picture ? asset('storage/' . $user->employee->profile_picture) : null,

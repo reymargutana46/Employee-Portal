@@ -244,7 +244,7 @@ class AccountController extends Controller
             'lname' => 'required|string',
             'mname' => 'nullable|string',
             'extname' => 'nullable|string',
-            'contactno' => 'required|string',
+            'contactno' => 'required|string|digits:10',
             'telno' => 'nullable|string',
             'email' => 'required|email',
             'department' => 'required|string',

@@ -1,23 +1,35 @@
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScheduleView } from "@/components/ScheduleView";
 import { useWorkloadStore } from "@/store/useWorkloadstore";
 import { useClassScheduleStore } from "@/store/useClassScheduleStore";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ScheduleDetailView } from "@/components/ScheduleDetailView";
+import { ScheduleCreator } from "@/components/ScheduleCreator";
 import axios from "@/utils/axiosInstance";
 import type { Workload } from "@/types/workload";
 import type { Res } from "@/types/response";
+import type { ClassSchedule } from "@/types/classSchedule";
+import { Eye } from "lucide-react";
 
 export default function MySchedulePage() {
   const { mySchedule, fetchMySchedule } = useWorkloadStore();
   const { myCreatedSchedules, fetchMyCreatedSchedules } = useClassScheduleStore();
-  const { canDoAction } = useAuthStore();
+  const { canDoAction, user } = useAuthStore();
   const [myCreated, setMyCreated] = useState<Workload[]>([]);
+  const [myAssignedSchedules, setMyAssignedSchedules] = useState<ClassSchedule[]>([]);
+  const [selectedSchedule, setSelectedSchedule] = useState<ClassSchedule | null>(null);
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
   
   useEffect(() => {
+    console.log('Schedule page useEffect - user canDoAction:', {
+      faculty: canDoAction(['faculty']),
+      gradeleader: canDoAction(['gradeleader']),
+      userRoles: user?.roles
+    });
+    
     fetchMySchedule();
     fetchMyCreatedSchedules();
     
@@ -26,6 +38,19 @@ export default function MySchedulePage() {
       axios.get<Res<Workload[]>>("/workload/my-created").then((response) => {
         setMyCreated(response.data.data || []);
       }).catch(() => {});
+    }
+
+    // Fetch assigned schedules for faculty/teachers
+    if (canDoAction(['faculty'])) {
+      console.log('Fetching assigned schedules for faculty user');
+      axios.get<Res<ClassSchedule[]>>("/class-schedules/my-assigned")
+        .then((response) => {
+          console.log('API response for my-assigned:', response.data);
+          setMyAssignedSchedules(response.data.data || []);
+        })
+        .catch((error) => {
+          console.error('Error fetching assigned schedules:', error.response?.data || error.message);
+        });
     }
   }, [fetchMySchedule, fetchMyCreatedSchedules, canDoAction]);
   
@@ -40,12 +65,85 @@ export default function MySchedulePage() {
         return 'bg-yellow-100 text-yellow-800'
     }
   }
+
+  const handleViewSchedule = (schedule: ClassSchedule) => {
+    setSelectedSchedule(schedule);
+    setIsDetailViewOpen(true);
+  }
   return (
     <div className="container py-6 space-y-6">
-      <Suspense fallback={<ScheduleSkeleton />}>
-        <ScheduleView workloads={mySchedule}/>
-      </Suspense>
+      {/* Header with Create Schedule Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Schedule</h1>
+          <p className="text-muted-foreground">View and manage your class schedules</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {canDoAction(['gradeleader']) && <ScheduleCreator />}
+        </div>
+      </div>
       
+      {/* Assigned Class Schedules Section (for faculty/teachers) */}
+      {canDoAction(['faculty']) && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">My Assigned Class Schedules</h2>
+          <div className="grid gap-4">
+            {myAssignedSchedules.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground text-center">
+                    No approved class schedules assigned to you yet.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              myAssignedSchedules.map((schedule) => (
+                <Card key={schedule.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {schedule.grade_section}
+                          {schedule.status === 'APPROVED' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewSchedule(schedule)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View & Download
+                            </Button>
+                          )}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {schedule.school_year} • {schedule.adviser_teacher}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {schedule.total_learners} learners ({schedule.male_learners} male, {schedule.female_learners} female)
+                        </p>
+                      </div>
+                      <Badge className={getStatusColor(schedule.status)}>
+                        {schedule.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xs text-muted-foreground">
+                      Approved: {schedule.approved_at ? new Date(schedule.approved_at).toLocaleDateString() : 'N/A'}
+                      {schedule.approval_remarks && (
+                        <div className="mt-2 p-2 bg-green-50 rounded text-xs">
+                          <strong>Remarks:</strong> {schedule.approval_remarks}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Class Schedules Section (only for grade leaders) */}
       {canDoAction(['gradeleader']) && (
         <div className="space-y-4">
@@ -64,8 +162,18 @@ export default function MySchedulePage() {
                 <Card key={schedule.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-base">{schedule.grade_section}</CardTitle>
+                      <div className="flex-1">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {schedule.grade_section}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewSchedule(schedule)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            {schedule.status === 'APPROVED' ? 'View & Download' : 'View Schedule'}
+                          </Button>
+                        </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
                           {schedule.school_year} • {schedule.adviser_teacher}
                         </p>
@@ -118,19 +226,16 @@ export default function MySchedulePage() {
           </div>
         </div>
       )}
+
+      {selectedSchedule && (
+        <ScheduleDetailView
+          schedule={selectedSchedule}
+          open={isDetailViewOpen}
+          onOpenChange={setIsDetailViewOpen}
+        />
+      )}
     </div>
   );
 }
 
-function ScheduleSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-12 w-full" />
-      <div className="grid gap-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
-    </div>
-  );}
+

@@ -132,6 +132,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('class-schedules')->controller(ClassScheduleController::class)->group(function () {
         Route::get('/', 'index');
         Route::get('/my-created', 'myCreated')->middleware('role:GradeLeader');
+        Route::get('/my-assigned', 'myAssigned')->middleware('role:Faculty');
         Route::post('/', 'store')->middleware('role:GradeLeader');
         Route::get('/{id}', 'show');
         Route::put('/{id}', 'update')->middleware('role:GradeLeader');

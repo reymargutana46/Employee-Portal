@@ -46,6 +46,52 @@ namespace App\Models{
 namespace App\Models{
 /**
  * @property int $id
+ * @property string $grade_section
+ * @property string $school_year
+ * @property string $adviser_teacher
+ * @property int $male_learners
+ * @property int $female_learners
+ * @property int $total_learners
+ * @property array<array-key, mixed> $schedule_data
+ * @property string $created_by
+ * @property string $status
+ * @property string|null $approval_remarks
+ * @property string|null $approved_by
+ * @property \Illuminate\Support\Carbon|null $approved_at
+ * @property string|null $rejected_by
+ * @property \Illuminate\Support\Carbon|null $rejected_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\User|null $approver
+ * @property-read \App\Models\User $creator
+ * @property-read \App\Models\User|null $rejector
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereAdviserTeacher($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereApprovalRemarks($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereApprovedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereApprovedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereCreatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereFemaleLearners($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereGradeSection($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereMaleLearners($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereRejectedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereRejectedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereScheduleData($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereSchoolYear($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereTotalLearners($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ClassSchedule whereUpdatedAt($value)
+ */
+	class ClassSchedule extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
  * @property string $time_in
  * @property string $time_out
  * @property int $employee_id
@@ -139,6 +185,7 @@ namespace App\Models{
  * @property string $telno
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string|null $profile_picture
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\DtrAmtime> $DTRAmTimes
  * @property-read int|null $d_t_r_am_times_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\DTRPmtime> $DTRPmTimes
@@ -167,6 +214,7 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereLname($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereMname($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee wherePositionId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereProfilePicture($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereTelno($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Employee whereUsernameId($value)

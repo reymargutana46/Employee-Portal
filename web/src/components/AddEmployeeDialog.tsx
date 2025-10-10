@@ -81,8 +81,8 @@ const AddEmployeeDialog = () => {
       email: "",
       bioid: "",
       contactno: "",
-      department: "Department1",
-      position: "Teacher",
+      department: "",
+      position: "",
       password: "",
       role: "Faculty",
       telno: "",
@@ -351,7 +351,7 @@ const AddEmployeeDialog = () => {
                       <FormItem>
                         <div className="flex flex-col  gap-4">
                           <FormLabel htmlFor="name" className="">
-                            Department
+                            Building & Section
                           </FormLabel>
                           <FormControl>
                             <Select
@@ -359,7 +359,7 @@ const AddEmployeeDialog = () => {
                               value={field.value}
                             >
                               <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select role" />
+                                <SelectValue placeholder="Select building & section" />
                               </SelectTrigger>
                               <SelectContent>
                                 {departments.map((deparment) => (
@@ -395,7 +395,7 @@ const AddEmployeeDialog = () => {
                               value={field.value}
                             >
                               <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select role" />
+                                <SelectValue placeholder="Select position" />
                               </SelectTrigger>
                               <SelectContent>
                                 {positions.map((position) => (

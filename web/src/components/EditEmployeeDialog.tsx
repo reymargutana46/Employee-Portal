@@ -44,6 +44,7 @@ interface EditEmployeeDialogProps {
 
 const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
   const updateEmployee = useEmployeeStore((state) => state.updateEmployee);
+  const { departments } = useEmployeeStore();
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
@@ -53,14 +54,6 @@ const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
     { value: "Secretary", label: "Secretary" },
     { value: "Librarian", label: "Librarian" },
     { value: "Vice Principal", label: "Vice Principal" },
-  ];
-  const departments = [
-    { value: "Department1", label: "Department1" },
-    { value: "Department2", label: "Department2" },
-    { value: "Department3", label: "Department3" },
-    { value: "Department4", label: "Department4" },
-    { value: "Department5", label: "Department5" },
-    { value: "Department6", label: "Department6" },
   ];
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -269,7 +262,7 @@ const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
                       <FormItem>
                         <div className="flex flex-col  gap-4">
                           <FormLabel htmlFor="name" className="">
-                            Department
+                            Building & Section
                           </FormLabel>
                           <FormControl>
                             <Select
@@ -280,12 +273,12 @@ const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
                                 <SelectValue placeholder="Select role" />
                               </SelectTrigger>
                               <SelectContent>
-                                {departments.map((deparment) => (
+                                {departments?.map((department) => (
                                   <SelectItem
-                                    key={deparment.value}
-                                    value={deparment.value}
+                                    key={department.id}
+                                    value={department.name}
                                   >
-                                    {deparment.label}
+                                    {department.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
