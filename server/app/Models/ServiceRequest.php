@@ -14,13 +14,12 @@ class ServiceRequest extends Model
     protected $fillable = [
         'request_to',
         'title',
-        'description',
+        'details',
         'priority',
         'status',
         'from',
         'to',
         'request_by',
-        'details',
         'rating',
         'remarks'
     ];

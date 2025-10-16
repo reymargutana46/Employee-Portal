@@ -50,7 +50,7 @@ export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) =>
     updateRequest: async (id, request) => {
         set({ isLoading: true });
         try {
-            const response = await axios.post<Res<ServiceRequest>>(`/service-request/${id}`, request); // Assuming PUT or PATCH is not supported
+            const response = await axios.put<Res<ServiceRequest>>(`/service-request/${id}`, request);
             const data = await response.data.data;
             set((state) => ({
                 serviceRequests: state.serviceRequests.map((req) => (req.id === id ? { ...req, ...data } : req)),
@@ -78,7 +78,7 @@ export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) =>
     deleteRequest: async (id) => {
         set({ isLoading: true });
         try {
-            await fetch(`/requests/${id}`, { method: "DELETE" });
+            await axios.delete(`/service-request/${id}`);
             set((state) => ({ serviceRequests: state.serviceRequests.filter((req) => req.id !== id), isLoading: false }));
         } catch (error) {
             set({ error: "Failed to delete request", isLoading: false });

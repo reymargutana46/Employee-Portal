@@ -122,13 +122,20 @@ const Employees = () => {
     });
   };
 
-  const handleDelete = (id: number, name: string) => {
+  const handleDelete = async (id: number, name: string) => {
 
-    deleteEmployee(id);
-    toast({
-      title: "Employee Removed",
-      description: `${name} has been removed from the system`,
-    });
+    try {
+      await deleteEmployee(id);
+      toast({
+        title: "Employee Removed",
+        description: `${name} has been removed from the system`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Delete Failed",
+        description: error?.response?.data?.message || "You may not have permission or a server error occurred.",
+      });
+    }
   };
 
   return (

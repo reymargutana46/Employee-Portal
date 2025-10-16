@@ -11,7 +11,6 @@ use App\Models\User;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use PhpOffice\PhpSpreadsheet\Calculation\Web\Service;
 
 class ServiceRequestController extends Controller
 {
@@ -31,9 +30,13 @@ class ServiceRequestController extends Controller
             $services = ServiceRequest::with(['requestBy', 'requestTo'])->get();
         } else {
             $employeeId = Auth::user()->employee->id;
+            $username = Auth::user()->username;
 
             $services = ServiceRequest::with(['requestBy', 'requestTo'])
-                ->where('request_to', $employeeId)
+                ->where(function($query) use ($employeeId, $username) {
+                    $query->where('request_to', $employeeId)
+                          ->orWhere('request_by', $username);
+                })
                 ->get();
         }
 
@@ -66,7 +69,7 @@ class ServiceRequestController extends Controller
                     'details' => $request->details,
                     'request_by' => Auth::user()->username,
                     'request_to' => $request_to->id,
-                    'status' => $request->status,
+                    'status' => 'For Approval', // Always start with "For Approval"
                     'from' => $request->fromDate,
                     'to' => $request->toDate,
                     'priority' => $request->priority,
@@ -82,19 +85,23 @@ class ServiceRequestController extends Controller
                 'entity_id' => $service->id,
             ]);
 
-            $user = User::where('username', $request_to->username_id)->first();
+            // Notify the principal for approval
+            $principal = User::whereHas('roles', function ($query) {
+                $query->where('name', 'Principal');
+            })->first();
 
-            Notification::create([
-                'username_id' => $user->username,
-                'title' => "New Service Request",
-                'message' => "You have a new service request from " . Auth::user()->employee->fname . " " . Auth::user()->employee->lname,
+            if ($principal) {
+                Notification::create([
+                    'username_id' => $principal->username,
+                    'title' => "New Service Request for Approval",
+                    'message' => "A new service request titled '{$service->title}' requires your approval",
+                    'type' => "info",
+                    'url' => "/service-requests",
+                ]);
+            }
 
-                'type' => "info",
-                'url' => "/service-requests",
-            ]);
             return $service;
         });
-        // echo $request;
 
         return $this->created(new ServiceRequestResource($service));
     }
@@ -118,13 +125,42 @@ class ServiceRequestController extends Controller
             'details' => 'required',
             'priority' => 'required',
             'status' => 'required',
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date'],
-            'requested_by' => 'required',
-            'requested_to' => 'required',
+            'fromDate' => ['required', 'date'],
+            'toDate' => ['required', 'date'],
+            'requestTo' => 'required',
             'rating' => 'required',
             'remarks' => 'required'
         ]);
+
+        $service = DB::transaction(function () use ($request, $id) {
+            $service = ServiceRequest::findOrFail($id);
+            
+            $request_to = Employee::findOrFail($request->requestTo);
+            
+            $service->update([
+                'title' => $request->title,
+                'details' => $request->details,
+                'request_to' => $request_to->id,
+                'status' => $request->status,
+                'from' => $request->fromDate,
+                'to' => $request->toDate,
+                'priority' => $request->priority,
+                'rating' => $request->rating,
+                'remarks' => $request->remarks
+            ]);
+            
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'updated',
+                'description' => "Updated service request {$service->title}",
+                'entity_type' => ServiceRequest::class,
+                'entity_id' => $service->id,
+            ]);
+            
+            return $service;
+        });
+
+        return $this->ok(new ServiceRequestResource($service));
     }
 
     public function updateRating(Request $request, string $id)
@@ -171,27 +207,92 @@ class ServiceRequestController extends Controller
 
         $service = DB::transaction(function () use ($request, $id) {
             $service = ServiceRequest::with("requestTo")->findOrFail($id);
+            $oldStatus = $service->status;
             $service->status = $request->status;
             $service->save();
-            $user = User::where('username', $service->requestTo->username_id)->first();
+            
+            $currentUser = Auth::user();
+            $requestorUser = User::where('username', $service->request_by)->first();
+            $assigneeUser = User::where('username', $service->requestTo->username_id)->first();
+            
             ActivityLog::create([
-                'performed_by' => Auth::user()->username,
+                'performed_by' => $currentUser->username,
                 'action' => 'updated',
-                'description' => "Service request {$service->title} updated to {$request->status}",
+                'description' => "Service request {$service->title} updated from {$oldStatus} to {$request->status}",
                 'entity_type' => ServiceRequest::class,
                 'entity_id' => $service->id,
             ]);
-            Notification::create([
-                'username_id' => $user->username,
-                'title' => "Service Request " . $service->title . " is updated",
-                'message' => "Service request {$service->title} has been updated ",
-                'type' => "info",
-                'url' => "/service-requests",
-            ]);
+            
+            // Handle different status transitions
+            switch ($request->status) {
+                case 'Pending':
+                    // Principal approved - notify the assignee
+                    if ($assigneeUser) {
+                        Notification::create([
+                            'username_id' => $assigneeUser->username,
+                            'title' => "Service Request Assigned",
+                            'message' => "You have been assigned a service request: {$service->title}",
+                            'type' => "info",
+                            'url' => "/service-requests",
+                        ]);
+                    }
+                    
+                    // Notify the requestor
+                    if ($requestorUser) {
+                        Notification::create([
+                            'username_id' => $requestorUser->username,
+                            'title' => "Service Request Approved",
+                            'message' => "Your service request '{$service->title}' has been approved by the principal",
+                            'type' => "success",
+                            'url' => "/service-requests",
+                        ]);
+                    }
+                    break;
+                    
+                case 'Rejected':
+                    // Principal rejected - notify the requestor
+                    if ($requestorUser) {
+                        Notification::create([
+                            'username_id' => $requestorUser->username,
+                            'title' => "Service Request Rejected",
+                            'message' => "Your service request '{$service->title}' has been rejected by the principal",
+                            'type' => "error",
+                            'url' => "/service-requests",
+                        ]);
+                    }
+                    break;
+                    
+                case 'In Progress':
+                    // Assignee started working - notify the requestor
+                    if ($requestorUser) {
+                        Notification::create([
+                            'username_id' => $requestorUser->username,
+                            'title' => "Service Request In Progress",
+                            'message' => "Your service request '{$service->title}' is now being worked on",
+                            'type' => "info",
+                            'url' => "/service-requests",
+                        ]);
+                    }
+                    break;
+                    
+                case 'Completed':
+                    // Assignee completed - notify the requestor
+                    if ($requestorUser) {
+                        Notification::create([
+                            'username_id' => $requestorUser->username,
+                            'title' => "Service Request Completed",
+                            'message' => "Your service request '{$service->title}' has been completed",
+                            'type' => "success",
+                            'url' => "/service-requests",
+                        ]);
+                    }
+                    break;
+            }
+            
             return $service;
         });
 
-        return $this->ok($service);
+        return $this->ok(new ServiceRequestResource($service));
     }
 
     /**
@@ -201,5 +302,6 @@ class ServiceRequestController extends Controller
     {
         $service = ServiceRequest::findOrFail($id);
         $service->delete();
+        return $this->ok(['message' => 'Service request deleted successfully']);
     }
 }

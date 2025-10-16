@@ -109,16 +109,19 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
     });
   },
 
-  deleteEmployee: (id) => {
+  deleteEmployee: async (id) => {
 
-    axios.delete('employee/' + id)
-      .then(() => {
-        set((state) => ({
+    try {
+      await axios.delete('employee/' + id)
+      set((state) => ({
 
-          employees: state.employees.filter(emp => emp.id !== id)
-        }));
+        employees: state.employees.filter(emp => emp.id !== id)
+      }));
+    } catch (error) {
+      console.error('Failed to delete employee:', error)
+      throw error
+    }
 
-      })
   },
 
   exportData: () => {

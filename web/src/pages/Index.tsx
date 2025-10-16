@@ -1,19 +1,25 @@
-
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, canDoAction } = useAuthStore();
   
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
     } else {
-      navigate('/dashboard');
+      // GradeLeader-only goes straight to Workload
+      const isGradeLeader = canDoAction(['gradeleader']);
+      const isFaculty = canDoAction(['faculty']);
+      if (isGradeLeader && !isFaculty) {
+        navigate('/workload');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, canDoAction]);
   
   // Loading state while redirecting
   return (

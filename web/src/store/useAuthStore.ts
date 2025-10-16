@@ -126,7 +126,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         token
       };
       localStorage.setItem('auth', JSON.stringify(authToSave));
-    window.location.href = "/dashboard";
+      // Redirect based on roles: gradeleader-only goes to Workload
+      const roleNames = user.roles.map((r) => r.name.toLowerCase());
+      if (roleNames.includes('gradeleader') && !roleNames.includes('faculty')) {
+        window.location.href = '/workload';
+      } else {
+        window.location.href = '/dashboard';
+      }
 
       toast.success(`Welcome back, ${user.fullname || user.username}`);
 

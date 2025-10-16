@@ -242,6 +242,15 @@ const AppRoutes = () => {
         {
           name: "principal",
         },
+        {
+          name: "faculty",
+        },
+        {
+          name: "staff",
+        },
+        {
+          name: "gradeleader",
+        },
       ],
       // allowedRoles: ["admin", "principal", "faculty"],
     },

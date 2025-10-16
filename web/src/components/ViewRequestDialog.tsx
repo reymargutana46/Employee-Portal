@@ -74,11 +74,11 @@ export function ViewRequestDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium">From Date</p>
-              <p>{format(request.fromDate, "PPP")}</p>
+              <p>{format(new Date(request.fromDate), "PPP")}</p>
             </div>
             <div>
               <p className="text-sm font-medium">To Date</p>
-              <p>{format(request.toDate, "PPP")}</p>
+              <p>{format(new Date(request.toDate), "PPP")}</p>
             </div>
           </div>
 
@@ -87,7 +87,7 @@ export function ViewRequestDialog({
             <p className="mt-1">{request.details}</p>
           </div>
 
-          {request.rating > 0 && (
+          {request.rating && request.rating > 0 && (
             <div>
               <p className="text-sm font-medium">Rating</p>
               <div className="flex items-center mt-1">
@@ -112,19 +112,18 @@ export function ViewRequestDialog({
             request.requestor === user.username && (
               <Button onClick={onOpenRating}>Add Rating & Remarks</Button>
             )}
+          
+          {/* For the receiver - can start if pending and assigned to them */}
           {request.status === "Pending" &&
-            !request.rating &&
-            request.requestToId === user.employee_id &&
-            (
+            request.requestToId === String(user.employee_id) && (
               <Button onClick={() => onUpdateStatus(request.id, "In Progress")}>
-                Start
+                Start Work
               </Button>
             )}
-          {/* For the Principal - can update status if Approve */}
-
+          
+          {/* For the Principal - can approve or reject if For Approval */}
           {request.status === "For Approval" &&
-            canDoAction(["principal", "staff", "faculty"]) &&
-            request.requestor === user.username && (
+            canDoAction(["Principal"]) && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -135,18 +134,19 @@ export function ViewRequestDialog({
                 </Button>
                 <Button onClick={() => onUpdateStatus(request.id, "Pending")}>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Accept
+                  Approve
                 </Button>
               </div>
             )}
 
           {/* For the receiver - can mark as completed if in progress */}
-          {request.status === "In Progress" && (
-            <Button onClick={() => onUpdateStatus(request.id, "Completed")}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Mark as Completed
-            </Button>
-          )}
+          {request.status === "In Progress" &&
+            request.requestToId === String(user.employee_id) && (
+              <Button onClick={() => onUpdateStatus(request.id, "Completed")}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Mark as Completed
+              </Button>
+            )}
 
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close

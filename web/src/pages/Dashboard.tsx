@@ -513,57 +513,61 @@ const Dashboard = () => {
       </div>
       <ServiceRequestChart services={serviceRequests} />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
-        <Card className="col-span-5">
-          <CardHeader>
-            <CardTitle>Workload</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <WorkloadChart workload={workload} />
-          </CardContent>
-          <CardFooter className="flex-col gap-2 text-sm">
-            <div className="leading-none text-muted-foreground">
-              Showing total Workload assigned and unassigned
-            </div>
-          </CardFooter>
-        </Card>
+      {/* Conditionally render workload section - hide for admin users only */}
+      {/* Principals, Faculty, Staff, GradeLeader, and Secretary should see workload */}
+      {!userRoles.some(role => role.name.toLowerCase() === 'admin') && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
+          <Card className="col-span-5">
+            <CardHeader>
+              <CardTitle>Workload</CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <WorkloadChart workload={workload} />
+            </CardContent>
+            <CardFooter className="flex-col gap-2 text-sm">
+              <div className="leading-none text-muted-foreground">
+                Showing total Workload assigned and unassigned
+              </div>
+            </CardFooter>
+          </Card>
 
-        {/* <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Overloaded Employees</CardTitle>
-            <CardDescription>
-              Employees exceeding workload thresholds
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Workload</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {overloadedEmployees.map((employee) => (
-                  <TableRow key={employee.name}>
-                    <TableCell className="font-medium">
-                      {employee.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="bg-red-100 text-red-800 hover:bg-red-100"
-                      >
-                        {employee.workload} hrs
-                      </Badge>
-                    </TableCell>
+          {/* <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Overloaded Employees</CardTitle>
+              <CardDescription>
+                Employees exceeding workload thresholds
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Workload</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card> */}
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {overloadedEmployees.map((employee) => (
+                    <TableRow key={employee.name}>
+                      <TableCell className="font-medium">
+                        {employee.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="bg-red-100 text-red-800 hover:bg-red-100"
+                        >
+                          {employee.workload} hrs
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card> */}
+        </div>
+      )}
     </div>
   );
 };

@@ -226,6 +226,9 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {
           name: "principal",
         },
+        {
+          name: "gradeleader",
+        },
       ],
     },
     {
@@ -252,11 +255,18 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   ];
 
   // Show nav items if user has ANY of the allowed roles
-  const filteredNavItems = navItems.filter((item) =>
+  const hasGradeLeader = userRoles.some((role) => role.name.toLowerCase() === "gradeleader");
+  const hasFaculty = userRoles.some((role) => role.name.toLowerCase() === "faculty");
+
+  let filteredNavItems = navItems.filter((item) =>
     userRoles.some((role) =>
       item.allowedRoles.some((r) => r.name.toLowerCase() === role.name.toLowerCase())
     )
   );
+
+  if (hasGradeLeader && !hasFaculty) {
+    filteredNavItems = navItems.filter((item) => item.title === "Dashboard" || item.title === "Workload");
+  }
 
   return (
     <aside

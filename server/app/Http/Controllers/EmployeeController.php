@@ -80,7 +80,12 @@ class EmployeeController extends Controller
      */
     public function show(string $id)
     {
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::withTrashed()->find($id);
+        
+        if (!$employee) {
+            return $this->notFound("Employee with ID {$id} not found");
+        }
+        
         return $this->ok($employee);
     }
 
@@ -90,7 +95,12 @@ class EmployeeController extends Controller
     public function update(EmployeeUpdateRequest $request, string $id)
     {
         $validated = $request->validated();
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::withTrashed()->find($id);
+        
+        if (!$employee) {
+            return $this->notFound("Employee with ID {$id} not found");
+        }
+        
         $employee->update($validated);
 
         ActivityLog::create([
@@ -110,8 +120,16 @@ class EmployeeController extends Controller
     {
 
         DB::transaction(function () use ($id) {
-            $employee = Employee::with('user')->findOrFail($id);
-            $user = User::where('username', $employee->username_id)->first();
+            $employee = Employee::withTrashed()->with('user')->find($id);
+            
+            if (!$employee) {
+                throw new \Exception("Employee with ID {$id} not found");
+            }
+            
+            $user = null;
+            if ($employee->username_id) {
+                $user = User::where('username', $employee->username_id)->first();
+            }
 
 
 
@@ -125,7 +143,7 @@ class EmployeeController extends Controller
             if ($user) {
                 $user->forceDelete();
             }
-            $employee = $employee->delete();
+            $employee->forceDelete(); // Permanently delete even if already soft-deleted
         });
 
         return $this->ok();

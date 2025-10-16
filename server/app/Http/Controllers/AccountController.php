@@ -180,18 +180,29 @@ class AccountController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $username)
+    public function destroy(string $idOrUsername)
     {
         try {
-            DB::transaction(function () use ($username) {
-                $user = User::where('username', $username)->first();
-                
+            DB::transaction(function () use ($idOrUsername) {
+                $user = null;
+                $employee = null;
+
+                if (is_numeric($idOrUsername)) {
+                    // Handle case where frontend sends employee ID instead of username
+                    $employee = Employee::findOrFail($idOrUsername);
+                    if ($employee->username_id) {
+                        $user = User::withTrashed()->where('username', $employee->username_id)->first();
+                    }
+                } else {
+                    // Handle normal case using username
+                    $user = User::withTrashed()->where('username', $idOrUsername)->first();
+                    $employee = $user ? $user->employee : null;
+                }
+
                 if (!$user) {
                     throw new \Exception('User not found');
                 }
 
-                $employee = $user->employee;
-                
                 // Remove user account but keep employee record
                 if ($employee) {
                     $employee->update(['username_id' => null]);
@@ -200,16 +211,18 @@ class AccountController extends Controller
                 ActivityLog::create([
                     'performed_by' => Auth::user()->username,
                     'action' => 'deleted',
-                    'description' => "Deleted user account for {$username}",
+                    'description' => "Deleted user account for {$idOrUsername}",
                     'entity_type' => User::class,
-                    'entity_id' => $username,
+                    'entity_id' => is_numeric($idOrUsername) ? ($employee->username_id ?? '') : $idOrUsername,
                 ]);
 
+                // Permanently delete even if soft-deleted
                 $user->forceDelete();
             });
 
             return $this->ok(null, 'User account deleted successfully');
         } catch (\Exception $e) {
+            \Log::error('Account deletion error: ' . $e->getMessage());
             return $this->badRequest($e->getMessage());
         }
     }

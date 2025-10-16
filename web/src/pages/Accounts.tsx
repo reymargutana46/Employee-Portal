@@ -88,6 +88,20 @@ export default function Accounts() {
   useEffect(() => {
     if (users.length > 0 && !selectedUser) {
       handleSelectUser(users[0]);
+    } else if (users.length > 0 && selectedUser) {
+      // If we have a selected user, make sure it's still in our user list
+      // This handles cases where the selected user might have been deleted
+      const currentUser = users.find(u => u.employee_id === selectedUser.employee_id);
+      if (!currentUser) {
+        // If the selected user is no longer in the list, select the first user
+        handleSelectUser(users[0]);
+      } else if (currentUser.username !== selectedUser.username || currentUser.has_account !== selectedUser.has_account) {
+        // If the user's account status has changed, update the selection
+        handleSelectUser(currentUser);
+      }
+    } else if (users.length === 0) {
+      // If no users are available, clear the selection
+      setSelectedUser(null);
     }
   }, [users, selectedUser]);
 
@@ -103,6 +117,7 @@ export default function Accounts() {
   );
 
   const handleSelectUser = (user: UserType) => {
+    console.log('Selecting user:', user);
     setSelectedUser(user);
     setUserRoles(user.roles || []);
     setRemainingRoles(
@@ -178,7 +193,10 @@ export default function Accounts() {
   };
 
   const createUserAccount = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser) {
+      toast.error("No user selected");
+      return;
+    }
     
     if (createAccountData.password !== createAccountData.confirmPassword) {
       toast.error("Passwords do not match");
@@ -221,19 +239,41 @@ export default function Accounts() {
   };
 
   const deleteUserAccount = async () => {
-    if (!selectedUser || !selectedUser.username) return;
+    if (!selectedUser || !selectedUser.username) {
+      toast.error("No user selected for deletion");
+      return;
+    }
 
     if (!confirm(`Are you sure you want to delete the account for ${selectedUser.fullname}? This will remove their login access but keep their employee record.`)) {
       return;
     }
 
     try {
-      await axios.delete(`/accounts/${selectedUser.username}`);
+      console.log('Deleting account for user:', selectedUser.username);
+      const response = await axios.delete(`/accounts/${selectedUser.username}`);
+      console.log('Delete response:', response);
       await fetchUser();
+      
+      // After successful deletion, select the first available user or clear selection
+      if (users.length > 1) {
+        // Find the first user that's not the one we just deleted
+        const remainingUsers = users.filter(u => u.username !== selectedUser.username);
+        if (remainingUsers.length > 0) {
+          handleSelectUser(remainingUsers[0]);
+        } else {
+          setSelectedUser(null);
+        }
+      } else {
+        setSelectedUser(null);
+      }
+      
+      setUserRoles([]);
+      setRemainingRoles(roles);
       toast.success("User account deleted successfully");
     } catch (error: any) {
       console.error("Failed to delete account:", error);
-      toast.error(error.response?.data?.message || "Failed to delete user account");
+      console.error("Error response:", error.response);
+      toast.error(error.response?.data?.message || "Failed to delete user account: " + (error.message || "Unknown error"));
     }
   };
 
@@ -285,7 +325,7 @@ export default function Accounts() {
                     {filteredUsers.map((employee) => {
                       return (
                         <button
-                          key={employee.employee_id || employee.username}
+                          key={employee.employee_id || employee.username || Math.random()}
                           className={`w-full text-left p-3 rounded-md flex items-center gap-3 transition-colors ${
                             selectedUser?.employee_id === employee.employee_id || selectedUser?.username === employee.username
                               ? "bg-primary/10 text-primary"

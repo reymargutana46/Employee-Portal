@@ -94,7 +94,7 @@ const ServiceRequests = () => {
     newRequest: Omit<ServiceRequest, "id" | "dateSubmitted" | "requestor" | "requestorAvatar" | "status">,
   ) => {
     const request: Omit<ServiceRequest, "requestor" | "id"> = {
-      status: "For Approval",
+      status: "For Approval", // Always start with "For Approval"
       ...newRequest,
     }
 
@@ -199,7 +199,8 @@ const ServiceRequests = () => {
             <DropdownMenuItem onClick={() => setRatingFilter("rated")}>Has Rating</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setRatingFilter("unrated")}>Needs Rating</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setRatingFilter("hasRemarks")}>Has Remarks</DropdownMenuItem>
-            {ratingFilter && <DropdownMenuItem onClick={() => setRatingFilter("")}>Clear Rating</DropdownMenuItem>}
+            {ratingFilter && <DropdownMenuItem onClick={() => setRatingFilter("")}>Clear Rating</DropdownMenuItem>
+}
           </DropdownMenuContent>
         </DropdownMenu>
 

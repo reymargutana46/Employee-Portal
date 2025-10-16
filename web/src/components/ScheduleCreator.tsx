@@ -13,6 +13,62 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import { useClassScheduleStore } from "@/store/useClassScheduleStore"
 import type { ScheduleRow } from "@/types/classSchedule"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+// Grade and section options
+const GRADE_SECTION_OPTIONS = [
+  "KINDER - GENEROUS AM",
+  "KINDER - GENEROUS PM",
+  "KINDER - GOOD AM",
+  "KINDER - GOOD PM",
+  "KINDER - GREAT AM",
+  "KINDER - GREAT PM",
+  "KINDER - SPED-KINDERGARTEN (DHH) SPED",
+  "GRADE 1 - ADMIRABLE",
+  "GRADE 1 - ADORABLE",
+  "GRADE 1 - AFFECTIONATE",
+  "GRADE 1 - ALERT",
+  "GRADE 1 - AMAZING",
+  "GRADE 1 - SPED (GRADED) SPED",
+  "GRADE 2 - BELOVED",
+  "GRADE 2 - BENEFICENT",
+  "GRADE 2 - BENEVOLENT",
+  "GRADE 2 - BLESSED",
+  "GRADE 2 - BLESSFUL",
+  "GRADE 2 - BLOSSOM",
+  "GRADE 2 - SPED-GRADE 2 (DHH) SPED",
+  "GRADE 3 - CALM",
+  "GRADE 3 - CANDOR",
+  "GRADE 3 - CHARITABLE",
+  "GRADE 3 - CHEERFUL",
+  "GRADE 3 - CLEVER",
+  "GRADE 3 - CURIOUS",
+  "GRADE 4 - DAINTY",
+  "GRADE 4 - DEDICATED",
+  "GRADE 4 - DEMURE",
+  "GRADE 4 - DEVOTED",
+  "GRADE 4 - DYNAMIC",
+  "GRADE 4 - SPED (GRADED) SPED",
+  "GRADE 5 - EFFECTIVE",
+  "GRADE 5 - EFFICIENT",
+  "GRADE 5 - ENDURANCE",
+  "GRADE 5 - ENERGETIC",
+  "GRADE 5 - EVERLASTING",
+  "GRADE 6 - FAIR",
+  "GRADE 6 - FAITHFUL",
+  "GRADE 6 - FLEXIBLE",
+  "GRADE 6 - FORBEARANCE",
+  "GRADE 6 - FORTITUDE",
+  "GRADE 6 - FRIENDLY",
+  "NON-GRADED - GRACIOUS SPED",
+  "NON-GRADED - GRATEFUL SPED"
+]
 
 export function ScheduleCreator() {
   const [open, setOpen] = useState(false)
@@ -25,9 +81,9 @@ export function ScheduleCreator() {
     gradeSection: "",
     schoolYear: "2025 - 2026",
     adviserTeacher: "",
-    maleLearners: 0,
-    femaleLearners: 0,
-    totalLearners: 0,
+    maleLearners: "",
+    femaleLearners: "",
+    totalLearners: "",
   })
 
   // Schedule table state - simplified structure
@@ -41,23 +97,40 @@ export function ScheduleCreator() {
     { time: "10:05 – 10:55", mins: "50", mondayThursday: "", friday: "" },
     { time: "10:55 – 11:45", mins: "50", mondayThursday: "", friday: "" },
     { time: "11:45 – 12:35", mins: "50", mondayThursday: "", friday: "" },
-    { time: "12:35 – 1:35", mins: "60", mondayThursday: "Lunch Break", friday: "Lunch Break" },
+    // Lunch break row (special handling)
+    { time: "12:35 – 1:35", mins: "60", mondayThursday: "LUNCH BREAK", friday: "LUNCH BREAK" },
     // Afternoon session
     { time: "1:35 – 2:25", mins: "50", mondayThursday: "", friday: "" },
     { time: "2:25 – 3:15", mins: "50", mondayThursday: "", friday: "" },
     { time: "3:15 – 4:05", mins: "50", mondayThursday: "", friday: "" },
-    { time: "4:05 – 4:25", mins: "20", mondayThursday: "Flag Lowering", friday: "Flag Lowering" },
+    // Flag lowering
+    { time: "4:05 – 4:25", mins: "20", mondayThursday: "FLAG LOWERING", friday: "FLAG LOWERING" },
   ])
 
   const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    
-    // Auto-calculate total learners
-    if (field === 'maleLearners' || field === 'femaleLearners') {
-      const male = field === 'maleLearners' ? Number(value) : formData.maleLearners
-      const female = field === 'femaleLearners' ? Number(value) : formData.femaleLearners
-      setFormData(prev => ({ ...prev, totalLearners: male + female }))
-    }
+    // Update the specific field first
+    setFormData(prev => {
+      const updatedData = {
+        ...prev,
+        [field]: value
+      }
+      
+      // Auto-calculate total learners when male or female learners change
+      if (field === 'maleLearners' || field === 'femaleLearners') {
+        // Calculate total
+        const male = updatedData.maleLearners === "" ? 0 : parseInt(updatedData.maleLearners) || 0
+        const female = updatedData.femaleLearners === "" ? 0 : parseInt(updatedData.femaleLearners) || 0
+        const total = male + female
+        
+        // Update the total
+        return {
+          ...updatedData,
+          totalLearners: total.toString()
+        }
+      }
+      
+      return updatedData
+    })
   }
 
   const handleScheduleChange = (index: number, field: string, value: string) => {
@@ -94,9 +167,9 @@ export function ScheduleCreator() {
         grade_section: formData.gradeSection,
         school_year: formData.schoolYear,
         adviser_teacher: formData.adviserTeacher,
-        male_learners: formData.maleLearners,
-        female_learners: formData.femaleLearners,
-        total_learners: formData.totalLearners,
+        male_learners: formData.maleLearners ? parseInt(formData.maleLearners) : 0,
+        female_learners: formData.femaleLearners ? parseInt(formData.femaleLearners) : 0,
+        total_learners: formData.totalLearners ? parseInt(formData.totalLearners) : 0,
         schedule_data: scheduleRows,
       }
 
@@ -114,9 +187,9 @@ export function ScheduleCreator() {
           gradeSection: "",
           schoolYear: "2025 - 2026",
           adviserTeacher: "",
-          maleLearners: 0,
-          femaleLearners: 0,
-          totalLearners: 0,
+          maleLearners: "",
+          femaleLearners: "",
+          totalLearners: "",
         })
         setOpen(false)
         
@@ -161,11 +234,21 @@ export function ScheduleCreator() {
         <div className="grid grid-cols-2 gap-4 mt-4 mb-4">
           <div>
             <Label>Grade & Section</Label>
-            <Input 
-              placeholder="e.g. Grade 2 - Beloved" 
-              value={formData.gradeSection}
-              onChange={(e) => handleInputChange('gradeSection', e.target.value)}
-            />
+            <Select 
+              value={formData.gradeSection} 
+              onValueChange={(value) => handleInputChange('gradeSection', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Grade & Section" />
+              </SelectTrigger>
+              <SelectContent>
+                {GRADE_SECTION_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>School Year</Label>
@@ -194,7 +277,8 @@ export function ScheduleCreator() {
                   className="w-[80px] text-center" 
                   type="number"
                   value={formData.maleLearners}
-                  onChange={(e) => handleInputChange('maleLearners', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleInputChange('maleLearners', e.target.value)}
+                  placeholder="0"
                 />
               </div>
               <div>
@@ -203,7 +287,8 @@ export function ScheduleCreator() {
                   className="w-[80px] text-center" 
                   type="number"
                   value={formData.femaleLearners}
-                  onChange={(e) => handleInputChange('femaleLearners', parseInt(e.target.value) || 0)}
+                  onChange={(e) => handleInputChange('femaleLearners', e.target.value)}
+                  placeholder="0"
                 />
               </div>
               <div>
@@ -213,6 +298,7 @@ export function ScheduleCreator() {
                   type="number"
                   value={formData.totalLearners}
                   readOnly
+                  placeholder="0"
                 />
               </div>
             </div>

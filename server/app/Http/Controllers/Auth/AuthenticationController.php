@@ -41,17 +41,15 @@ class AuthenticationController extends Controller
             'password' => 'required',
 
         ]);
-        // $user = User::with([
-        //     'employee' => function ($query) {
-        //         $query->where('status', 'active')->with('department');
-        //     }
+        
+        // Use whereRaw with LOWER to make username comparison case-insensitive
         $user = User::with([
             'employee',
             'employee.workhour',
             'employee.department',
             'employee.position',
             'roles',
-        ])->where('username', $request->username)->first();
+        ])->whereRaw('LOWER(username) = ?', [strtolower($request->username)])->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
@@ -59,24 +57,22 @@ class AuthenticationController extends Controller
             ]);
         }
 
-
-
         // For traditional web applications using sessions
         Auth::login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
-        // echo $user;
+        
         $data = [
             'token' => $token,
             'user' => [
                 'username' => $user->username,
-                'fullname' => $user->employee->getFullName(),
-                'firstname' => $user->employee->fname,
-                'lastname' => $user->employee->lname,
-                'middlename' => $user->employee->mname,
-                'extension' => $user->employee->extname,
-                'employee_id' => $user->employee->id,
-                'email' => $user->employee->email,
-                'profile_picture' => $user->employee->profile_picture ? asset('storage/' . $user->employee->profile_picture) : null,
+                'fullname' => $user->employee ? $user->employee->getFullName() : $user->username,
+                'firstname' => $user->employee ? $user->employee->fname : '',
+                'lastname' => $user->employee ? $user->employee->lname : '',
+                'middlename' => $user->employee ? $user->employee->mname : '',
+                'extension' => $user->employee ? $user->employee->extname : '',
+                'employee_id' => $user->employee ? $user->employee->id : null,
+                'email' => $user->employee ? $user->employee->email : '',
+                'profile_picture' => $user->employee && $user->employee->profile_picture ? asset('storage/' . $user->employee->profile_picture) : null,
                 'roles' => $user->roles->map(fn($role) => ['name' => Str::lower($role->name)]),
             ],
         ];
