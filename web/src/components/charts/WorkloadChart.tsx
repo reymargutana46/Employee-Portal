@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { TrendingUp } from "lucide-react";
 import { Label, Pie, PieChart } from "recharts";
@@ -35,13 +34,16 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 interface WorkloadChartProps {
-  workload: WorkloadData[];
+  workload: WorkloadData[] | undefined | null;
 }
 
 export function WorkloadChart({ workload }: WorkloadChartProps) {
+  // Handle case where workload might be undefined or null
+  const safeWorkload = workload || [];
+  
   const totalVisitors = React.useMemo(() => {
-    return workload.reduce((acc, curr) => acc + curr.workload, 0);
-  }, []);
+    return safeWorkload.reduce((acc, curr) => acc + curr.workload, 0);
+  }, [safeWorkload]);
 
   return (
     <ChartContainer
@@ -54,7 +56,7 @@ export function WorkloadChart({ workload }: WorkloadChartProps) {
           content={<ChartTooltipContent hideLabel />}
         />
         <Pie
-          data={workload}
+          data={safeWorkload}
           dataKey="workload"
           nameKey="role"
           innerRadius={60}

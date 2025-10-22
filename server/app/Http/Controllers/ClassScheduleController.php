@@ -151,6 +151,15 @@ class ClassScheduleController extends Controller
                 ]);
             });
 
+            // Determine the creator role for the notification message
+            $creator = Auth::user();
+            $creatorRole = 'Grade Leader';
+            
+            // Check if the creator is a Principal
+            if ($creator->hasRole('Principal')) {
+                $creatorRole = 'Principal';
+            }
+
             // Notify all principals about the new schedule for approval (outside transaction)
             $principals = User::whereHas('roles', function ($query) {
                 $query->where('name', 'Principal');
@@ -161,7 +170,7 @@ class ClassScheduleController extends Controller
                     Notification::create([
                         'username_id' => $principal->username,
                         'title' => 'New Class Schedule Requires Approval',
-                        'message' => "Grade Leader has created a new class schedule for '{$schedule->grade_section}' - School Year {$schedule->school_year}. Please review and approve.",
+                        'message' => "{$creatorRole} has created a new class schedule for '{$schedule->grade_section}' - School Year {$schedule->school_year}. Please review and approve.",
                         'type' => 'info',
                         'url' => '/workload',
                     ]);

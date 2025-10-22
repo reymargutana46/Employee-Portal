@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ScheduleDetailView } from "@/components/ScheduleDetailView";
-import { ScheduleCreator } from "@/components/ScheduleCreator";
 import { PrincipalScheduleView } from "@/components/PrincipalScheduleView";
 import axios from "@/utils/axiosInstance";
 import type { Workload } from "@/types/workload";
@@ -61,9 +60,9 @@ export default function MySchedulePage() {
       }).catch(() => {});
     }
 
-    // Fetch assigned schedules for faculty/teachers
-    if (canDoAction(['faculty'])) {
-      console.log('Fetching assigned schedules for faculty user');
+    // Fetch assigned schedules for faculty/teachers and grade leaders
+    if (canDoAction(['faculty']) || canDoAction(['gradeleader'])) {
+      console.log('Fetching assigned schedules for user');
       axios.get<Res<ClassSchedule[]>>("/class-schedules/my-assigned")
         .then((response) => {
           console.log('API response for my-assigned:', response.data);
@@ -110,94 +109,16 @@ export default function MySchedulePage() {
   
   return (
     <div className="container py-6 space-y-6">
-      {/* Header - show Create Schedule button for Grade Leaders */}
+      {/* Header - show title only */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">My Schedule</h1>
           <p className="text-muted-foreground">View your assigned class schedules</p>
         </div>
-        {canDoAction(['gradeleader']) && <ScheduleCreator />}
       </div>
       
-      {/* Grade Leader view - show their created schedules */}
-      {canDoAction(['gradeleader']) && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">My Created Class Schedules</h2>
-          {myCreatedSchedules.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-muted-foreground">
-                    No class schedules created yet. Use the "Create Schedule" button to get started.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {myCreatedSchedules.map((schedule) => (
-                <Card key={schedule.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{schedule.grade_section}</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {schedule.school_year} • {schedule.adviser_teacher}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge 
-                          variant={
-                            schedule.status === 'APPROVED' ? 'default' : 
-                            schedule.status === 'REJECTED' ? 'destructive' : 
-                            'secondary'
-                          }
-                        >
-                          {schedule.status}
-                        </Badge>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => { 
-                            setSelectedSchedule(schedule); 
-                            setIsDetailViewOpen(true); 
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between text-sm">
-                      <span>Learners: {schedule.total_learners} (M: {schedule.male_learners}, F: {schedule.female_learners})</span>
-                      <span>Created: {formatDate(schedule.created_at)}</span>
-                    </div>
-                    {schedule.status === 'PENDING' && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This schedule is pending approval from the Principal. Once approved, it will be sent to the respective teachers.
-                      </p>
-                    )}
-                    {schedule.status === 'APPROVED' && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This schedule has been approved by the Principal and sent to the respective teachers.
-                      </p>
-                    )}
-                    {schedule.status === 'REJECTED' && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        This schedule has been rejected by the Principal. {schedule.approval_remarks && `Reason: ${schedule.approval_remarks}`}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Assigned Class Schedules Section (for faculty/teachers) */}
-      {canDoAction(['faculty']) && (
+      {/* Assigned Class Schedules Section (for faculty/teachers and grade leaders) */}
+      {(canDoAction(['faculty']) || canDoAction(['gradeleader'])) && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">My Assigned Class Schedules</h2>
           <div className="grid gap-4">

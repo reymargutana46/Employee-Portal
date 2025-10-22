@@ -9,6 +9,8 @@ import {
   CheckSquare,
   AlertTriangle,
   TrendingUp,
+  Plus,
+  X,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
@@ -33,6 +35,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import axios from "@/utils/axiosInstance";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 import { Res } from "@/types/response";
 import { ServiceRequestChart } from "@/components/ServiceRequestChart";
@@ -85,6 +91,7 @@ export interface ServiceRequestDate {
   rejected: number;
   forApproval: number;
 }
+
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [monthlyAttendance, setMonthlyAttendance] =
@@ -92,11 +99,24 @@ const Dashboard = () => {
   const [card, setCard] = useState<DashboardCard | null>(null);
   const [workload, setWorkload] = useState<WorkloadData[]>([]);
   const [recentLogs, setRecentLogs] = useState<RecentLog[]>([]);
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequestDate[]>(
-    []
-  );
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequestDate[]>([]);
 
   const { userRoles } = useAuth();
+  
+  // Find the first applicable role for stats display
+  const userRole = userRoles.length > 0 ? userRoles[0] : null;
+
+  // Ensure card data has default values if some properties are missing
+  const safeCard = {
+    totalEmployees: card?.totalEmployees || 0,
+    employeeDiff: card?.employeeDiff || 0,
+    attendanceRate: card?.attendanceRate || 0,
+    attendanceRateDiff: card?.attendanceRateDiff || 0,
+    avgWorkload: card?.avgWorkload || 0,
+    avgWorkloadDiff: card?.avgWorkloadDiff || 0,
+    leaveRequests: card?.leaveRequests || 0,
+    leaveRequestsDiff: card?.leaveRequestsDiff || 0,
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -125,9 +145,6 @@ const Dashboard = () => {
         setIsLoading(false);
       });
   }, []);
-
-  // Find the first applicable role for stats display
-  const userRole = userRoles.length > 0 ? userRoles[0] : null;
 
   // Demo stats for different roles
   const stats = {
@@ -399,6 +416,57 @@ const Dashboard = () => {
     return "0";
   }
 
+  // Simple calendar component for the dashboard
+  const SimpleCalendar = () => {
+    // Generate days for October 2025
+    const year = 2025;
+    const month = 9; // October (0-indexed)
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDay = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Create array of days with empty slots for start of week
+    const days = [];
+    for (let i = 0; i < startDay; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    // Highlight October 22
+    const highlightedDay = 22;
+
+    return (
+      <div className="p-2">
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            <div key={day} className="text-center text-xs font-medium py-1 text-muted-foreground">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day, index) => (
+            <div
+              key={index}
+              className={`h-8 flex items-center justify-center text-sm rounded-sm ${
+                day === highlightedDay
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : day
+                  ? "hover:bg-muted"
+                  : ""
+              }`}
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // Show loading state while data is being fetched
   if (isLoading) {
     return (
@@ -425,6 +493,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -433,9 +502,9 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.totalEmployees}</div>
+            <div className="text-2xl font-bold">{safeCard.totalEmployees}</div>
             <p className="text-xs text-muted-foreground">
-              {formatDiff(card.employeeDiff)} from last month
+              {formatDiff(safeCard.employeeDiff)} from last month
             </p>
           </CardContent>
         </Card>
@@ -446,9 +515,9 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.attendanceRate}%</div>
+            <div className="text-2xl font-bold">{safeCard.attendanceRate}%</div>
             <p className="text-xs text-muted-foreground">
-              {formatDiff(card.attendanceRateDiff)}% from last month
+              {formatDiff(safeCard.attendanceRateDiff)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -457,9 +526,9 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-medium">Avg. Workload</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.avgWorkload}h</div>
+            <div className="text-2xl font-bold">{safeCard.avgWorkload}h</div>
             <p className="text-xs text-muted-foreground">
-              {formatDiff(card.avgWorkloadDiff)}h from last month
+              {formatDiff(safeCard.avgWorkloadDiff)}h from last month
             </p>
           </CardContent>
         </Card>
@@ -470,48 +539,78 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{card.leaveRequests}</div>
+            <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
             <p className="text-xs text-muted-foreground">
-              {formatDiff(card.leaveRequestsDiff)} from last month
+              {formatDiff(safeCard.leaveRequestsDiff)} from last month
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-5">
+      {/* Main Content Grid - Monthly Attendance and Recent Logs side by side */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 h-full">
+        {/* Left Column - Monthly Attendance with label below */}
+        <Card className="col-span-5 flex flex-col h-full">
           <CardHeader>
             <CardTitle>Monthly Attendance</CardTitle>
             <CardDescription>
-              {monthlyAttendance.quarter === 1
+              {monthlyAttendance?.quarter === 1
                 ? "January - June "
-                : "July - December"}
+                : monthlyAttendance?.quarter === 2
+                ? "July - December"
+                : "No data available"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="w-full">
-            <DtrMonthlyChart
-              monthlyAttendance={monthlyAttendance.attendanceData}
-            />
+          <CardContent className="w-full flex-grow">
+            {monthlyAttendance?.attendanceData ? (
+              <DtrMonthlyChart
+                monthlyAttendance={monthlyAttendance.attendanceData}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                No attendance data available
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex-col items-start gap-2 text-sm">
             <div className="leading-none text-muted-foreground">
               Showing total attendance for the last 6 months
             </div>
+            <div className="text-xs font-medium text-primary">
+              Monthly Attendance
+            </div>
           </CardFooter>
         </Card>
-        <Card className="col-span-2">
+
+        {/* Right Column - Recent Logs */}
+        <Card className="col-span-2 flex flex-col h-full">
           <CardHeader>
             <CardTitle>Recent Logs</CardTitle>
             <CardDescription>
               Latest activities across the system
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow overflow-y-auto">
             <RecentActivities activities={recentLogs} />
           </CardContent>
         </Card>
       </div>
-      <ServiceRequestChart services={serviceRequests} />
+
+      {serviceRequests && serviceRequests.length > 0 ? (
+        <ServiceRequestChart services={serviceRequests} />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Request Status Trends</CardTitle>
+            <CardDescription>
+              Monthly trends of service request statuses throughout the year
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
+            No service request data available
+          </CardContent>
+        </Card>
+      )}
 
       {/* Conditionally render workload section - hide for admin users only */}
       {/* Principals, Faculty, Staff, GradeLeader, and Secretary should see workload */}
@@ -522,7 +621,13 @@ const Dashboard = () => {
               <CardTitle>Workload</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
-              <WorkloadChart workload={workload} />
+              {workload && workload.length > 0 ? (
+                <WorkloadChart workload={workload} />
+              ) : (
+                <div className="flex items-center justify-center h-64 text-muted-foreground">
+                  No workload data available
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex-col gap-2 text-sm">
               <div className="leading-none text-muted-foreground">
@@ -530,42 +635,6 @@ const Dashboard = () => {
               </div>
             </CardFooter>
           </Card>
-
-          {/* <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Overloaded Employees</CardTitle>
-              <CardDescription>
-                Employees exceeding workload thresholds
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Workload</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {overloadedEmployees.map((employee) => (
-                    <TableRow key={employee.name}>
-                      <TableCell className="font-medium">
-                        {employee.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-red-100 text-red-800 hover:bg-red-100"
-                        >
-                          {employee.workload} hrs
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card> */}
         </div>
       )}
     </div>

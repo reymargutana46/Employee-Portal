@@ -40,17 +40,20 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface ServiceRequestProps {
-services: ServiceRequestDate[]
+  services: ServiceRequestDate[] | undefined | null
 }
 
-export function ServiceRequestChart({ services}: ServiceRequestProps) {
+export function ServiceRequestChart({ services }: ServiceRequestProps) {
+  // Handle case where services might be undefined or null
+  const safeServices = services || [];
+  
   // Calculate total requests and completion rate
-  const totalRequests = services.reduce(
+  const totalRequests = safeServices.reduce(
     (sum, month) => sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
     0,
   )
-  const completedRequests = services.reduce((sum, month) => sum + month.completed, 0)
-  const completionRate = ((completedRequests / totalRequests) * 100).toFixed(1)
+  const completedRequests = safeServices.reduce((sum, month) => sum + month.completed, 0)
+  const completionRate = totalRequests > 0 ? ((completedRequests / totalRequests) * 100).toFixed(1) : "0.0"
 
   return (
     <Card className="w-full">
@@ -64,7 +67,7 @@ export function ServiceRequestChart({ services}: ServiceRequestProps) {
         <ChartContainer config={chartConfig} className="h-[350px] w-full">
           <LineChart
             accessibilityLayer
-            data={services}
+            data={safeServices}
             margin={{
               left: 12,
               right: 12,

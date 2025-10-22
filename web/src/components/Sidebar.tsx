@@ -257,6 +257,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   // Show nav items if user has ANY of the allowed roles
   const hasGradeLeader = userRoles.some((role) => role.name.toLowerCase() === "gradeleader");
   const hasFaculty = userRoles.some((role) => role.name.toLowerCase() === "faculty");
+  const hasPrincipal = userRoles.some((role) => role.name.toLowerCase() === "principal");
 
   let filteredNavItems = navItems.filter((item) =>
     userRoles.some((role) =>
@@ -264,6 +265,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
     )
   );
 
+  // Special filtering for grade leaders without faculty role
   if (hasGradeLeader && !hasFaculty) {
     filteredNavItems = navItems.filter((item) => item.title === "Dashboard" || item.title === "Workload");
   }

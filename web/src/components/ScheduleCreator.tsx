@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -73,6 +73,7 @@ const GRADE_SECTION_OPTIONS = [
 export function ScheduleCreator() {
   const [open, setOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [totalMinutes, setTotalMinutes] = useState(0)
   const { toast } = useToast()
   const { createSchedule, fetchMyCreatedSchedules } = useClassScheduleStore()
 
@@ -89,23 +90,40 @@ export function ScheduleCreator() {
   // Schedule table state - simplified structure
   const [scheduleRows, setScheduleRows] = useState([
     // Morning session
-    { time: "7:00 – 7:15", mins: "15", mondayThursday: "Flag Ceremony", friday: "Flag Ceremony" },
-    { time: "7:15 – 8:05", mins: "50", mondayThursday: "", friday: "" },
-    { time: "8:05 – 8:55", mins: "50", mondayThursday: "", friday: "" },
-    { time: "8:55 – 9:15", mins: "20", mondayThursday: "Recess", friday: "Recess" },
-    { time: "9:15 – 10:05", mins: "50", mondayThursday: "", friday: "" },
-    { time: "10:05 – 10:55", mins: "50", mondayThursday: "", friday: "" },
-    { time: "10:55 – 11:45", mins: "50", mondayThursday: "", friday: "" },
-    { time: "11:45 – 12:35", mins: "50", mondayThursday: "", friday: "" },
-    // Lunch break row (special handling)
-    { time: "12:35 – 1:35", mins: "60", mondayThursday: "LUNCH BREAK", friday: "LUNCH BREAK" },
+    { time: "7:00 – 7:15", mins: "15", mondayThursday: "", friday: "" },
+    { time: "7:15 – 7:30", mins: "15", mondayThursday: "Flag Raising Ceremony", friday: "Flag Raising Ceremony" },
+    { time: "7:30 – 8:20", mins: "50", mondayThursday: "", friday: "" },
+    { time: "8:20 – 9:10", mins: "50", mondayThursday: "", friday: "" },
+    { time: "9:10 – 9:30", mins: "20", mondayThursday: "RECESS/Health Break", friday: "RECESS/Health Break" },
+    { time: "9:30 – 10:20", mins: "50", mondayThursday: "", friday: "" },
+    { time: "10:20 – 10:50", mins: "30", mondayThursday: "", friday: "" },
+    { time: "10:20 – 11:05", mins: "45", mondayThursday: "", friday: "" },
+    { time: "11:05 – 12:00", mins: "55", mondayThursday: "Teacher's Preparation", friday: "Teacher's Preparation" },
+    // Noon Break (correctly positioned)
+    { time: "12:00 – 1:00", mins: "60", mondayThursday: "NOON BREAK", friday: "NOON BREAK" },
     // Afternoon session
-    { time: "1:35 – 2:25", mins: "50", mondayThursday: "", friday: "" },
-    { time: "2:25 – 3:15", mins: "50", mondayThursday: "", friday: "" },
-    { time: "3:15 – 4:05", mins: "50", mondayThursday: "", friday: "" },
+    { time: "1:00 – 1:50", mins: "50", mondayThursday: "", friday: "" },
+    { time: "1:50 – 2:40", mins: "50", mondayThursday: "", friday: "" },
+    { time: "2:40 – 3:10", mins: "30", mondayThursday: "", friday: "" },
+    { time: "3:10 – 4:30", mins: "80", mondayThursday: "", friday: "" },
     // Flag lowering
-    { time: "4:05 – 4:25", mins: "20", mondayThursday: "FLAG LOWERING", friday: "FLAG LOWERING" },
+    { time: "4:30 – 4:50", mins: "20", mondayThursday: "FLAG LOWERING", friday: "FLAG LOWERING" },
   ])
+
+  // Additional input fields below the columns
+  const [additionalInputs, setAdditionalInputs] = useState({
+    mondayThursday: "",
+    friday: ""
+  })
+
+  // Calculate total minutes whenever scheduleRows change
+  useEffect(() => {
+    const total = scheduleRows.reduce((sum, row) => {
+      const mins = parseInt(row.mins) || 0
+      return sum + mins
+    }, 0)
+    setTotalMinutes(total)
+  }, [scheduleRows])
 
   const handleInputChange = (field: string, value: string | number) => {
     // Update the specific field first
@@ -139,6 +157,13 @@ export function ScheduleCreator() {
         i === index ? { ...row, [field]: value } : row
       )
     )
+  }
+
+  const handleAdditionalInputChange = (field: string, value: string) => {
+    setAdditionalInputs(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   const handleSave = async () => {
@@ -191,6 +216,10 @@ export function ScheduleCreator() {
           femaleLearners: "",
           totalLearners: "",
         })
+        setAdditionalInputs({
+          mondayThursday: "",
+          friday: ""
+        })
         setOpen(false)
         
         // Refresh the created schedules list
@@ -216,7 +245,16 @@ export function ScheduleCreator() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen)
+      // Reset additional inputs when dialog closes
+      if (!isOpen) {
+        setAdditionalInputs({
+          mondayThursday: "",
+          friday: ""
+        })
+      }
+    }}>
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           + Create Schedule
@@ -335,8 +373,8 @@ export function ScheduleCreator() {
                 </td>
               </tr>
 
-              {/* Dynamic Schedule Rows */}
-              {scheduleRows.slice(0, 8).map((row, index) => (
+              {/* Morning Session Rows (0-8) */}
+              {scheduleRows.slice(0, 9).map((row, index) => (
                 <tr key={index}>
                   <td className="border px-2 py-1">
                     <Input 
@@ -371,27 +409,27 @@ export function ScheduleCreator() {
                 </tr>
               ))}
 
-              {/* Noon Break Row */}
+              {/* Noon Break Row (9) */}
               <tr className="bg-gray-100">
                 <td className="border px-2 py-1">
                   <Input 
                     className="text-center" 
-                    value={scheduleRows[8]?.time || "12:35 – 1:35"}
-                    onChange={(e) => handleScheduleChange(8, 'time', e.target.value)}
+                    value={scheduleRows[9].time}
+                    onChange={(e) => handleScheduleChange(9, 'time', e.target.value)}
                   />
                 </td>
                 <td className="border px-2 py-1">
                   <Input 
                     className="text-center" 
-                    value={scheduleRows[8]?.mins || "60"}
-                    onChange={(e) => handleScheduleChange(8, 'mins', e.target.value)}
+                    value={scheduleRows[9].mins}
+                    onChange={(e) => handleScheduleChange(9, 'mins', e.target.value)}
                   />
                 </td>
                 <td colSpan={2} className="border px-2 py-1">
                   <Input
                     className="text-center font-semibold"
-                    value={scheduleRows[8]?.mondayThursday || "LUNCH BREAK"}
-                    onChange={(e) => handleScheduleChange(8, 'mondayThursday', e.target.value)}
+                    value={scheduleRows[9].mondayThursday}
+                    onChange={(e) => handleScheduleChange(9, 'mondayThursday', e.target.value)}
                   />
                 </td>
               </tr>
@@ -403,63 +441,66 @@ export function ScheduleCreator() {
                 </td>
               </tr>
 
-              {/* Afternoon Schedule Rows */}
-              {scheduleRows.slice(9, 12).map((row, index) => (
-                <tr key={index + 9}>
-                  <td className="border px-2 py-1">
-                    <Input 
-                      className="text-center" 
-                      value={row.time}
-                      onChange={(e) => handleScheduleChange(index + 9, 'time', e.target.value)}
-                    />
-                  </td>
-                  <td className="border px-2 py-1">
-                    <Input 
-                      className="text-center" 
-                      value={row.mins}
-                      onChange={(e) => handleScheduleChange(index + 9, 'mins', e.target.value)}
-                    />
-                  </td>
-                  <td className="border px-2 py-1">
-                    <Input 
-                      className="text-center" 
-                      value={row.mondayThursday}
-                      onChange={(e) => handleScheduleChange(index + 9, 'mondayThursday', e.target.value)}
-                      placeholder="Subject"
-                    />
-                  </td>
-                  <td className="border px-2 py-1">
-                    <Input 
-                      className="text-center" 
-                      value={row.friday}
-                      onChange={(e) => handleScheduleChange(index + 9, 'friday', e.target.value)}
-                      placeholder="Subject"
-                    />
-                  </td>
-                </tr>
-              ))}
+              {/* Afternoon Session Rows (10-13) */}
+              {scheduleRows.slice(10, 14).map((row, index) => {
+                const actualIndex = index + 10
+                return (
+                  <tr key={actualIndex}>
+                    <td className="border px-2 py-1">
+                      <Input 
+                        className="text-center" 
+                        value={row.time}
+                        onChange={(e) => handleScheduleChange(actualIndex, 'time', e.target.value)}
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <Input 
+                        className="text-center" 
+                        value={row.mins}
+                        onChange={(e) => handleScheduleChange(actualIndex, 'mins', e.target.value)}
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <Input 
+                        className="text-center" 
+                        value={row.mondayThursday}
+                        onChange={(e) => handleScheduleChange(actualIndex, 'mondayThursday', e.target.value)}
+                        placeholder="Subject"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <Input 
+                        className="text-center" 
+                        value={row.friday}
+                        onChange={(e) => handleScheduleChange(actualIndex, 'friday', e.target.value)}
+                        placeholder="Subject"
+                      />
+                    </td>
+                  </tr>
+                )
+              })}
 
-              {/* Flag Lowering */}
+              {/* Flag Lowering Row (14) */}
               <tr>
                 <td className="border px-2 py-1">
                   <Input 
                     className="text-center" 
-                    value={scheduleRows[12]?.time || "4:05 – 4:25"}
-                    onChange={(e) => handleScheduleChange(12, 'time', e.target.value)}
+                    value={scheduleRows[14].time}
+                    onChange={(e) => handleScheduleChange(14, 'time', e.target.value)}
                   />
                 </td>
                 <td className="border px-2 py-1">
                   <Input 
                     className="text-center" 
-                    value={scheduleRows[12]?.mins || "20"}
-                    onChange={(e) => handleScheduleChange(12, 'mins', e.target.value)}
+                    value={scheduleRows[14].mins}
+                    onChange={(e) => handleScheduleChange(14, 'mins', e.target.value)}
                   />
                 </td>
                 <td colSpan={2} className="border px-2 py-1">
                   <Input
                     className="text-center font-semibold"
-                    value={scheduleRows[12]?.mondayThursday || "FLAG LOWERING"}
-                    onChange={(e) => handleScheduleChange(12, 'mondayThursday', e.target.value)}
+                    value={scheduleRows[14].mondayThursday}
+                    onChange={(e) => handleScheduleChange(14, 'mondayThursday', e.target.value)}
                   />
                 </td>
               </tr>
@@ -469,10 +510,25 @@ export function ScheduleCreator() {
                 <td className="border px-2 py-1 font-medium text-right">
                   TOTAL MINUTES
                 </td>
-                <td className="border px-2 py-1 text-center">
-                  <Input className="text-center" placeholder="—" />
+                <td className="border px-2 py-1 text-center font-semibold">
+                  {totalMinutes}
                 </td>
-                <td colSpan={2} className="border px-2 py-1"></td>
+                <td className="border px-2 py-1">
+                  <Input
+                    className="text-center"
+                    value={additionalInputs.mondayThursday}
+                    onChange={(e) => handleAdditionalInputChange('mondayThursday', e.target.value)}
+                    placeholder="Additional info"
+                  />
+                </td>
+                <td className="border px-2 py-1">
+                  <Input
+                    className="text-center"
+                    value={additionalInputs.friday}
+                    onChange={(e) => handleAdditionalInputChange('friday', e.target.value)}
+                    placeholder="Additional info"
+                  />
+                </td>
               </tr>
 
             </tbody>

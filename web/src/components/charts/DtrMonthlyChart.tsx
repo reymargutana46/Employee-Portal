@@ -15,16 +15,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { attendanceData, MonthlyAttendance } from "@/pages/Dashboard";
-
-const chartData = [
-  { month: "January", attendance: 275, fill: "hsl(var(--chart-1))" },
-  { month: "February", attendance: 200, fill: "hsl(var(--chart-2))" },
-  { month: "March", attendance: 187, fill: "hsl(var(--chart-3))" },
-  { month: "April", attendance: 173, fill: "hsl(var(--chart-4))" },
-  { month: "May", attendance: 90, fill: "hsl(var(--chart-5))" },
-  { month: "June", attendance: 150, fill: "hsl(var(--chart-6))" },
-];
+import { attendanceData } from "@/pages/Dashboard";
 
 const chartConfig = {
   attendance: {
@@ -57,15 +48,18 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 interface DtrMonthlyChartProps {
-  monthlyAttendance: attendanceData[]
+  monthlyAttendance: attendanceData[] | undefined | null
 };
 
 export default function DtrMonthlyChart({ monthlyAttendance }: DtrMonthlyChartProps) {
+  // Handle case where monthlyAttendance might be undefined or null
+  const safeMonthlyAttendance = monthlyAttendance || [];
+  
   return (
     <ChartContainer config={chartConfig}>
       <BarChart
         accessibilityLayer
-        data={monthlyAttendance}
+        data={safeMonthlyAttendance}
         layout="vertical"
         margin={{
           left: 0,
