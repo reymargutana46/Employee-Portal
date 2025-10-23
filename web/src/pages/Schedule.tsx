@@ -51,7 +51,10 @@ export default function MySchedulePage() {
       fetchMySchedule(); // Fetch assigned schedule for faculty/staff
     }
     
-    fetchMyCreatedSchedules();
+    // Fetch workload schedules if user is gradeleader
+    if (canDoAction(['gradeleader'])) {
+      fetchMyCreatedSchedules();
+    }
     
     // Fetch workload schedules if user is gradeleader
     if (canDoAction(['gradeleader'])) {

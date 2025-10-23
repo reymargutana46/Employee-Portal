@@ -43,22 +43,22 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ['admin', 'principal', 'secretary', 'faculty', 'staff'],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
         {
-          name: "faculty",
+          name: "Faculty",
         },
         {
-          name: "staff",
+          name: "Staff",
         },
         {
-          name: "gradeleader",
+          name: "GradeLeader",
         },
       ],
     },
@@ -69,13 +69,13 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "principal", "secretary"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
       ],
     },
@@ -86,10 +86,10 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "principal", "secretary"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
       ],
     },
@@ -100,22 +100,22 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "principal", "secretary", "faculty", "staff"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
         {
-          name: "faculty",
+          name: "Faculty",
         },
         {
-          name: "staff",
+          name: "Staff",
         },
         {
-          name: "gradeleader",
+          name: "GradeLeader",
         },
       ],
     },
@@ -126,22 +126,22 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "secretary", "faculty", "staff"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
         {
-          name: "faculty",
+          name: "Faculty",
         },
         {
-          name: "staff",
+          name: "Staff",
         },
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "gradeleader",
+          name: "GradeLeader",
         },
       ],
     },
@@ -152,22 +152,22 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "secretary", "staff"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
         {
-          name: "staff",
+          name: "Staff",
         },
         {
-          name: "faculty",
+          name: "Faculty",
         },
         {
-          name: "gradeleader",
+          name: "GradeLeader",
         },
       ],
     },
@@ -178,22 +178,22 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "principal", "secretary", "faculty", "staff"],
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "secretary",
+          name: "Secretary",
         },
         {
-          name: "faculty",
+          name: "Faculty",
         },
         {
-          name: "staff",
+          name: "Staff",
         },
         {
-          name: "gradeleader",
+          name: "GradeLeader",
         },
       ],
     },
@@ -204,13 +204,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       // allowedRoles: ["admin", "faculty"],
       allowedRoles: [
         {
-          name: "faculty",
-        },
-        {
-          name: "staff",
-        },
-        {
-          name: "gradeleader",
+          name: "Faculty",
         },
       ],
     },
@@ -221,10 +215,10 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       icon: BriefcaseBusiness,
       allowedRoles: [
         {
-          name: "principal",
+          name: "Principal",
         },
         {
-          name: "gradeleader",
+          name: "GradeLeader",
         },
       ],
     },
@@ -234,7 +228,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
       icon: ClipboardList,
       allowedRoles: [
         {
-          name: "admin",
+          name: "Admin",
         },
       ],
     },
@@ -265,6 +259,13 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
   // Special filtering for grade leaders without faculty role
   if (hasGradeLeader && !hasFaculty) {
     filteredNavItems = navItems.filter((item) => item.title === "Dashboard" || item.title === "Workload");
+  }
+  
+  // Additional filtering for Schedule item - only show to users who can actually access it
+  // Based on backend middleware: role:Faculty (which should be Faculty, Admin, or Principal)
+  const canAccessSchedule = hasFaculty || hasPrincipal || userRoles.some((role) => role.name.toLowerCase() === "admin");
+  if (!canAccessSchedule) {
+    filteredNavItems = filteredNavItems.filter((item) => item.title !== "Schedule");
   }
 
   return (
