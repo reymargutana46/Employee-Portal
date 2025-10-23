@@ -1,9 +1,13 @@
 {
     "cSpell.words": [
+        "employeeportal",
+        "Emport",
+        "gradeleader",
         "laravel",
         "Laravel",
         "pgsql",
         "phpredis",
-        "VITE"
+        "VITE",
+        "Workloadstore"
     ]
 }
