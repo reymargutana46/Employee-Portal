@@ -190,7 +190,7 @@ class DashboardService
 
     public function ActivityLogs()
     {
-        $activity = ActivityLog::orderBy('created_at', 'desc')->take(7)->get();
+        $activity = ActivityLog::orderBy('created_at', 'desc')->take(10)->get();
         if (!$this->user->hasRole($this->allowedRoles)) {
             $activity = $activity->where('performed_by', $this->user->username);
         }

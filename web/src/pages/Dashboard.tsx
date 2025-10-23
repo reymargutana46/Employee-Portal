@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useClassScheduleStore } from "@/store/useClassScheduleStore";
 import {
   Card,
   CardHeader,
@@ -42,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Res } from "@/types/response";
 import { ServiceRequestChart } from "@/components/ServiceRequestChart";
+import { Calendar as UICalendar } from "@/components/ui/calendar";
 
 export interface DashboardCard {
   totalEmployees: number;
@@ -100,6 +102,8 @@ const Dashboard = () => {
   const [workload, setWorkload] = useState<WorkloadData[]>([]);
   const [recentLogs, setRecentLogs] = useState<RecentLog[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequestDate[]>([]);
+  const [classSchedules, setClassSchedules] = useState<any[]>([]);
+  const [isSchedulesLoading, setIsSchedulesLoading] = useState(true);
 
   const { userRoles } = useAuth();
   
@@ -145,6 +149,29 @@ const Dashboard = () => {
         setIsLoading(false);
       });
   }, []);
+
+  // Fetch class schedules for principal
+  useEffect(() => {
+    const fetchClassSchedules = async () => {
+      if (userRole && userRole.name.toLowerCase() === 'principal') {
+        setIsSchedulesLoading(true);
+        try {
+          const { fetchSchedules } = useClassScheduleStore.getState();
+          await fetchSchedules();
+          const { schedules } = useClassScheduleStore.getState();
+          // Filter for approved schedules only
+          const approvedSchedules = schedules.filter(schedule => schedule.status === 'APPROVED');
+          setClassSchedules(approvedSchedules);
+        } catch (error) {
+          console.error('Failed to fetch class schedules:', error);
+        } finally {
+          setIsSchedulesLoading(false);
+        }
+      }
+    };
+
+    fetchClassSchedules();
+  }, [userRole]);
 
   // Demo stats for different roles
   const stats = {
@@ -582,18 +609,67 @@ const Dashboard = () => {
           </CardFooter>
         </Card>
 
-        {/* Right Column - Recent Logs */}
-        <Card className="col-span-2 flex flex-col h-full">
-          <CardHeader>
-            <CardTitle>Recent Logs</CardTitle>
-            <CardDescription>
-              Latest activities across the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow overflow-y-auto">
-            <RecentActivities activities={recentLogs} />
-          </CardContent>
-        </Card>
+        {/* Right Column - For Principal: Schedule above Recent Logs, For others: Recent Logs only */}
+        <div className="col-span-2 flex flex-col space-y-4">
+          {/* Schedule Section - Only show for Principal role */}
+          {userRole && userRole.name.toLowerCase() === 'principal' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Class Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isSchedulesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-muted-foreground">Loading schedules...</div>
+                  </div>
+                ) : classSchedules.length > 0 ? (
+                  <div className="space-y-4 max-h-64 overflow-y-auto">
+                    {classSchedules.slice(0, 5).map((schedule) => (
+                      <div key={schedule.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium text-sm">{schedule.grade_section}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {schedule.school_year} • {schedule.adviser_teacher}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {schedule.total_learners} learners
+                          </Badge>
+                        </div>
+                        {schedule.schedule_data && schedule.schedule_data.length > 0 && (
+                          <div className="mt-2 text-xs">
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>{schedule.schedule_data[0]?.time}</span>
+                              <span>{schedule.schedule_data[0]?.mondayThursday}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No approved class schedules available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent Logs Section */}
+          <Card className="flex flex-col flex-grow">
+            <CardHeader>
+              <CardTitle>Recent Logs</CardTitle>
+              <CardDescription>
+                Latest activities across the system
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-y-auto">
+              <RecentActivities activities={recentLogs} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {serviceRequests && serviceRequests.length > 0 ? (

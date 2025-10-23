@@ -13,7 +13,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
   return (
     <div className="space-y-3">
       {safeActivities.length > 0 ? (
-        safeActivities.slice(0, 7).map((activity, index) => (
+        safeActivities.slice(0, 2).map((activity, index) => (
           <div className="flex items-start" key={index}>
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs">

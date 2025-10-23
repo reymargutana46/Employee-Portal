@@ -210,9 +210,6 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
           name: "staff",
         },
         {
-          name: "principal",
-        },
-        {
           name: "gradeleader",
         },
       ],
