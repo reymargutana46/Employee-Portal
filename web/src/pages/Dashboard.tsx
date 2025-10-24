@@ -688,9 +688,9 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Conditionally render workload section - hide for admin users only */}
-      {/* Principals, Faculty, Staff, GradeLeader, and Secretary should see workload */}
-      {!userRoles.some(role => role.name.toLowerCase() === 'admin') && (
+      {/* Conditionally render workload section - hide for admin and secretary users */}
+      {/* Principals, Faculty, Staff, and GradeLeader should see workload */}
+      {!userRoles.some(role => role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'secretary') && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
           <Card className="col-span-5">
             <CardHeader>
