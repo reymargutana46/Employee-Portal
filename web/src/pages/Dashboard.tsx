@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Plus,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useClassScheduleStore } from "@/store/useClassScheduleStore";
@@ -44,6 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Res } from "@/types/response";
 import { ServiceRequestChart } from "@/components/ServiceRequestChart";
 import { Calendar as UICalendar } from "@/components/ui/calendar";
+import { useToast } from "@/hooks/use-toast";
 
 export interface DashboardCard {
   totalEmployees: number;
@@ -104,8 +107,11 @@ const Dashboard = () => {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequestDate[]>([]);
   const [classSchedules, setClassSchedules] = useState<any[]>([]);
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(true);
+  const [currentQuarter, setCurrentQuarter] = useState(1); // 1 for Jan-Jun, 2 for Jul-Dec
+  const [error, setError] = useState<string | null>(null);
 
   const { userRoles } = useAuth();
+  const { toast } = useToast();
   
   // Find the first applicable role for stats display
   const userRole = userRoles.length > 0 ? userRoles[0] : null;
@@ -122,10 +128,13 @@ const Dashboard = () => {
     leaveRequestsDiff: card?.leaveRequestsDiff || 0,
   };
 
-  useEffect(() => {
+  // Function to fetch dashboard data with quarter parameter
+  const fetchDashboardData = (quarter: number) => {
     setIsLoading(true);
+    setError(null);
+    
     axios
-      .get<Res<DashboardData>>("/accounts/page/dashboard")
+      .get<Res<DashboardData>>(`/accounts/page/dashboard?quarter=${quarter}`)
       .then((response) => {
         const {
           monthlyAttendance,
@@ -134,21 +143,34 @@ const Dashboard = () => {
           workloads,
           serviceRequests,
         } = response.data.data;
-        console.log(monthlyAttendance);
-        setWorkload(workloads);
-        setMonthlyAttendance(monthlyAttendance);
-        setRecentLogs(recentlogs);
-        setCard(card);
-        console.log(serviceRequests);
-        setServiceRequests(serviceRequests);
-
+        
+        // Log the response for debugging
+        console.log("Dashboard data received:", response.data.data);
+        
+        setWorkload(workloads || []);
+        setMonthlyAttendance(monthlyAttendance || null);
+        setRecentLogs(recentlogs || []);
+        setCard(card || null);
+        setServiceRequests(serviceRequests || []);
         setIsLoading(false);
       })
       .catch((err) => {
-        console.log(err.name);
+        console.error("Dashboard data fetch error:", err);
+        setError("Failed to load dashboard data. Please try again.");
         setIsLoading(false);
+        
+        // Show toast notification for better user feedback
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data. Please try again.",
+          variant: "destructive",
+        });
       });
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchDashboardData(currentQuarter);
+  }, [currentQuarter]);
 
   // Fetch class schedules for principal
   useEffect(() => {
@@ -164,6 +186,11 @@ const Dashboard = () => {
           setClassSchedules(approvedSchedules);
         } catch (error) {
           console.error('Failed to fetch class schedules:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load class schedules.",
+            variant: "destructive",
+          });
         } finally {
           setIsSchedulesLoading(false);
         }
@@ -494,12 +521,42 @@ const Dashboard = () => {
     );
   };
 
+  // Function to get quarter label
+  const getQuarterLabel = (quarter: number) => {
+    return quarter === 1 ? "January - June" : "July - December";
+  };
+
+  // Function to switch quarters
+  const switchQuarter = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setCurrentQuarter(currentQuarter === 1 ? 2 : 1);
+    } else {
+      setCurrentQuarter(currentQuarter === 2 ? 1 : 2);
+    }
+  };
+
   // Show loading state while data is being fetched
   if (isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-lg text-red-500 mb-4">{error}</div>
+            <Button onClick={() => fetchDashboardData(currentQuarter)}>
+              Retry
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -520,7 +577,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      {/* Stats Cards */}
+      {/* Stats Cards - Removed "from last month" labels */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -530,33 +587,27 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{safeCard.totalEmployees}</div>
-            <p className="text-xs text-muted-foreground">
-              {formatDiff(safeCard.employeeDiff)} from last month
-            </p>
+            {/* Removed last month label */}
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Attendance Rate
+              Attendance
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{safeCard.attendanceRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {formatDiff(safeCard.attendanceRateDiff)}% from last month
-            </p>
+            {/* Removed last month label */}
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Workload</CardTitle>
+            <CardTitle className="text-sm font-medium">Workload</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{safeCard.avgWorkload}h</div>
-            <p className="text-xs text-muted-foreground">
-              {formatDiff(safeCard.avgWorkloadDiff)}h from last month
-            </p>
+            {/* Removed last month label */}
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
@@ -567,29 +618,49 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
-            <p className="text-xs text-muted-foreground">
-              {formatDiff(safeCard.leaveRequestsDiff)} from last month
-            </p>
+            {/* Removed last month label */}
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Grid - Monthly Attendance and Recent Logs side by side */}
+      {/* Main Content Grid - Monthly Attendance with label below */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 h-full">
-        {/* Left Column - Monthly Attendance with label below */}
+        {/* Left Column - Monthly Attendance with quarterly selector */}
         <Card className="col-span-5 flex flex-col h-full">
           <CardHeader>
-            <CardTitle>Monthly Attendance</CardTitle>
-            <CardDescription>
-              {monthlyAttendance?.quarter === 1
-                ? "January - June "
-                : monthlyAttendance?.quarter === 2
-                ? "July - December"
-                : "No data available"}
-            </CardDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Monthly Attendance</CardTitle>
+                <CardDescription>
+                  {getQuarterLabel(currentQuarter)} {new Date().getFullYear()}
+                </CardDescription>
+              </div>
+              {/* Quarter navigation for principal role */}
+              {userRole && userRole.name.toLowerCase() === 'principal' && (
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => switchQuarter('prev')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium">Q{currentQuarter}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => switchQuarter('next')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="w-full flex-grow">
-            {monthlyAttendance?.attendanceData ? (
+            {monthlyAttendance?.attendanceData && monthlyAttendance.attendanceData.length > 0 ? (
               <DtrMonthlyChart
                 monthlyAttendance={monthlyAttendance.attendanceData}
               />
@@ -601,7 +672,7 @@ const Dashboard = () => {
           </CardContent>
           <CardFooter className="flex-col items-start gap-2 text-sm">
             <div className="leading-none text-muted-foreground">
-              Showing total attendance for the last 6 months
+              Showing total attendance for the selected quarter
             </div>
             <div className="text-xs font-medium text-primary">
               Monthly Attendance

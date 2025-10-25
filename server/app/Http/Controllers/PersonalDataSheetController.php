@@ -13,7 +13,20 @@ class PersonalDataSheetController extends Controller
 {
     public function index()
     {
-        $pds = PersonalDataSheet::all();
+        // Get the authenticated user
+        $user = Auth::user();
+        
+        // Check if user is principal, admin, or secretary - they can see all files
+        if ($user->hasRole(['principal', 'admin', 'secretary'])) {
+            $pds = PersonalDataSheet::all();
+        } else {
+            // Regular users can only see their own files
+            // Files where they are the owner or the uploader
+            $pds = PersonalDataSheet::where('owner_name', $user->username)
+                ->orWhere('uploader', $user->username)
+                ->get();
+        }
+        
         return $this->ok($pds);
     }
 
@@ -27,6 +40,18 @@ class PersonalDataSheetController extends Controller
 
         $file = $request->file('file');
         $employeeName = $request->input('employeeName');
+
+        // For regular users, override the employeeName with their full name
+        $user = Auth::user();
+        if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
+            // Get the user's full name from their employee record
+            if ($user->employee) {
+                $employeeName = $user->employee->getFullName();
+            } else {
+                // Fallback to username if no employee record
+                $employeeName = $user->username;
+            }
+        }
 
         // Build a clean, unique filename: employeeName-slug + timestamp + extension
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -48,10 +73,20 @@ class PersonalDataSheetController extends Controller
 
         return $this->ok($pds);
     }
+    
     public function viewFile($id)
     {
         try {
             $pds = PersonalDataSheet::findOrFail($id);
+            
+            // Check if user has permission to view this file
+            $user = Auth::user();
+            if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
+                // Regular users can only view their own files
+                if ($pds->owner_name !== $user->username && $pds->uploader !== $user->username) {
+                    return $this->unauthorized('You do not have permission to view this file');
+                }
+            }
 
             // Check if file exists
             // if (!Storage::disk('public')->exists($pds->file_path)) {
@@ -78,6 +113,15 @@ class PersonalDataSheetController extends Controller
     {
         try {
             $pds = PersonalDataSheet::findOrFail($id);
+            
+            // Check if user has permission to view this file
+            $user = Auth::user();
+            if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
+                // Regular users can only view their own files
+                if ($pds->owner_name !== $user->username && $pds->uploader !== $user->username) {
+                    return $this->unauthorized('You do not have permission to view this file');
+                }
+            }
 
             return $this->ok([
                 'id' => $pds->id,
@@ -94,15 +138,20 @@ class PersonalDataSheetController extends Controller
             return $this->badRequest('File not found');
         }
     }
+    
     public function deleteFile($id)
     {
         try {
             $pds = PersonalDataSheet::findOrFail($id);
-
-            // Check if user has permission to delete (optional)
-            // if ($pds->uploader !== Auth::user()->username && !Auth::user()->hasRole('admin')) {
-            //     return $this->unauthorized('You do not have permission to delete this file');
-            // }
+            
+            // Check if user has permission to delete this file
+            $user = Auth::user();
+            if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
+                // Regular users can only delete their own files
+                if ($pds->uploader !== $user->username) {
+                    return $this->unauthorized('You do not have permission to delete this file');
+                }
+            }
 
             // Delete the physical file
             if (Storage::disk('public')->exists($pds->file_path)) {

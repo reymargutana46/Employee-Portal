@@ -2,29 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\UserResource;
+use App\Models\ActivityLog;
 use App\Models\Employee;
-use App\Models\Leaves\Leave;
-use App\Models\ServiceRequest;
+use App\Models\Position;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Workhour;
-use App\Models\Department;
-use App\Models\Position;
-use App\Models\WorkLoadHdr;
-use App\Models\DtrAmtime;
-use App\Models\DtrPmtime;
-use Illuminate\Support\Carbon;
-use Auth;
-use Illuminate\Http\Request;
-use App\Http\Resources\EmployeeResource;
-use Illuminate\Support\Facades\DB;
 use App\Services\DashboardService;
-use Illuminate\Support\Facades\Hash;
-use App\Models\ActivityLog;
+use Auth;
+use DB;
+use Hash;
+use Illuminate\Http\Request;
+use Str;
 
 class AccountController extends Controller
 {
     protected $DashboardService;
+
     public function __construct(DashboardService $DashboardService)
     {
         $this->DashboardService = $DashboardService;
@@ -67,34 +63,29 @@ class AccountController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'username' => 'required|string|unique:users,username',
-            'password' => 'required|string|min:8',
-            'role_ids' => 'required|array',
-            'role_ids.*' => 'exists:roles,id'
+            'username' => 'required|unique:users,username',
+            'password' => 'required|min:8',
         ]);
 
         try {
-            DB::transaction(function () use ($validated) {
-                // Check if employee already has a user account
-                $employee = Employee::findOrFail($validated['employee_id']);
-                
-                if ($employee->user) {
-                    throw new \Exception('Employee already has a user account');
-                }
+            DB::transaction(function () use ($request) {
+                $employee = Employee::findOrFail($request->employee_id);
 
                 // Create user account
                 $user = User::create([
-                    'username' => $validated['username'],
-                    'password' => Hash::make($validated['password']),
+                    'username' => $request->username,
+                    'password' => Hash::make($request->password),
                 ]);
 
-                // Attach roles
-                $user->roles()->attach($validated['role_ids']);
-
-                // Update employee to link with user
+                // Associate employee with user account
                 $employee->update(['username_id' => $user->username]);
+
+                // Assign default role if provided
+                if ($request->has('role_id')) {
+                    $user->roles()->attach($request->role_id);
+                }
 
                 ActivityLog::create([
                     'performed_by' => Auth::user()->username,
@@ -227,17 +218,31 @@ class AccountController extends Controller
         }
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        $cards = $this->DashboardService->cards();
-        $monthlyAttendance = $this->DashboardService->monthlyAttendance();
-        return $this->ok([
-            'card' => $cards,
-            'monthlyAttendance' => $monthlyAttendance,
-            'recentlogs' => $this->DashboardService->ActivityLogs(),
-            'workloads' => $this->DashboardService->workloadsData(),
-            'serviceRequests' => $this->DashboardService->getServiceRequestCountPerMonthByStatus(),
-        ]);
+        try {
+            // Get quarter parameter from request, default to null
+            $quarter = $request->query('quarter', null);
+            
+            // Convert to integer if provided
+            if ($quarter !== null) {
+                $quarter = (int) $quarter;
+            }
+            
+            $cards = $this->DashboardService->cards();
+            $monthlyAttendance = $this->DashboardService->MonthlyAttendance($quarter);
+            
+            return $this->ok([
+                'card' => $cards,
+                'monthlyAttendance' => $monthlyAttendance,
+                'recentlogs' => $this->DashboardService->ActivityLogs(),
+                'workloads' => $this->DashboardService->workloadsData(),
+                'serviceRequests' => $this->DashboardService->getServiceRequestCountPerMonthByStatus(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Dashboard data error: ' . $e->getMessage());
+            return $this->badRequest('Failed to load dashboard data: ' . $e->getMessage());
+        }
     }
 
 
@@ -310,15 +315,19 @@ class AccountController extends Controller
                 'email' => $validated['email'],
                 'department_id' => $department->id,
                 'position_id' => $position->id,
-                'username_id' => $user->username,
                 'workhour_id' => $workhour->id,
                 'profile_picture' => $profilePicturePath,
             ]);
+
+            ActivityLog::create([
+                'performed_by' => Auth::user()->username,
+                'action' => 'updated',
+                'description' => "Updated profile for employee {$employee->fname} {$employee->lname}",
+                'entity_type' => Employee::class,
+                'entity_id' => $employee->id,
+            ]);
         });
 
-        // Re-fetch updated employee for response
-        $employee = Employee::with(['department', 'position', 'workhour', 'user'])->find($validated['id']);
-
-        return $this->ok(new EmployeeResource($employee), 'Profile updated successfully');
+        return $this->ok(null, 'Profile updated successfully');
     }
 }

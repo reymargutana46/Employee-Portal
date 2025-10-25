@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { RecentLog } from "@/pages/Dashboard"
-
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface RecentActivitiesProps {
   activities: RecentLog[]
@@ -10,10 +10,19 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
   // Handle case where activities might be undefined
   const safeActivities = activities || [];
   
+  // Get user roles from auth store
+  const { userRoles } = useAuthStore();
+  
+  // Check if user is principal
+  const isPrincipal = userRoles.some(role => role.name.toLowerCase() === 'principal');
+  
+  // Determine how many activities to show based on user role
+  const activityCount = isPrincipal ? 5 : 2;
+  
   return (
     <div className="space-y-3">
       {safeActivities.length > 0 ? (
-        safeActivities.slice(0, 2).map((activity, index) => (
+        safeActivities.slice(0, activityCount).map((activity, index) => (
           <div className="flex items-start" key={index}>
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs">

@@ -29,10 +29,6 @@ Route::post('/register', [AuthenticationController::class, 'register']);
 
 Route::post('/login', [AuthenticationController::class, 'login']);
 
-Route::prefix('pds')->controller(PersonalDataSheetController::class)->group(function () {
-    Route::get('/files/{id}/view', 'viewFile');
-});
-
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/logout', [AuthenticationController::class, 'logout']);
@@ -171,7 +167,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/upload', 'upload');
         Route::get('/files/{id}', 'getFile');
         Route::delete('/files/{id}', 'deleteFile');
-        // Route::get('/files/{id}/view', 'viewFile');
+        Route::get('/files/{id}/view', 'viewFile');
     });
 });
-
