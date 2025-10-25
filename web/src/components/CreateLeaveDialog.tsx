@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useLeaveStore } from "@/store/useLeaveStore";
 import { useToast } from "@/hooks/use-toast";
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from "./DateRangePicker";
@@ -36,8 +35,24 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
   const [leaveType, setLeaveType] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [reason, setReason] = useState("");
-  const { applyForLeave, leaveTypes } = useLeaveStore();
   const { toast } = useToast();
+
+  // Define the leave types you want to use
+  const leaveTypes = [
+    "Vacation Leave",
+    "Mandatory/Forced Leave",
+    "Sick Leave",
+    "Maternity Leave",
+    "Paternity Leave",
+    "Special Privilege Leave",
+    "Solo Parent Leave",
+    "Study Leave",
+    "10-Day VAWC Leave",
+    "Rehabilitation Privilege Leave",
+    "Special Leave Benefits for Women",
+    "Special Emergency (Calamity) Leave",
+    "Adoption Leave"
+  ];
 
   const calculateDays = () => {
     if (!dateRange?.from || !dateRange?.to) return 0;
@@ -72,7 +87,6 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
     };
     try {
       const res = await axios.post<Res<Leave>>("/leaves", formData);
-      applyForLeave(res.data.data);
       toast({
         title: "Success",
         description: "Leave application submitted successfully",
@@ -109,13 +123,13 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
               </SelectTrigger>
 
               <SelectContent>
-                {leaveTypes.map((type) => (
+                {leaveTypes.map((type, index) => (
                   <SelectItem
-                    key={type.id}
-                    value={type.name}
+                    key={index}
+                    value={type}
                     className="capitalize"
                   >
-                    {type.name}
+                    {type}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -134,7 +148,7 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
             </div>
           )}
           <div>
-            <Label htmlFor="reason">Reason (optional)</Label>
+            <Label htmlFor="reason">Reason</Label>
             <Textarea
               id="reason"
               value={reason}

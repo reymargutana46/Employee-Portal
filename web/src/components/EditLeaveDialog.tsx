@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useLeaveStore } from '@/store/useLeaveStore';
 import { useToast } from '@/hooks/use-toast';
 import { DateRange } from 'react-day-picker';
 import { DateRangePicker } from './DateRangePicker';
 import { Leave } from '@/types/leave';
 import axios from "../utils/axiosInstance"
+
 interface EditLeaveDialogProps {
   leave: Leave;
   open: boolean;
@@ -24,8 +23,24 @@ const EditLeaveDialog = ({ leave, open, onClose, onSuccess, isAdmin }: EditLeave
   const [leaveType, setLeaveType] = useState<string>(leave.leave_type.name);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: new Date(leave.from), to: new Date(leave.to) });
   const [reason, setReason] = useState(leave.reason || "");
-  const { updateLeave, leaveTypes } = useLeaveStore();
   const { toast } = useToast();
+
+  // Define the leave types you want to use
+  const leaveTypes = [
+    "Vacation Leave",
+    "Mandatory/Forced Leave",
+    "Sick Leave",
+    "Maternity Leave",
+    "Paternity Leave",
+    "Special Privilege Leave",
+    "Solo Parent Leave",
+    "Study Leave",
+    "10-Day VAWC Leave",
+    "Rehabilitation Privilege Leave",
+    "Special Leave Benefits for Women",
+    "Special Emergency (Calamity) Leave",
+    "Adoption Leave"
+  ];
 
   useEffect(() => {
     setLeaveType(leave.leave_type.name);
@@ -46,22 +61,12 @@ const EditLeaveDialog = ({ leave, open, onClose, onSuccess, isAdmin }: EditLeave
     }
     try {
       axios.put(`/leaves/${leave.id}`, {type: leaveType, from: dateRange.from, to: dateRange.to, reason})
-      updateLeave({
-        ...leave,
-        leave_type: { ...leave.leave_type, name: leaveType },
-        from: format(dateRange.from, 'yyyy-MM-dd'),
-        to: format(dateRange.to, 'yyyy-MM-dd'),
-        reason,
-        updated_at: new Date().toISOString(),
-      });
       toast({ title: "Success", description: "Leave request updated successfully" });
       onClose();
       onSuccess?.();
     } catch (error) {
       toast({  title: "Fail", description: "Leave request updated unsuccessfully" });
-
     }
-
   };
 
   return (
@@ -78,9 +83,8 @@ const EditLeaveDialog = ({ leave, open, onClose, onSuccess, isAdmin }: EditLeave
                 <SelectValue placeholder="Select leave type" />
               </SelectTrigger>
               <SelectContent>
-                {leaveTypes.map((type) => (
-                <SelectItem key={type.id} value={type.name} className='capitalize'>{type.name}</SelectItem>
-
+                {leaveTypes.map((type, index) => (
+                <SelectItem key={index} value={type} className='capitalize'>{type}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
