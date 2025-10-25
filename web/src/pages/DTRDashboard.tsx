@@ -165,9 +165,6 @@ const DTRDashboard = () => {
       <Card>
         <CardHeader>
           <CardTitle>Filters & Controls</CardTitle>
-          <CardDescription>
-            Select employee, month, and view options
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

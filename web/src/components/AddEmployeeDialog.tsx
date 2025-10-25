@@ -362,15 +362,17 @@ const AddEmployeeDialog = () => {
                                 <SelectValue placeholder="Select building & section" />
                               </SelectTrigger>
                               <SelectContent>
-                                {departments.map((deparment) => (
-                                  <SelectItem
-                                    key={deparment.id}
-                                    value={deparment.name}
-                                    className="capitalize"
-                                  >
-                                    {deparment.name}
-                                  </SelectItem>
-                                ))}
+                                {departments
+                                  .filter(department => department.name !== 'Admin Department')
+                                  .map((deparment) => (
+                                    <SelectItem
+                                      key={deparment.id}
+                                      value={deparment.name}
+                                      className="capitalize"
+                                    >
+                                      {deparment.name}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </FormControl>

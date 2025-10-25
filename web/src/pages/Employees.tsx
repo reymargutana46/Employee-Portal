@@ -168,17 +168,6 @@ const Employees = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Filter By Department</DropdownMenuLabel>
-            {departments.map((department) => (
-              <DropdownMenuItem
-                key={department.id}
-                onClick={() => handleFilterDepartment(department)}
-              >
-                {department.name}
-              </DropdownMenuItem>
-            ))}
-
-            <DropdownMenuSeparator />
             <DropdownMenuLabel>Filter By Status</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => handleFilterStatus("Active")}>
               Active
