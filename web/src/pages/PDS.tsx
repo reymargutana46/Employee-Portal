@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import axios from "@/store/usePersonalDataSheet";
 import instance from "@/utils/axiosInstance";
 import type { Res } from "@/types/response";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface UploadedFile {
   id: number;
@@ -68,13 +69,18 @@ const PDS = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [stagedFile, setStagedFile] = useState<StagedFile | null>(null);
-  const [employeeName, setEmployeeName] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuthStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Check if user is principal or secretary
+  const isPrivilegedUser = user?.roles?.some(role => 
+    ['principal', 'secretary'].includes(role.name.toLowerCase())
+  ) || false;
 
   // Fetch all PDS files on component mount
   useEffect(() => {
@@ -159,9 +165,12 @@ const PDS = () => {
       return;
     }
 
+    // For all users, pre-fill employee name with their full name (no manual input)
+    const defaultEmployeeName = user?.fullname ? user.fullname : user?.username || "";
+
     const newStagedFile: StagedFile = {
       file,
-      employeeName: employeeName,
+      employeeName: defaultEmployeeName,
     };
 
     setStagedFile(newStagedFile);
@@ -190,15 +199,6 @@ const PDS = () => {
 
   const removeStagedFile = () => {
     setStagedFile(null);
-  };
-
-  const updateStagedFileInfo = (field: "employeeName", value: string) => {
-    if (stagedFile) {
-      setStagedFile({
-        ...stagedFile,
-        [field]: value,
-      });
-    }
   };
 
   // Updated upload function to match backend response
@@ -239,7 +239,6 @@ const PDS = () => {
 
       // Clear staged file and form
       setStagedFile(null);
-      setEmployeeName("");
 
       // Refresh the files list
       await fetchAllFiles();
@@ -294,7 +293,7 @@ const PDS = () => {
   // Updated download function to use the view endpoint
   const handleDownloadFile = async (id: number, filename: string) => {
     try {
-      const response = await axios.get(`/files/${id}/view`, {
+      const response = await axios.get(`/pds/files/${id}/view`, {
         responseType: "blob",
       });
 
@@ -330,30 +329,16 @@ const PDS = () => {
   // Updated view function to use file_url or API endpoint
   const handleViewFile = async (file: UploadedFile) => {
     try {
-
+      // Create the URL for viewing the file
       const viewUrl = `http://127.0.0.1:8000/api/pds/files/${file.id}/view`;
-      fetch(viewUrl, { method: "GET"})
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error("Failed to fetch file for viewing");
-          }
-          return res.blob();
-        })
-        .then((blob) => {
-          const url = window.URL.createObjectURL(blob);
-          window.open(url, "_blank", "noopener,noreferrer");
-          // Optionally revoke the object URL after some time
-          setTimeout(() => window.URL.revokeObjectURL(url), 60000);
-        })
-        .catch((err) => {
-          console.error("View error:", err);
-          toast({
-            title: "View failed",
-            description: "Failed to open the file for viewing.",
-            variant: "destructive",
-          });
-        });
+      
+      // Open in a new tab
       window.open(viewUrl, "_blank", "noopener,noreferrer");
+      
+      toast({
+        title: "Opening file",
+        description: "The file is being opened in a new tab.",
+      });
     } catch (error) {
       console.error("View error:", error);
       toast({
@@ -442,7 +427,7 @@ const PDS = () => {
             Upload Personal Data Sheet
           </CardTitle>
           <CardDescription>
-            Select a single PDS file and provide employee information
+            Select a single PDS file to upload
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -514,24 +499,15 @@ const PDS = () => {
                   {getFileIcon(stagedFile.file.type)}
                 </span>
 
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex-1">
                   <div>
                     <p className="font-medium">{stagedFile.file.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatFileSize(stagedFile.file.size)}
                     </p>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">PDS Owner</Label>
-                    <Input
-                      value={stagedFile.employeeName}
-                      onChange={(e) =>
-                        updateStagedFileInfo("employeeName", e.target.value)
-                      }
-                      placeholder="Employee name"
-                      className="h-8 text-sm"
-                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Employee: {stagedFile.employeeName}
+                    </p>
                   </div>
                 </div>
 
@@ -549,18 +525,20 @@ const PDS = () => {
         </CardContent>
       </Card>
 
-      {/* Search Section */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by filename, employee, or uploader..."
-            className="pl-10 h-11"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Search Section - Only show for privileged users */}
+      {isPrivilegedUser && (
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by filename, employee, or uploader..."
+              className="pl-10 h-11"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Files Table */}
       <Card className="shadow-sm">
@@ -596,7 +574,7 @@ const PDS = () => {
                       File
                     </th>
                     <th className="text-left font-semibold py-4 px-6 text-gray-900">
-                      Employee (PDS Owner)
+                      Employee
                     </th>
                     <th className="text-left font-semibold py-4 px-6 text-gray-900">
                       Uploaded By
@@ -664,7 +642,7 @@ const PDS = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* <Button
+                          <Button
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0"
@@ -672,7 +650,7 @@ const PDS = () => {
                             title="Download file"
                           >
                             <Download className="h-4 w-4" />
-                          </Button> */}
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
