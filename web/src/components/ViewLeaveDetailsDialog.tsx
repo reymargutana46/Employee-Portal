@@ -35,7 +35,7 @@ const ViewLeaveDetailsDialog = ({
     // School information
     const schoolName = "Naawan Central School";
     const schoolAddress = "Magsaysay St. Poblacion 9023 Naawan, Philippines";
-    const schoolLogo = "/api/placeholder/150/80"; // Placeholder for school logo
+    const schoolLogo = "/ncslogo.jpg"; // Updated to use actual logo instead of placeholder
 
     win.document.write(`
       <html>
@@ -87,6 +87,28 @@ const ViewLeaveDetailsDialog = ({
             font-size: 16px;
             line-height: 1.5;
           }
+          .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+          }
+          .signature-line {
+            flex: 1;
+            margin: 0 20px;
+            text-align: center;
+          }
+          .signature-line div:first-child {
+            width: 100%;
+            border-bottom: 1px solid #000;
+            padding: 5px 0;
+            min-height: 20px;
+            margin-bottom: 5px;
+          }
+          .signature-label {
+            font-weight: bold;
+            display: block;
+            margin: 5px 0;
+          }
           .footer {
             margin-top: 40px;
             text-align: center;
@@ -108,10 +130,21 @@ const ViewLeaveDetailsDialog = ({
           </div>
         </div>
 
-        <div class="document-title">Leave Request Form</div>
+        <div class="document-title">Application for Leave</div>
 
         <div class="details">
           ${printContents}
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-line">
+          <div></div>
+            <div class="signature-label">Employee Name</div>
+          </div>
+          <div class="signature-line">
+            <div></div>
+            <div class="signature-label">Principal's Name</div>
+          </div>
         </div>
 
         <div class="footer">
@@ -141,7 +174,10 @@ const ViewLeaveDetailsDialog = ({
         </DialogHeader>
         <div ref={printRef} className="details space-y-3">
           <div>
-            <b>Employee:</b> {leave.employee.fname} {leave.employee.lname}
+            <b>Employee Name:</b> {leave.employee.fname} {leave.employee.mname ? leave.employee.mname + ' ' : ''}{leave.employee.lname}
+          </div>
+          <div>
+            (First Name, Middle Name, Last Name)
           </div>
           <div>
             <b>Leave Type:</b> {leave.leave_type.name}
@@ -151,7 +187,7 @@ const ViewLeaveDetailsDialog = ({
             {dayjs(leave.to).format("MMM D, YYYY")}
           </div>
           <div>
-            <b>Status:</b> {leave.status}
+            <b>Status of Action on Application:</b> {leave.status}
           </div>
           <div>
             <b>Reason:</b> {leave.reason}
