@@ -188,7 +188,7 @@ const LeaveApplicationDialog = ({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="reason">Reason {!isAdmin && "(Optional)"}</Label>
+            <Label htmlFor="reason">Reason</Label>
             <Textarea
               id="reason"
               value={reason}
