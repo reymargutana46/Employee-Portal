@@ -16,15 +16,35 @@ class PersonalDataSheetController extends Controller
         // Get the authenticated user
         $user = Auth::user();
         
+        // Log user roles for debugging
+        \Log::info('PDS Index - User roles: ' . json_encode($user->roles->pluck('name')));
+        \Log::info('PDS Index - User: ' . $user->username);
+        
         // Check if user is principal or secretary - they can see all files
         if ($user->hasRole(['principal', 'secretary'])) {
+            \Log::info('PDS Index - User has principal or secretary role, fetching all files');
             $pds = PersonalDataSheet::all();
         } else {
             // Regular users (including admins) can only see their own files
             // Files where they are the owner or the uploader
-            $pds = PersonalDataSheet::where('owner_name', $user->username)
+            \Log::info('PDS Index - User is regular, fetching own files only');
+            \Log::info('PDS Index - User username: ' . $user->username);
+            
+            // Get user's full name for matching
+            $userFullName = $user->username; // Default to username
+            if ($user->employee) {
+                $userFullName = $user->employee->getFullName();
+                \Log::info('PDS Index - User full name: ' . $userFullName);
+            }
+            
+            $pds = PersonalDataSheet::where('owner_name', $userFullName)
                 ->orWhere('uploader', $user->username)
                 ->get();
+                
+            \Log::info('PDS Index - Found ' . $pds->count() . ' files for user');
+            foreach ($pds as $file) {
+                \Log::info('PDS Index - File ID: ' . $file->id . ', Owner: ' . $file->owner_name . ', Uploader: ' . $file->uploader);
+            }
         }
         
         return $this->ok($pds);
@@ -81,7 +101,13 @@ class PersonalDataSheetController extends Controller
             $user = Auth::user();
             if (!$user->hasRole(['principal', 'secretary'])) {
                 // Regular users (including admins) can only view their own files
-                if ($pds->owner_name !== $user->username && $pds->uploader !== $user->username) {
+                // Get user's full name for matching
+                $userFullName = $user->username; // Default to username
+                if ($user->employee) {
+                    $userFullName = $user->employee->getFullName();
+                }
+                
+                if ($pds->owner_name !== $userFullName && $pds->uploader !== $user->username) {
                     return $this->unauthorized('You do not have permission to view this file');
                 }
             }
@@ -116,7 +142,13 @@ class PersonalDataSheetController extends Controller
             $user = Auth::user();
             if (!$user->hasRole(['principal', 'secretary'])) {
                 // Regular users (including admins) can only view their own files
-                if ($pds->owner_name !== $user->username && $pds->uploader !== $user->username) {
+                // Get user's full name for matching
+                $userFullName = $user->username; // Default to username
+                if ($user->employee) {
+                    $userFullName = $user->employee->getFullName();
+                }
+                
+                if ($pds->owner_name !== $userFullName && $pds->uploader !== $user->username) {
                     return $this->unauthorized('You do not have permission to view this file');
                 }
             }

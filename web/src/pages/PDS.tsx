@@ -547,7 +547,10 @@ const PDS = () => {
             <div>
               <CardTitle className="text-xl">Uploaded Files</CardTitle>
               <CardDescription>
-                {filteredFiles.length} of {uploadedFiles.length} files
+                Showing <span className="font-bold">{filteredFiles.length}</span> of <span className="font-bold">{uploadedFiles.length}</span> files
+                {isPrivilegedUser && (
+                  <span> (All employees)</span>
+                )}
               </CardDescription>
             </div>
           </div>

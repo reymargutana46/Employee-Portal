@@ -31,7 +31,28 @@ class Employee extends Model
 
     public function getFullName()
     {
-        return $this->extname . " " . $this->fname . " " . $this->mname . " " . $this->lname;
+        // Build full name properly, only adding spaces when values exist
+        $parts = [];
+        
+        if (!empty($this->fname)) {
+            $parts[] = trim($this->fname);
+        }
+        
+        if (!empty($this->mname)) {
+            $parts[] = trim($this->mname);
+        }
+        
+        if (!empty($this->lname)) {
+            $parts[] = trim($this->lname);
+        }
+        
+        $fullName = implode(' ', $parts);
+        
+        if (!empty($this->extname)) {
+            $fullName = trim($this->extname) . ' ' . $fullName;
+        }
+        
+        return trim($fullName);
     }
 
     public function department()

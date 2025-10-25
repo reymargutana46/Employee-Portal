@@ -90,8 +90,6 @@ const LeaveApplicationDialog = ({
       return;
     }
 
-
-
     if (leaveToEdit) {
       updateLeave({
         ...leaveToEdit,
@@ -117,7 +115,7 @@ const LeaveApplicationDialog = ({
         type: leaveType,
       }
       axios.post<Res<Leave>>('/leave', formData).then((res) => {
-      applyForLeave(res.data.data)
+        applyForLeave(res.data.data)
       })
 
       toast({
@@ -159,10 +157,18 @@ const LeaveApplicationDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Vacation Leave">Vacation Leave</SelectItem>
+                <SelectItem value="Mandatory/Forced Leave">Mandatory/Forced Leave</SelectItem>
                 <SelectItem value="Sick Leave">Sick Leave</SelectItem>
-                <SelectItem value="Emergency Leave">Emergency Leave</SelectItem>
-                <SelectItem value="Personal Leave">Personal Leave</SelectItem>
-                {isAdmin && <SelectItem value="Maternity Leave">Maternity Leave</SelectItem>}
+                <SelectItem value="Maternity Leave">Maternity Leave</SelectItem>
+                <SelectItem value="Paternity Leave">Paternity Leave</SelectItem>
+                <SelectItem value="Special Privilege Leave">Special Privilege Leave</SelectItem>
+                <SelectItem value="Solo Parent Leave">Solo Parent Leave</SelectItem>
+                <SelectItem value="Study Leave">Study Leave</SelectItem>
+                <SelectItem value="10-Day VAWC Leave">10-Day VAWC Leave</SelectItem>
+                <SelectItem value="Rehabilitation Privilege Leave">Rehabilitation Privilege Leave</SelectItem>
+                <SelectItem value="Special Leave Benefits for Women">Special Leave Benefits for Women</SelectItem>
+                <SelectItem value="Special Emergency (Calamity) Leave">Special Emergency (Calamity) Leave</SelectItem>
+                <SelectItem value="Adoption Leave">Adoption Leave</SelectItem>
               </SelectContent>
             </Select>
           </div>
