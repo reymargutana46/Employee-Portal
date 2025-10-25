@@ -16,11 +16,11 @@ class PersonalDataSheetController extends Controller
         // Get the authenticated user
         $user = Auth::user();
         
-        // Check if user is principal, admin, or secretary - they can see all files
-        if ($user->hasRole(['principal', 'admin', 'secretary'])) {
+        // Check if user is principal or secretary - they can see all files
+        if ($user->hasRole(['principal', 'secretary'])) {
             $pds = PersonalDataSheet::all();
         } else {
-            // Regular users can only see their own files
+            // Regular users (including admins) can only see their own files
             // Files where they are the owner or the uploader
             $pds = PersonalDataSheet::where('owner_name', $user->username)
                 ->orWhere('uploader', $user->username)
@@ -41,16 +41,14 @@ class PersonalDataSheetController extends Controller
         $file = $request->file('file');
         $employeeName = $request->input('employeeName');
 
-        // For regular users, override the employeeName with their full name
+        // For all users, always use the authenticated user's full name
         $user = Auth::user();
-        if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
-            // Get the user's full name from their employee record
-            if ($user->employee) {
-                $employeeName = $user->employee->getFullName();
-            } else {
-                // Fallback to username if no employee record
-                $employeeName = $user->username;
-            }
+        // Get the user's full name from their employee record
+        if ($user->employee) {
+            $employeeName = $user->employee->getFullName();
+        } else {
+            // Fallback to username if no employee record
+            $employeeName = $user->username;
         }
 
         // Build a clean, unique filename: employeeName-slug + timestamp + extension
@@ -81,17 +79,17 @@ class PersonalDataSheetController extends Controller
             
             // Check if user has permission to view this file
             $user = Auth::user();
-            if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
-                // Regular users can only view their own files
+            if (!$user->hasRole(['principal', 'secretary'])) {
+                // Regular users (including admins) can only view their own files
                 if ($pds->owner_name !== $user->username && $pds->uploader !== $user->username) {
                     return $this->unauthorized('You do not have permission to view this file');
                 }
             }
 
             // Check if file exists
-            // if (!Storage::disk('public')->exists($pds->file_path)) {
-            //     return $this->badRequest('File not found');
-            // }
+            if (!Storage::disk('public')->exists($pds->file_path)) {
+                return $this->badRequest('File not found');
+            }
 
             // Return file for viewing/download
             $mimeType = Storage::disk('public')->mimeType($pds->file_path);
@@ -100,11 +98,11 @@ class PersonalDataSheetController extends Controller
                 storage_path("app/public/" . $pds->file_path),
                 [
                     'Content-Type' => $mimeType,
-                    'Content-Disposition' => 'inline; filename="' . $pds->original_name . '"'
+                    'Content-Disposition' => 'inline; filename="' . $pds->file_name . '"'
                 ]
             );
         } catch (\Exception $e) {
-            return $this->badRequest('Unable to retrieve file');
+            return $this->badRequest('Unable to retrieve file: ' . $e->getMessage());
         }
     }
 
@@ -116,8 +114,8 @@ class PersonalDataSheetController extends Controller
             
             // Check if user has permission to view this file
             $user = Auth::user();
-            if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
-                // Regular users can only view their own files
+            if (!$user->hasRole(['principal', 'secretary'])) {
+                // Regular users (including admins) can only view their own files
                 if ($pds->owner_name !== $user->username && $pds->uploader !== $user->username) {
                     return $this->unauthorized('You do not have permission to view this file');
                 }
@@ -135,7 +133,7 @@ class PersonalDataSheetController extends Controller
                 'uploaded_at' => $pds->uploaded_at,
             ]);
         } catch (\Exception $e) {
-            return $this->badRequest('File not found');
+            return $this->badRequest('File not found: ' . $e->getMessage());
         }
     }
     
@@ -146,8 +144,8 @@ class PersonalDataSheetController extends Controller
             
             // Check if user has permission to delete this file
             $user = Auth::user();
-            if (!$user->hasRole(['principal', 'admin', 'secretary'])) {
-                // Regular users can only delete their own files
+            if (!$user->hasRole(['principal', 'secretary'])) {
+                // Regular users (including admins) can only delete their own files
                 if ($pds->uploader !== $user->username) {
                     return $this->unauthorized('You do not have permission to delete this file');
                 }
@@ -164,7 +162,7 @@ class PersonalDataSheetController extends Controller
             return $this->ok(null, 'File deleted successfully');
         } catch (\Exception $e) {
 
-            return $this->badRequest('Failed to delete file', 500);
+            return $this->badRequest('Failed to delete file: ' . $e->getMessage(), 500);
         }
     }
 }

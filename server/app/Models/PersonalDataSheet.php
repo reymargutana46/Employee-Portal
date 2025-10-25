@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Storage;
 
 class PersonalDataSheet extends Model
 {
@@ -25,5 +26,17 @@ class PersonalDataSheet extends Model
     public function getUploadedAtAttribute()
     {
         return $this->created_at;
+    }
+    
+    // Accessor for file_url
+    public function getFileUrlAttribute()
+    {
+        return Storage::disk('public')->url($this->file_path);
+    }
+    
+    // Accessor for original_name (same as file_name)
+    public function getOriginalNameAttribute()
+    {
+        return $this->file_name;
     }
 }
