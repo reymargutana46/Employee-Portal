@@ -175,9 +175,7 @@ const ViewLeaveDetailsDialog = ({
         <div ref={printRef} className="details space-y-3">
           <div>
             <b>Employee Name:</b> {leave.employee.fname} {leave.employee.mname ? leave.employee.mname + ' ' : ''}{leave.employee.lname}
-          </div>
-          <div>
-            (First Name, Middle Name, Last Name)
+            <div className="text-sm text-gray-500 ml-10">(First Name, Middle Name, Last Name)</div>
           </div>
           <div>
             <b>Leave Type:</b> {leave.leave_type.name}
@@ -213,6 +211,6 @@ const ViewLeaveDetailsDialog = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
 
 export default ViewLeaveDetailsDialog;
