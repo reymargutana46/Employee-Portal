@@ -1,4 +1,3 @@
-
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +15,23 @@ interface LeaveStatusFilterProps {
 }
 
 const LeaveStatusFilter = ({ onFilterStatus, onFilterType }: LeaveStatusFilterProps) => {
+  // Define the leave types for filtering
+  const leaveTypes = [
+    'Vacation Leave',
+    'Mandatory/Forced Leave',
+    'Sick Leave',
+    'Maternity Leave',
+    'Paternity Leave',
+    'Special Privilege Leave',
+    'Solo Parent Leave',
+    'Study Leave',
+    '10-Day VAWC Leave',
+    'Rehabilitation Privilege Leave',
+    'Special Leave Benefits for Women',
+    'Special Emergency (Calamity) Leave',
+    'Adoption Leave'
+  ];
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -32,10 +48,11 @@ const LeaveStatusFilter = ({ onFilterStatus, onFilterType }: LeaveStatusFilterPr
         <DropdownMenuItem onClick={() => onFilterStatus(undefined)}>Clear Status Filter</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Filter By Type</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => onFilterType('Vacation Leave')}>Type: Vacation</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onFilterType('Sick Leave')}>Type: Sick</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onFilterType('Emergency Leave')}>Type: Emergency</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onFilterType('Personal Leave')}>Type: Personal</DropdownMenuItem>
+        {leaveTypes.map((type) => (
+          <DropdownMenuItem key={type} onClick={() => onFilterType(type)}>
+            Type: {type}
+          </DropdownMenuItem>
+        ))}
         <DropdownMenuItem onClick={() => onFilterType(undefined)}>Clear Type Filter</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -14,13 +14,19 @@ class LeaveTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            'Vacation',
+            'Vacation Leave',
+            'Mandatory/Forced Leave',
             'Sick Leave',
             'Maternity Leave',
             'Paternity Leave',
-            'Bereavement Leave',
-            'Emergency Leave',
-            'Unpaid Leave'
+            'Special Privilege Leave',
+            'Solo Parent Leave',
+            'Study Leave',
+            '10-Day VAWC Leave',
+            'Rehabilitation Privilege Leave',
+            'Special Leave Benefits for Women',
+            'Special Emergency (Calamity) Leave',
+            'Adoption Leave'
         ];
 
         foreach ($types as $type) {
