@@ -41,18 +41,34 @@ export function ViewRequestDialog({
       return dateString;
     }
   };
+  
+  // Helper function to check if a value is truly empty or just a zero
+  const isValueEmpty = (value: any): boolean => {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'string' && value.trim() === '') return true;
+    if (typeof value === 'number' && (isNaN(value) || value === 0)) return true;
+    if (typeof value === 'string' && value.trim() === '0') return true;
+    return false;
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle>{request.title}</DialogTitle>
-            <StatusBadge status={request.status} />
-          </div>
-          <DialogDescription>
-            {request.type} • <PriorityBadge priority={request.priority} />
-          </DialogDescription>
+          <DialogTitle>{request.title}</DialogTitle>
         </DialogHeader>
+        
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <div className="flex items-center gap-2 mt-1">
+              {request.type && (
+                <span className="text-sm text-muted-foreground">{request.type}</span>
+              )}
+              <PriorityBadge priority={request.priority} />
+            </div>
+          </div>
+          <StatusBadge status={request.status} />
+        </div>
 
         <div className="grid gap-4 py-4">
           <div className="flex justify-between items-center">
@@ -83,8 +99,12 @@ export function ViewRequestDialog({
           </div>
 
           <div>
-            <p className="text-sm font-medium">Details</p>
-            <p className="mt-1">{request.details}</p>
+            <p className="text-sm font-medium">Description</p>
+            {!isValueEmpty(request.details) ? (
+              <p className="mt-1">{request.details.toString()}</p>
+            ) : (
+              <p className="mt-1 text-muted-foreground italic">No description provided</p>
+            )}
           </div>
 
           {request.rating && request.rating > 0 && (
@@ -97,10 +117,10 @@ export function ViewRequestDialog({
             </div>
           )}
 
-          {request.remarks && (
+          {!isValueEmpty(request.remarks) && (
             <div>
               <p className="text-sm font-medium">Remarks</p>
-              <p className="mt-1">{request.remarks}</p>
+              <p className="mt-1">{request.remarks.toString()}</p>
             </div>
           )}
         </div>

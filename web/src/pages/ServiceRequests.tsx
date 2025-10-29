@@ -31,7 +31,7 @@ const ServiceRequests = () => {
   const [isNewRequestOpen, setIsNewRequestOpen] = useState(false)
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
   const [isRatingOpen, setIsRatingOpen] = useState(false)
-  const { user } = useAuthStore()
+  const { user, canDoAction } = useAuthStore()
   const { employees, fetchEmployee } = useEmployeeStore()
   const {
     serviceRequests,
@@ -134,6 +134,27 @@ const ServiceRequests = () => {
 
   // Check if any filters are active
   const hasActiveFilters = priorityFilter !== "" || ratingFilter !== ""
+
+  // Determine if user is principal or secretary
+  const isPrivilegedUser = canDoAction(["principal", "secretary"])
+  
+  // Filter requests based on user role
+  const userFilteredRequests = isPrivilegedUser 
+    ? serviceRequests 
+    : serviceRequests.filter(request => 
+        request.requestor === user?.username || 
+        request.requestToId === String(user?.employee_id)
+      )
+
+  // Calculate counts for each status - now for all users but filtered by role
+  const counts = {
+    all: userFilteredRequests.length,
+    pending: userFilteredRequests.filter((r) => r.status === "Pending").length,
+    inProgress: userFilteredRequests.filter((r) => r.status === "In Progress").length,
+    completed: userFilteredRequests.filter((r) => r.status === "Completed").length,
+    rejected: userFilteredRequests.filter((r) => r.status === "Rejected").length,
+    forApproval: userFilteredRequests.filter((r) => r.status === "For Approval").length,
+  }
 
   return (
     <div className="space-y-6">
@@ -263,12 +284,24 @@ const ServiceRequests = () => {
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="all">All Requests</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="inProgress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
-          <TabsTrigger value="forApproval">For Approval</TabsTrigger>
+          <TabsTrigger value="all">
+            All Requests <span className="ml-1 text-xs">({counts.all})</span>
+          </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending <span className="ml-1 text-xs">({counts.pending})</span>
+          </TabsTrigger>
+          <TabsTrigger value="inProgress">
+            In Progress <span className="ml-1 text-xs">({counts.inProgress})</span>
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            Completed <span className="ml-1 text-xs">({counts.completed})</span>
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected <span className="ml-1 text-xs">({counts.rejected})</span>
+          </TabsTrigger>
+          <TabsTrigger value="forApproval">
+            For Approval <span className="ml-1 text-xs">({counts.forApproval})</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">

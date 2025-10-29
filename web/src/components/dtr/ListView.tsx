@@ -49,7 +49,7 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
   const tabFilteredRecords = sortedRecords.filter((record) => {
     if (activeTab === "all") return true
     if (activeTab === "present") return record.status === "Present"
-    if (activeTab === "leave") return record.status === "Leave"
+    // if (activeTab === "leave") return record.status === "Leave"
     // if (activeTab === "absent") return record.status === "Absent"
     // if (activeTab === "late") return record.status === "Late"
 
@@ -189,13 +189,13 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
           >
             Present
           </Button>
-          <Button
+          {/* <Button
             variant={activeTab === "leave" ? "default" : "outline"}
             size="sm"
             onClick={() => setActiveTab("leave")}
           >
             Leave
-          </Button>
+          </Button> */}
           <Button
             variant={activeTab === "absent" ? "default" : "outline"}
             size="sm"

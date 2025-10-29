@@ -63,7 +63,7 @@ const formSchema = z.object({
     required_error: "Please select a priority level",
   }),
   details: z.string().min(10, {
-    message: "Details must be at least 10 characters",
+    message: "Description must be at least 10 characters",
   }),
 });
 
@@ -101,19 +101,15 @@ export function NewRequestDialog({
 
   // Handle form submission
   function handleSubmit(data: FormValues) {
-    const requestToEmployee = employees.find(
-      (emp) => emp.id == Number(data.requestTo)
-    );
-
     onSubmit({
       requestTo: data.requestTo,
+      requestToId: data.requestTo,
       fromDate: data.fromDate,
       toDate: data.toDate,
       title: data.title,
       details: data.details,
-      type: data.type,
+      type: data.type || "",
       priority: data.priority,
-
     });
 
     form.reset();
@@ -131,7 +127,7 @@ export function NewRequestDialog({
         <DialogHeader>
           <DialogTitle>Create New Request</DialogTitle>
           <DialogDescription>
-            Fill in the details to create a new service request.
+            Fill in the description to create a new service request.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -320,10 +316,10 @@ export function NewRequestDialog({
                 name="details"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Details</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter request details"
+                        placeholder="Enter request description"
                         rows={4}
                         {...field}
                       />
