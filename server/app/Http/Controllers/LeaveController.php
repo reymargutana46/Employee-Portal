@@ -40,10 +40,21 @@ class LeaveController extends Controller
             'reason' => ['required', 'string', 'min:15'],
         ]);
 
-        $type = LeaveType::where('name', $request->type)->first();
-
+        // Optimize leave type lookup
+        $typeName = trim($request->type);
+        // First try exact match (most common case)
+        $type = LeaveType::where('name', $typeName)->first();
+        
+        // If not found, try case-insensitive search as fallback
         if (!$type) {
-            return $this->notFound('Type ' . $request->type . ' is not found');
+            $type = LeaveType::whereRaw('LOWER(name) = LOWER(?)', [$typeName])->first();
+        }
+        
+        if (!$type) {
+            // Log what types are available for debugging
+            $availableTypes = LeaveType::pluck('name')->toArray();
+            \Log::info('Leave type not found: ' . $typeName . '. Available types: ' . implode(', ', $availableTypes));
+            return $this->notFound('Type "' . $typeName . '" is not found. Available types: ' . implode(', ', $availableTypes));
         }
 
         $employee = Auth::user()->employee;
@@ -160,7 +171,22 @@ class LeaveController extends Controller
             'reason' => 'required'
         ]);
 
-        $type = LeaveType::where('name', $request->type)->firstOrFail();
+        // Optimize leave type lookup
+        $typeName = trim($request->type);
+        // First try exact match (most common case)
+        $type = LeaveType::where('name', $typeName)->first();
+        
+        // If not found, try case-insensitive search as fallback
+        if (!$type) {
+            $type = LeaveType::whereRaw('LOWER(name) = LOWER(?)', [$typeName])->first();
+        }
+        
+        if (!$type) {
+            // Log what types are available for debugging
+            $availableTypes = LeaveType::pluck('name')->toArray();
+            \Log::info('Leave type not found during update: ' . $typeName . '. Available types: ' . implode(', ', $availableTypes));
+            return $this->notFound('Type "' . $typeName . '" is not found. Available types: ' . implode(', ', $availableTypes));
+        }
         $leave = Leave::findOrFail($id);
         if ($leave->status !== "Pending") {
             return $this->badRequest("Leave is already Updated");

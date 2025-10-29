@@ -57,6 +57,12 @@ export interface DashboardCard {
   avgWorkloadDiff: number;
   leaveRequests: number;
   leaveRequestsDiff: number;
+  staffLeaveDetails?: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
 }
 
 export interface MonthlyAttendance {
@@ -126,6 +132,7 @@ const Dashboard = () => {
     avgWorkloadDiff: card?.avgWorkloadDiff || 0,
     leaveRequests: card?.leaveRequests || 0,
     leaveRequestsDiff: card?.leaveRequestsDiff || 0,
+    staffLeaveDetails: card?.staffLeaveDetails || { total: 0, pending: 0, approved: 0, rejected: 0 },
   };
 
   // Function to fetch dashboard data with quarter parameter
@@ -324,31 +331,31 @@ const Dashboard = () => {
     ],
     staff: [
       {
-        title: "Leave Balance",
-        value: "15 days",
+        title: "Total Leave Requests",
+        value: safeCard.staffLeaveDetails?.total || 0,
         icon: Calendar,
         change: "",
         color: "bg-emerald-500",
       },
       {
-        title: "Pending Tasks",
-        value: 7,
-        icon: CheckSquare,
-        change: "+2",
+        title: "Pending Requests",
+        value: safeCard.staffLeaveDetails?.pending || 0,
+        icon: Clock,
+        change: "",
         color: "bg-amber-500",
       },
       {
-        title: "Service Requests",
-        value: 3,
-        icon: FileText,
+        title: "Approved Requests",
+        value: safeCard.staffLeaveDetails?.approved || 0,
+        icon: CheckSquare,
         change: "",
         color: "bg-blue-500",
       },
       {
-        title: "DTR Exceptions",
-        value: 1,
+        title: "Rejected Requests",
+        value: safeCard.staffLeaveDetails?.rejected || 0,
         icon: AlertTriangle,
-        change: "-1",
+        change: "",
         color: "bg-red-500",
       },
     ],
@@ -617,7 +624,27 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
+            {userRole && userRole.name.toLowerCase() === 'staff' && safeCard.staffLeaveDetails ? (
+              <div className="space-y-2">
+                <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.staffLeaveDetails.pending}</div>
+                    <div className="text-muted-foreground">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.staffLeaveDetails.approved}</div>
+                    <div className="text-muted-foreground">Approved</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
+                    <div className="text-muted-foreground">Disapproved</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
+            )}
             {/* Removed last month label */}
           </CardContent>
         </Card>

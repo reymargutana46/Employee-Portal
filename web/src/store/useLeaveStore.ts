@@ -60,7 +60,7 @@ export const useLeaveStore = create<LeaveState>((set) => ({
         set({
           leaveRequests: leaves,
           personalLeaves: leaves.filter(leave =>
-            leave.employee.id === 0
+            leave.employee.id === 0 // This will be fixed
           ),
           isLoading: false
         });

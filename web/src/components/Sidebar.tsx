@@ -277,9 +277,22 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
     >
       <div className="p-4 flex justify-between items-center">
         {!isCollapsed ? (
-          <h1 className="text-xl font-bold">Emport</h1>
+          <div className="flex items-center">
+            <img 
+              src="/src/images/logos.png" 
+              alt="NCS Logo" 
+              className="h-6 w-6 mr-2 object-contain"
+            />
+            <h1 className="text-xl font-bold">Emport</h1>
+          </div>
         ) : (
-          <h1 className="text-xl font-bold">EP</h1>
+          <div className="flex items-center">
+            <img 
+              src="/src/images/logos.png" 
+              alt="NCS Logo" 
+              className="h-6 w-6 object-contain"
+            />
+          </div>
         )}
       </div>
 

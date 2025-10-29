@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LockKeyhole, User } from "lucide-react";
+import { LockKeyhole, User, Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type UserRole = "admin" | "principal" | "secretary" | "faculty" | "staff";
@@ -30,6 +30,7 @@ interface PredefinedUser {
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("single");
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -45,14 +46,6 @@ const Login = () => {
     }
 
     login({ username, password });
-
-
-    // if (foundUser) {
-    //   toast.success(`Welcome back, ${foundUser.name}`);
-    // navigate('/dashboard');
-    // } else {
-    //   toast.error('Invalid credentials');
-    // }
   };
 
   return (
@@ -99,13 +92,29 @@ const Login = () => {
                 <Label htmlFor="password" className="flex items-center gap-2">
                   <LockKeyhole className="h-4 w-4" /> Password
                 </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
 

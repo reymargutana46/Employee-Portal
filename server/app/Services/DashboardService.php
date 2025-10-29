@@ -127,6 +127,17 @@ class DashboardService
 
             $leaveRequestsDiff = $leaveRequests - $leaveRequestsLastMonth;
 
+            // Get detailed leave counts by status for staff members
+            $staffLeaveDetails = [];
+            if (!$this->user->hasRole($this->allowedRoles)) {
+                $staffLeaveDetails = [
+                    'total' => Leave::where('employee_id', $this->employee->id)->count(),
+                    'pending' => Leave::where('employee_id', $this->employee->id)->where('status', 'Pending')->count(),
+                    'approved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Approved')->count(),
+                    'rejected' => Leave::where('employee_id', $this->employee->id)->where('status', 'Rejected')->count(),
+                ];
+            }
+
             return [
                 'totalEmployees' => $totalEmployees,
                 'employeeDiff' => $employeeDifference,
@@ -139,6 +150,7 @@ class DashboardService
 
                 'leaveRequests' => $leaveRequests,
                 'leaveRequestsDiff' => $leaveRequestsDiff,
+                'staffLeaveDetails' => $staffLeaveDetails,
             ];
         } catch (\Exception $e) {
             \Log::error('Dashboard cards error: ' . $e->getMessage());

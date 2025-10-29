@@ -116,7 +116,7 @@ const EmployeeLeaveTable = ({
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {request.status}
+                    {request.status === "Rejected" ? "Disapproved" : request.status}
                   </span>
                   {request.status === "Rejected" && request.leave_rejection && (
                     <span className="block text-xs text-red-600 mt-1">

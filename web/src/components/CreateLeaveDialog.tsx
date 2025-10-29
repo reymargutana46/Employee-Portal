@@ -1,37 +1,27 @@
-import { useState } from "react";
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "./DateRangePicker";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { DateRange } from 'react-day-picker';
+import { DateRangePicker } from './DateRangePicker';
 import axios from "../utils/axiosInstance";
-import { Res } from "@/types/response";
-import { ApplyLeave, Leave } from "@/types/leave";
+import { ApplyLeave } from '@/types/leave';
 
 interface CreateLeaveDialogProps {
-  trigger?: React.ReactNode;
+  open?: boolean;
+  onClose?: () => void;
   onSuccess?: () => void;
+  trigger?: React.ReactNode;
 }
 
-const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
-  const [open, setOpen] = useState(false);
+const CreateLeaveDialog = ({ open, onClose, onSuccess, trigger }: CreateLeaveDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const actualOpen = open ?? isOpen;
+  const actualOnClose = onClose ?? (() => setIsOpen(false));
+  
   const [leaveType, setLeaveType] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [reason, setReason] = useState("");
@@ -56,63 +46,124 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
 
   const calculateDays = () => {
     if (!dateRange?.from || !dateRange?.to) return 0;
-    const diffTime = Math.abs(
-      dateRange.to.getTime() - dateRange.from.getTime()
-    );
+    const diffTime = Math.abs(dateRange.to.getTime() - dateRange.from.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
-
-  function fixDate(date: Date) {
-    const year = date.toLocaleString("default", { year: "numeric" });
-    const month = date.toLocaleString("default", { month: "2-digit" });
-    const day = date.toLocaleString("default", { day: "2-digit" });
-    const dateString = year + '-' + month + '-' + day
-    return new Date(dateString);
-  }
 
   const handleSubmit = async () => {
     if (!leaveType || !dateRange?.from || !dateRange?.to) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-    const formData: ApplyLeave = {
-      from: fixDate(dateRange.from),
-      to: fixDate(dateRange.to),
-      reason: reason,
+
+    if (reason.length < 15) {
+      toast({
+        title: "Error",
+        description: "Reason must be at least 15 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Format dates to YYYY-MM-DD format for the backend
+    const formattedFrom = dateRange.from.toISOString().split('T')[0];
+    const formattedTo = dateRange.to.toISOString().split('T')[0];
+
+    // Create the leave data object
+    const leaveData = {
       type: leaveType,
+      reason: reason,
+      from: formattedFrom,
+      to: formattedTo
     };
+
     try {
-      const res = await axios.post<Res<Leave>>("/leaves", formData);
+      console.log("Submitting leave request to /leaves:", leaveData);
+      // Log the full URL that will be used
+      console.log("Full request URL would be:", `${axios.defaults.baseURL}/leaves`);
+      
+      const response = await axios.post('/leaves', leaveData);
+      console.log("Leave request response:", response);
+
       toast({
         title: "Success",
-        description: "Leave application submitted successfully",
+        description: "Leave request submitted successfully"
       });
-      setOpen(false);
-      onSuccess?.();
+
+      // Reset form
       setLeaveType("");
       setDateRange(undefined);
       setReason("");
-    } catch {
+      
+      actualOnClose();
+      setIsOpen(false);
+      onSuccess?.();
+    } catch (error: any) {
+      console.error("Leave submission error:", error);
+      let errorMessage = "Failed to submit leave request";
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error("Error response:", error.response);
+        if (error.response.status === 404) {
+          errorMessage = `API endpoint not found (${error.response.status}). Please check if the backend server is running and accessible.`;
+        } else if (error.response.status === 401) {
+          errorMessage = "Unauthorized. Please log in again.";
+        } else if (error.response.status === 400) {
+          errorMessage = "Bad request. Please check your input data.";
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else {
+          errorMessage = `Server error (${error.response.status}). Please try again.`;
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error("Error request:", error.request);
+        errorMessage = "Network error. Please check if the backend server is running and accessible.";
+      } else {
+        console.error("Error message:", error.message);
+        errorMessage = `Request failed: ${error.message}`;
+      }
+      
       toast({
-        title: "Submission error",
-        description: "Could not submit leave",
-        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
       });
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Reset form when closing
+      setLeaveType("");
+      setDateRange(undefined);
+      setReason("");
+    }
+    if (open === undefined) {
+      setIsOpen(newOpen);
+    }
+    if (!newOpen && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={actualOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {trigger || <Button>Apply for Leave</Button>}
+        {trigger || (
+          <Button>
+            Apply for Leave
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Apply for Leave</DialogTitle>
+          <DialogTitle>Create Leave Request</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div>
@@ -121,14 +172,9 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
               <SelectTrigger>
                 <SelectValue placeholder="Select leave type" />
               </SelectTrigger>
-
               <SelectContent>
                 {leaveTypes.map((type, index) => (
-                  <SelectItem
-                    key={index}
-                    value={type}
-                    className="capitalize"
-                  >
+                  <SelectItem key={index} value={type} className='capitalize'>
                     {type}
                   </SelectItem>
                 ))}
@@ -137,10 +183,7 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
           </div>
           <div>
             <Label>Leave Period</Label>
-            <DateRangePicker
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-            />
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
           </div>
           {dateRange?.from && dateRange?.to && (
             <div className="text-sm text-muted-foreground">
@@ -152,19 +195,18 @@ const CreateLeaveDialog = ({ trigger, onSuccess }: CreateLeaveDialogProps) => {
             <Textarea
               id="reason"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Provide details"
+              onChange={e => setReason(e.target.value)}
+              placeholder="Provide details (minimum 15 characters)"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={actualOnClose}>Cancel</Button>
           <Button onClick={handleSubmit}>Submit</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
+
 export default CreateLeaveDialog;
