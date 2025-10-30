@@ -51,7 +51,12 @@ import { useToast } from "@/hooks/use-toast";
 export interface DashboardCard {
   totalEmployees: number;
   employeeDiff: number;
-  attendanceRate: number;
+  attendanceData: {
+    total: number;
+    present: number;
+    absent: number;
+    late: number;
+  };
   attendanceRateDiff: number;
   avgWorkload: number;
   avgWorkloadDiff: number;
@@ -126,8 +131,7 @@ const Dashboard = () => {
   const safeCard = {
     totalEmployees: card?.totalEmployees || 0,
     employeeDiff: card?.employeeDiff || 0,
-    attendanceRate: card?.attendanceRate || 0,
-    attendanceRateDiff: card?.attendanceRateDiff || 0,
+    attendanceData: card?.attendanceData || { total: 0, present: 0, absent: 0, late: 0 },
     avgWorkload: card?.avgWorkload || 0,
     avgWorkloadDiff: card?.avgWorkloadDiff || 0,
     leaveRequests: card?.leaveRequests || 0,
@@ -584,71 +588,199 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      {/* Stats Cards - Removed "from last month" labels */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Employees
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{safeCard.totalEmployees}</div>
-            {/* Removed last month label */}
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Attendance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{safeCard.attendanceRate}%</div>
-            {/* Removed last month label */}
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Workload</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{safeCard.avgWorkload}h</div>
-            {/* Removed last month label */}
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Leave Requests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {userRole && userRole.name.toLowerCase() === 'staff' && safeCard.staffLeaveDetails ? (
+      {/* Stats Cards - Modified for staff users */}
+      {userRole && userRole.name.toLowerCase() === 'staff' ? (
+        // Staff-specific layout with 3 centered cards
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
+          {/* Remove Total Employees card for staff */}
+          
+          {/* Attendance card with detailed information instead of percentage */}
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Attendance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Use detailed attendance data */}
+              <div className="text-2xl font-bold">{safeCard.attendanceData.total}</div>
+              <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData.present}</div>
+                  <div className="text-muted-foreground">Present</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData.absent}</div>
+                  <div className="text-muted-foreground">Absent</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData.late}</div>
+                  <div className="text-muted-foreground">Late</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Service Requests card instead of Workload */}
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Service Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="text-2xl font-bold">
+                  {serviceRequests?.reduce(
+                    (sum, month) => 
+                      sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
+                    0
+                  ) || 0}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-center">
-                    <div className="font-medium">{safeCard.staffLeaveDetails.pending}</div>
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.pending, 0) || 0}
+                    </div>
                     <div className="text-muted-foreground">Pending</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium">{safeCard.staffLeaveDetails.approved}</div>
-                    <div className="text-muted-foreground">Approved</div>
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.inProgress, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">In Progress</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.completed, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.rejected, 0) || 0}
+                    </div>
                     <div className="text-muted-foreground">Disapproved</div>
+                  </div>
+                  <div className="text-center col-span-2">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.forApproval, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">For Approval</div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
-            )}
-            {/* Removed last month label */}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+          
+          {/* Leave Requests card (keep as is) */}
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Leave Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {userRole && userRole.name.toLowerCase() === 'staff' && safeCard.staffLeaveDetails ? (
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.pending}</div>
+                      <div className="text-muted-foreground">Pending</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.approved}</div>
+                      <div className="text-muted-foreground">Approved</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
+                      <div className="text-muted-foreground">Disapproved</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        // Default layout for other roles
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Employees
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{safeCard.totalEmployees}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Attendance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Use detailed attendance data for all users */}
+              <div className="text-2xl font-bold">{safeCard.attendanceData.total}</div>
+              <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData.present}</div>
+                  <div className="text-muted-foreground">Present</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData.absent}</div>
+                  <div className="text-muted-foreground">Absent</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData.late}</div>
+                  <div className="text-muted-foreground">Late</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Workload</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{safeCard.avgWorkload}h</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Leave Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {userRole && userRole.name.toLowerCase() === 'staff' && safeCard.staffLeaveDetails ? (
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.pending}</div>
+                      <div className="text-muted-foreground">Pending</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.approved}</div>
+                      <div className="text-muted-foreground">Approved</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
+                      <div className="text-muted-foreground">Disapproved</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Main Content Grid - Monthly Attendance with label below */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 h-full">
@@ -786,9 +918,9 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Conditionally render workload section - hide for admin and secretary users */}
-      {/* Principals, Faculty, Staff, and GradeLeader should see workload */}
-      {!userRoles.some(role => role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'secretary') && (
+      {/* Conditionally render workload section - hide for admin, secretary, and staff users */}
+      {/* Show workload section for all roles except admin, secretary, and staff */}
+      {userRole && userRole.name.toLowerCase() !== 'staff' && !userRoles.some(role => role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'secretary') && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
           <Card className="col-span-5">
             <CardHeader>

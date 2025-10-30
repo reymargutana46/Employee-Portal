@@ -30,7 +30,7 @@ const chartConfig = {
     color: "hsl(var(--chart-3))",
   },
   rejected: {
-    label: "Rejected",
+    label: "Disapproved",
     color: "hsl(var(--chart-4))",
   },
   forApproval: {

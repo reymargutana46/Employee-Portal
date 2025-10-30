@@ -101,6 +101,7 @@ const DTRDashboard = () => {
       role.name === "admin" ||
       role.name === "principal"
   );
+  const isStaff = userRoles.some((role) => role.name === "staff");
 
   const handleDownloadTemplate = () => {
     const link = document.createElement("a");
@@ -145,9 +146,11 @@ const DTRDashboard = () => {
         <div className="flex flex-wrap gap-2">
           <TimeInOutDialog />
           {isSecretary && <ImportDTRDialog />}
-          <Button variant="secondary" onClick={handleDownloadTemplate}>
-            <Download className="mr-2 h-4 w-4" /> Download Template
-          </Button>
+          {!isStaff && (
+            <Button variant="secondary" onClick={handleDownloadTemplate}>
+              <Download className="mr-2 h-4 w-4" /> Download Template
+            </Button>
+          )}
           {isSecretary && (
             <Dialog>
               <DialogTrigger asChild>

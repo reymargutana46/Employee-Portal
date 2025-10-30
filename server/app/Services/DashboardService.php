@@ -65,25 +65,93 @@ class DashboardService
 
             $employeeIds = $employeeQuery->pluck('id');
 
-            $amIds = $this->restrictQuery(DtrAmtime::whereMonth('time_in', $now->month)
-                ->whereYear('time_in', $now->year))->pluck('employee_id');
-
-            $pmIds = $this->restrictQuery(DtrPmtime::whereMonth('time_in', $now->month)
-                ->whereYear('time_in', $now->year))->pluck('employee_id');
-
-            $attendingIds = $amIds->intersect($pmIds)->unique();
-            $attendanceRate = ($attendingIds->count() / max($employeeIds->count(), 1)) * 100;
-
-            $amLastMonth = $this->restrictQuery(DtrAmtime::whereMonth('time_in', $lastMonth->month)
-                ->whereYear('time_in', $lastMonth->year))->pluck('employee_id');
-
-            $pmLastMonth = $this->restrictQuery(DtrPmtime::whereMonth('time_in', $lastMonth->month)
-                ->whereYear('time_in', $lastMonth->year))->pluck('employee_id');
-
-            $attendingLastMonth = $amLastMonth->intersect($pmLastMonth)->unique();
-            $attendanceRateLastMonth = ($attendingLastMonth->count() / max($employeeIds->count(), 1)) * 100;
-
-            $attendanceRateDiff = $attendanceRate - $attendanceRateLastMonth;
+            // Calculate detailed attendance data instead of just a rate
+            $amRecords = $this->restrictQuery(DtrAmtime::whereDate('time_in', $now->toDateString()))->get();
+            $pmRecords = $this->restrictQuery(DtrPmtime::whereDate('time_in', $now->toDateString()))->get();
+            
+            // For staff users, we'll calculate their personal attendance
+            if (!$this->user->hasRole($this->allowedRoles)) {
+                // Start with zero values
+                $workDays = 0;
+                $presentDays = 0;
+                $absentDays = 0;
+                $lateDays = 0;
+                
+                // Only calculate attendance if there are DTR records
+                $startDate = $now->copy()->startOfMonth();
+                $endDate = $now->copy()->endOfMonth();
+                
+                // Get DTR records for the current month for this employee
+                $employeeAmRecords = $this->restrictQuery(
+                    DtrAmtime::whereBetween('time_in', [$startDate, $endDate])
+                )->get();
+                
+                $employeePmRecords = $this->restrictQuery(
+                    DtrPmtime::whereBetween('time_in', [$startDate, $endDate])
+                )->get();
+                
+                // Only calculate work days and attendance if there are DTR records
+                if ($employeeAmRecords->count() > 0 || $employeePmRecords->count() > 0) {
+                    // Count work days (Monday to Friday) in the current month
+                    $workDays = 0;
+                    $currentDate = $startDate->copy();
+                    while ($currentDate <= $endDate) {
+                        // Check if it's a weekday (Monday=1 to Friday=5)
+                        if ($currentDate->isWeekday()) {
+                            $workDays++;
+                        }
+                        $currentDate->addDay();
+                    }
+                    
+                    // Count present days (days with both AM and PM records)
+                    $presentDays = 0;
+                    $currentDate = $startDate->copy();
+                    while ($currentDate <= $endDate) {
+                        if ($currentDate->isWeekday()) {
+                            $dateString = $currentDate->toDateString();
+                            
+                            // Check if there are AM records for this day
+                            $hasAmRecord = $employeeAmRecords->filter(function ($record) use ($dateString) {
+                                return Carbon::parse($record->time_in)->toDateString() === $dateString;
+                            })->count() > 0;
+                            
+                            // Check if there are PM records for this day
+                            $hasPmRecord = $employeePmRecords->filter(function ($record) use ($dateString) {
+                                return Carbon::parse($record->time_in)->toDateString() === $dateString;
+                            })->count() > 0;
+                            
+                            // Count as present only if both AM and PM records exist
+                            if ($hasAmRecord && $hasPmRecord) {
+                                $presentDays++;
+                            }
+                        }
+                        $currentDate->addDay();
+                    }
+                    
+                    // Calculate absent days (work days minus present days)
+                    $absentDays = max(0, $workDays - $presentDays);
+                }
+                
+                $attendanceData = [
+                    'total' => $workDays,
+                    'present' => $presentDays,
+                    'absent' => $absentDays,
+                    'late' => $lateDays
+                ];
+            } else {
+                // For admin/principal/secretary, calculate for all employees
+                $totalAttendance = $amRecords->count() + $pmRecords->count();
+                $presentEmployees = $amRecords->pluck('employee_id')->intersect($pmRecords->pluck('employee_id'))->count();
+                $absentEmployees = $employeeIds->count() - $presentEmployees;
+                $lateEmployees = 0; // Would need time comparison logic to determine this properly
+                
+                $attendanceData = [
+                    'total' => $totalAttendance,
+                    'present' => $presentEmployees,
+                    'absent' => $absentEmployees,
+                    'late' => $lateEmployees
+                ];
+            }
 
             $workloads = WorkLoadHdr::whereDate('from', '<=', $now->endOfMonth())
                 ->whereDate('to', '>=', $now->startOfMonth())
@@ -142,8 +210,8 @@ class DashboardService
                 'totalEmployees' => $totalEmployees,
                 'employeeDiff' => $employeeDifference,
 
-                'attendanceRate' => round($attendanceRate, 2),
-                'attendanceRateDiff' => round($attendanceRateDiff, 2),
+                // Return detailed attendance data instead of just a rate
+                'attendanceData' => $attendanceData,
 
                 'avgWorkload' => $avgWorkload,
                 'avgWorkloadDiff' => $avgWorkloadDiff,
@@ -158,8 +226,12 @@ class DashboardService
             return [
                 'totalEmployees' => 0,
                 'employeeDiff' => 0,
-                'attendanceRate' => 0,
-                'attendanceRateDiff' => 0,
+                'attendanceData' => [
+                    'total' => 0,
+                    'present' => 0,
+                    'absent' => 0,
+                    'late' => 0
+                ],
                 'avgWorkload' => 0,
                 'avgWorkloadDiff' => 0,
                 'leaveRequests' => 0,
@@ -294,7 +366,7 @@ class DashboardService
                 "Pending" => "pending",
                 "In Progress" => "inProgress",
                 "Completed" => "completed",
-                "Rejected" => "rejected",
+                "Disapproved" => "rejected",
                 "For Approval" => "forApproval",
             ];
 

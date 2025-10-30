@@ -13,11 +13,13 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
   // Get user roles from auth store
   const { userRoles } = useAuthStore();
   
-  // Check if user is principal
+  // Check user role
   const isPrincipal = userRoles.some(role => role.name.toLowerCase() === 'principal');
+  const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
   
   // Determine how many activities to show based on user role
-  const activityCount = isPrincipal ? 5 : 2;
+  // Staff users should see 5 activities, Principal users should see 5, others should see 3
+  const activityCount = isPrincipal ? 5 : (isStaff ? 5 : 3);
   
   return (
     <div className="space-y-3">

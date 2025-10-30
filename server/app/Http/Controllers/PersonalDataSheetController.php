@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\PersonalDataSheet;
 use Auth;
-use Cloudinary\Cloudinary;
 use Illuminate\Http\Request;
 use Storage;
-use Str;
 
 class PersonalDataSheetController extends Controller
 {
@@ -21,7 +19,15 @@ class PersonalDataSheetController extends Controller
         \Log::info('PDS Index - User: ' . $user->username);
         
         // Check if user is principal or secretary - they can see all files
-        if ($user->hasRole(['principal', 'secretary'])) {
+        $isPrivilegedUser = false;
+        foreach ($user->roles as $role) {
+            if (in_array(strtolower($role->name), ['principal', 'secretary'])) {
+                $isPrivilegedUser = true;
+                break;
+            }
+        }
+        
+        if ($isPrivilegedUser) {
             \Log::info('PDS Index - User has principal or secretary role, fetching all files');
             $pds = PersonalDataSheet::all();
         } else {
@@ -99,7 +105,15 @@ class PersonalDataSheetController extends Controller
             
             // Check if user has permission to view this file
             $user = Auth::user();
-            if (!$user->hasRole(['principal', 'secretary'])) {
+            $isPrivilegedUser = false;
+            foreach ($user->roles as $role) {
+                if (in_array(strtolower($role->name), ['principal', 'secretary'])) {
+                    $isPrivilegedUser = true;
+                    break;
+                }
+            }
+            
+            if (!$isPrivilegedUser) {
                 // Regular users (including admins) can only view their own files
                 // Get user's full name for matching
                 $userFullName = $user->username; // Default to username
@@ -118,16 +132,26 @@ class PersonalDataSheetController extends Controller
             }
 
             // Return file for viewing/download
-            $mimeType = Storage::disk('public')->mimeType($pds->file_path);
+            $filePath = storage_path("app/public/" . $pds->file_path);
+            
+            // Set appropriate headers based on file type
+            $headers = [
+                'Content-Type' => $pds->file_type,
+                'Content-Disposition' => 'inline; filename="' . $pds->file_name . '"'
+            ];
+            
+            // For PDF files, we want to display inline
+            if (strpos($pds->file_type, 'pdf') !== false) {
+                $headers['Content-Disposition'] = 'inline; filename="' . $pds->file_name . '"';
+            }
+            // For other files, we might want to download them
+            else {
+                $headers['Content-Disposition'] = 'attachment; filename="' . $pds->file_name . '"';
+            }
 
-            return response()->file(
-                storage_path("app/public/" . $pds->file_path),
-                [
-                    'Content-Type' => $mimeType,
-                    'Content-Disposition' => 'inline; filename="' . $pds->file_name . '"'
-                ]
-            );
+            return response()->file($filePath, $headers);
         } catch (\Exception $e) {
+            \Log::error('PDS View Error: ' . $e->getMessage());
             return $this->badRequest('Unable to retrieve file: ' . $e->getMessage());
         }
     }
@@ -140,7 +164,15 @@ class PersonalDataSheetController extends Controller
             
             // Check if user has permission to view this file
             $user = Auth::user();
-            if (!$user->hasRole(['principal', 'secretary'])) {
+            $isPrivilegedUser = false;
+            foreach ($user->roles as $role) {
+                if (in_array(strtolower($role->name), ['principal', 'secretary'])) {
+                    $isPrivilegedUser = true;
+                    break;
+                }
+            }
+            
+            if (!$isPrivilegedUser) {
                 // Regular users (including admins) can only view their own files
                 // Get user's full name for matching
                 $userFullName = $user->username; // Default to username
@@ -176,7 +208,15 @@ class PersonalDataSheetController extends Controller
             
             // Check if user has permission to delete this file
             $user = Auth::user();
-            if (!$user->hasRole(['principal', 'secretary'])) {
+            $isPrivilegedUser = false;
+            foreach ($user->roles as $role) {
+                if (in_array(strtolower($role->name), ['principal', 'secretary'])) {
+                    $isPrivilegedUser = true;
+                    break;
+                }
+            }
+            
+            if (!$isPrivilegedUser) {
                 // Regular users (including admins) can only delete their own files
                 if ($pds->uploader !== $user->username) {
                     return $this->unauthorized('You do not have permission to delete this file');
