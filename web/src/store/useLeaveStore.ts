@@ -1,8 +1,8 @@
-
 import { create } from 'zustand';
 import axios from '../utils/axiosInstance'
 import { Leave, LeaveStatus, LeaveType } from '@/types/leave';
 import { Res } from '@/types/response';
+import { useAuthStore } from './useAuthStore';
 
 interface LeaveBalance {
   type: string;
@@ -57,11 +57,15 @@ export const useLeaveStore = create<LeaveState>((set) => ({
     axios.get<Res<Leave[]>>("/leaves")
       .then((res) => {
         const leaves = res.data.data;
+        // Get the current user's employee ID from the auth store
+        const { user } = useAuthStore.getState();
+        const currentEmployeeId = user?.employee_id;
+        
         set({
           leaveRequests: leaves,
-          personalLeaves: leaves.filter(leave =>
-            leave.employee.id === 0 // This will be fixed
-          ),
+          personalLeaves: currentEmployeeId 
+            ? leaves.filter(leave => leave.employee.id === currentEmployeeId)
+            : [],
           isLoading: false
         });
       })

@@ -235,6 +235,13 @@ const LeaveManagement = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+  
+  // For staff users, we need to paginate their personal leaves separately
+  const totalPersonalPages = Math.ceil(filteredPersonalLeaves.length / itemsPerPage);
+  const paginatedPersonalLeaves = filteredPersonalLeaves.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="space-y-6">
@@ -280,9 +287,10 @@ const LeaveManagement = () => {
       ) : (
           <EmployeeLeaveView
           setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
+          totalPages={totalPersonalPages}
           currentPage={currentPage}
-          personalLeaves={paginatedLeaves}
+          personalLeaves={paginatedPersonalLeaves}
+          totalLeaveCount={filteredPersonalLeaves.length}
           isLoading={isLoading}
           onEdit={handleEditLeaveClick}
           onCancel={handleCancelLeave}
