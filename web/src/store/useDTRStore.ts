@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { format } from 'date-fns';
-import { AttendanceStatus, DTRList, DTRList } from '@/types/dtr';
+import { AttendanceStatus, DTRList } from '@/types/dtr';
 import axios from '../utils/axiosInstance';
 import { Res } from '@/types/response';
 

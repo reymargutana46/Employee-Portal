@@ -44,13 +44,13 @@ export function StatusBadge({ status }: StatusBadgeProps) {
           <CheckCircle className="mr-1 h-3 w-3" /> Completed
         </Badge>
       );
-    case "Rejected":
+    case "Disapproved":
       return (
         <Badge
           variant="outline"
           className="bg-red-100 text-red-800 hover:bg-red-100"
         >
-          <XCircle className="mr-1 h-3 w-3" /> Rejected
+          <XCircle className="mr-1 h-3 w-3" /> Disapproved
         </Badge>
       );
   }
