@@ -40,7 +40,7 @@ const LeaveStatusFilter = ({ onFilterStatus, onFilterType }: LeaveStatusFilterPr
           <span className="hidden sm:inline">Filter</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
         <DropdownMenuLabel>Filter By Status</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => onFilterStatus('Pending')}>Status: Pending</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onFilterStatus('Approved')}>Status: Approved</DropdownMenuItem>
