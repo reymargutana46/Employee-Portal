@@ -20,7 +20,7 @@ interface ServiceRequestState {
 
 
 
-export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) => ({
+export const useServiceRequestStore = create<ServiceRequestState>((set, get) => ({
     serviceRequests: [],
     selectedRequest: null,
     isLoading: false,

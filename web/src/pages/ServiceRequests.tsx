@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { type ServiceRequest, type RequestStatus, requestTypes } from "@/types/serviceRequest"
 import { useEmployeeStore } from "@/store/useEmployeeStore"
 import { useAuthStore } from "@/store/useAuthStore"
-import { useSeerviceRequestStore } from "@/store/useServiceRequestStore"
+import { useServiceRequestStore } from "@/store/useServiceRequestStore"
 
 const ServiceRequests = () => {
   const [searchTerm, setSearchTerm] = useState("")
@@ -44,7 +44,7 @@ const ServiceRequests = () => {
     deleteRequest,
     submitRating,
     setSelectedRequest,
-  } = useSeerviceRequestStore()
+  } = useServiceRequestStore()
 
   useEffect(() => {
     if (employees.length <= 0) fetchEmployee()

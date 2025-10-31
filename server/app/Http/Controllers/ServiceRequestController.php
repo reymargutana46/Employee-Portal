@@ -134,9 +134,9 @@ class ServiceRequestController extends Controller
 
         $service = DB::transaction(function () use ($request, $id) {
             $service = ServiceRequest::findOrFail($id);
-            
+
             $request_to = Employee::findOrFail($request->requestTo);
-            
+
             $service->update([
                 'title' => $request->title,
                 'details' => $request->details,
@@ -148,7 +148,7 @@ class ServiceRequestController extends Controller
                 'rating' => $request->rating,
                 'remarks' => $request->remarks
             ]);
-            
+
             ActivityLog::create([
                 'performed_by' => Auth::user()->username,
                 'action' => 'updated',
@@ -156,7 +156,7 @@ class ServiceRequestController extends Controller
                 'entity_type' => ServiceRequest::class,
                 'entity_id' => $service->id,
             ]);
-            
+
             return $service;
         });
 
@@ -210,11 +210,11 @@ class ServiceRequestController extends Controller
             $oldStatus = $service->status;
             $service->status = $request->status;
             $service->save();
-            
+
             $currentUser = Auth::user();
             $requestorUser = User::where('username', $service->request_by)->first();
             $assigneeUser = User::where('username', $service->requestTo->username_id)->first();
-            
+
             ActivityLog::create([
                 'performed_by' => $currentUser->username,
                 'action' => 'updated',
@@ -222,7 +222,7 @@ class ServiceRequestController extends Controller
                 'entity_type' => ServiceRequest::class,
                 'entity_id' => $service->id,
             ]);
-            
+
             // Handle different status transitions
             switch ($request->status) {
                 case 'Pending':
@@ -236,7 +236,7 @@ class ServiceRequestController extends Controller
                             'url' => "/service-requests",
                         ]);
                     }
-                    
+
                     // Notify the requestor
                     if ($requestorUser) {
                         Notification::create([
@@ -248,7 +248,7 @@ class ServiceRequestController extends Controller
                         ]);
                     }
                     break;
-                    
+
                 case 'Disapproved':
                     // Principal disapproved - notify the requestor
                     if ($requestorUser) {
@@ -261,7 +261,7 @@ class ServiceRequestController extends Controller
                         ]);
                     }
                     break;
-                    
+
                 case 'In Progress':
                     // Assignee started working - notify the requestor
                     if ($requestorUser) {
@@ -274,7 +274,7 @@ class ServiceRequestController extends Controller
                         ]);
                     }
                     break;
-                    
+
                 case 'Completed':
                     // Assignee completed - notify the requestor
                     if ($requestorUser) {
@@ -288,7 +288,7 @@ class ServiceRequestController extends Controller
                     }
                     break;
             }
-            
+
             return $service;
         });
 

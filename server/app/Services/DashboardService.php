@@ -68,7 +68,7 @@ class DashboardService
             // Calculate detailed attendance data instead of just a rate
             $amRecords = $this->restrictQuery(DtrAmtime::whereDate('time_in', $now->toDateString()))->get();
             $pmRecords = $this->restrictQuery(DtrPmtime::whereDate('time_in', $now->toDateString()))->get();
-            
+
             // For staff users, we'll calculate their personal attendance
             if (!$this->user->hasRole($this->allowedRoles)) {
                 // Start with zero values
@@ -76,20 +76,20 @@ class DashboardService
                 $presentDays = 0;
                 $absentDays = 0;
                 $lateDays = 0;
-                
+
                 // Only calculate attendance if there are DTR records
                 $startDate = $now->copy()->startOfMonth();
                 $endDate = $now->copy()->endOfMonth();
-                
+
                 // Get DTR records for the current month for this employee
                 $employeeAmRecords = $this->restrictQuery(
                     DtrAmtime::whereBetween('time_in', [$startDate, $endDate])
                 )->get();
-                
+
                 $employeePmRecords = $this->restrictQuery(
                     DtrPmtime::whereBetween('time_in', [$startDate, $endDate])
                 )->get();
-                
+
                 // Only calculate work days and attendance if there are DTR records
                 if ($employeeAmRecords->count() > 0 || $employeePmRecords->count() > 0) {
                     // Count work days (Monday to Friday) in the current month
@@ -102,24 +102,24 @@ class DashboardService
                         }
                         $currentDate->addDay();
                     }
-                    
+
                     // Count present days (days with both AM and PM records)
                     $presentDays = 0;
                     $currentDate = $startDate->copy();
                     while ($currentDate <= $endDate) {
                         if ($currentDate->isWeekday()) {
                             $dateString = $currentDate->toDateString();
-                            
+
                             // Check if there are AM records for this day
                             $hasAmRecord = $employeeAmRecords->filter(function ($record) use ($dateString) {
                                 return Carbon::parse($record->time_in)->toDateString() === $dateString;
                             })->count() > 0;
-                            
+
                             // Check if there are PM records for this day
                             $hasPmRecord = $employeePmRecords->filter(function ($record) use ($dateString) {
                                 return Carbon::parse($record->time_in)->toDateString() === $dateString;
                             })->count() > 0;
-                            
+
                             // Count as present only if both AM and PM records exist
                             if ($hasAmRecord && $hasPmRecord) {
                                 $presentDays++;
@@ -127,11 +127,11 @@ class DashboardService
                         }
                         $currentDate->addDay();
                     }
-                    
+
                     // Calculate absent days (work days minus present days)
                     $absentDays = max(0, $workDays - $presentDays);
                 }
-                
+
                 $attendanceData = [
                     'total' => $workDays,
                     'present' => $presentDays,
@@ -144,7 +144,7 @@ class DashboardService
                 $presentEmployees = $amRecords->pluck('employee_id')->intersect($pmRecords->pluck('employee_id'))->count();
                 $absentEmployees = $employeeIds->count() - $presentEmployees;
                 $lateEmployees = 0; // Would need time comparison logic to determine this properly
-                
+
                 $attendanceData = [
                     'total' => $totalAttendance,
                     'present' => $presentEmployees,
@@ -244,12 +244,12 @@ class DashboardService
     {
         try {
             $now = Carbon::now();
-            
+
             // If no quarter specified, determine based on current month
             if ($quarter === null) {
                 $quarter = ($now->month <= 6) ? 1 : 2;
             }
-            
+
             $year = $now->year;
             $startMonth = ($quarter === 1) ? 1 : 7;
             $endMonth = ($quarter === 1) ? 6 : 12;
@@ -284,7 +284,7 @@ class DashboardService
                 $amCount = $amAttendance[$month] ?? 0;
                 $pmCount = $pmAttendance[$month] ?? 0;
                 $count = $amCount + $pmCount;
-                
+
                 return [
                     'month' => Carbon::createFromFormat('Y-m', $month)->format('F'),
                     'attendance' => $count,

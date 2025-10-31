@@ -44,12 +44,12 @@ class LeaveController extends Controller
         $typeName = trim($request->type);
         // First try exact match (most common case)
         $type = LeaveType::where('name', $typeName)->first();
-        
+
         // If not found, try case-insensitive search as fallback
         if (!$type) {
             $type = LeaveType::whereRaw('LOWER(name) = LOWER(?)', [$typeName])->first();
         }
-        
+
         if (!$type) {
             // Log what types are available for debugging
             $availableTypes = LeaveType::pluck('name')->toArray();
@@ -175,12 +175,12 @@ class LeaveController extends Controller
         $typeName = trim($request->type);
         // First try exact match (most common case)
         $type = LeaveType::where('name', $typeName)->first();
-        
+
         // If not found, try case-insensitive search as fallback
         if (!$type) {
             $type = LeaveType::whereRaw('LOWER(name) = LOWER(?)', [$typeName])->first();
         }
-        
+
         if (!$type) {
             // Log what types are available for debugging
             $availableTypes = LeaveType::pluck('name')->toArray();

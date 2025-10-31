@@ -107,9 +107,9 @@ const AdminLeaveTable = ({
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {request.status === "Rejected" ? "Disapproved" : request.status}
+                    {request.status}
                   </span>
-                  {request.status === "Rejected" && request.leave_rejection && (
+                  {request.status === "Disapproved" && request.leave_rejection && (
                     <span className="block text-xs text-red-600 mt-1">
                       Reason: {request.leave_rejection.rejreason}
                     </span>
@@ -137,7 +137,7 @@ const AdminLeaveTable = ({
                           className="flex items-center gap-1 bg-red-500"
                           onClick={() => onReject(request)}
                         >
-                          <span>Reject</span>
+                          <span>Disapprove</span>
                         </Button>
                       </>
                     )}

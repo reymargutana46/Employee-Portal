@@ -97,7 +97,7 @@ const LeaveManagement = () => {
     );
   }, [leaveRequests, personalLeaves, searchTerm]);
 
-  const handleFilterStatus = (status?: "Pending" | "Approved" | "Rejected") => {
+  const handleFilterStatus = (status?: "Pending" | "Approved" | "Disapproved") => {
     if (status) {
       applyFilter({ status });
 
