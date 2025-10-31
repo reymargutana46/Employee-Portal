@@ -14,7 +14,7 @@ export interface ServiceRequest {
   rating?: number
   remarks?: string
 }
-export type RequestStatus = "Pending" | "In Progress" | "Completed" | "Rejected" | "For Approval"
+export type RequestStatus = "Pending" | "In Progress" | "Completed" | "Disapproved" | "For Approval"
 export type RequestPriority = "Low" | "Medium" | "High" | "Urgent"
 
 export const requestTypes =

@@ -8,7 +8,7 @@ export interface LeaveRejection {
     updated_at: string;
     rejreason: string;
 }
-export type LeaveStatus = "Pending" | "Approved" | "Rejected";
+export type LeaveStatus = "Pending" | "Approved" | "Disapproved";
 
 export interface Leave {
     id: number;

@@ -65,7 +65,7 @@ const ServiceRequests = () => {
       (activeTab === "inProgress" && request.status === "In Progress") ||
       (activeTab === "completed" && request.status === "Completed") ||
       (activeTab === "forApproval" && request.status === "For Approval") ||
-      (activeTab === "rejected" && request.status === "Rejected")
+      (activeTab === "rejected" && request.status === "Disapproved")
     // Priority filtering (from dropdown)
     const matchesPriority = priorityFilter === "" || request.priority === priorityFilter
 
@@ -152,7 +152,7 @@ const ServiceRequests = () => {
     pending: userFilteredRequests.filter((r) => r.status === "Pending").length,
     inProgress: userFilteredRequests.filter((r) => r.status === "In Progress").length,
     completed: userFilteredRequests.filter((r) => r.status === "Completed").length,
-    rejected: userFilteredRequests.filter((r) => r.status === "Rejected").length,
+    rejected: userFilteredRequests.filter((r) => r.status === "Disapproved").length,
     forApproval: userFilteredRequests.filter((r) => r.status === "For Approval").length,
   }
 
@@ -297,7 +297,7 @@ const ServiceRequests = () => {
             Completed <span className="ml-1 text-xs">({counts.completed})</span>
           </TabsTrigger>
           <TabsTrigger value="rejected">
-            Rejected <span className="ml-1 text-xs">({counts.rejected})</span>
+            Disapproved <span className="ml-1 text-xs">({counts.rejected})</span>
           </TabsTrigger>
           <TabsTrigger value="forApproval">
             For Approval <span className="ml-1 text-xs">({counts.forApproval})</span>

@@ -249,13 +249,13 @@ class ServiceRequestController extends Controller
                     }
                     break;
                     
-                case 'Rejected':
-                    // Principal rejected - notify the requestor
+                case 'Disapproved':
+                    // Principal disapproved - notify the requestor
                     if ($requestorUser) {
                         Notification::create([
                             'username_id' => $requestorUser->username,
-                            'title' => "Service Request Rejected",
-                            'message' => "Your service request '{$service->title}' has been rejected by the principal",
+                            'title' => "Service Request Disapproved",
+                            'message' => "Your service request '{$service->title}' has been disapproved by the principal",
                             'type' => "error",
                             'url' => "/service-requests",
                         ]);

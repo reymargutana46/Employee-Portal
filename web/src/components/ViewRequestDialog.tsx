@@ -43,7 +43,7 @@ export function ViewRequestDialog({
   };
   
   // Helper function to check if a value is truly empty or just a zero
-  const isValueEmpty = (value: any): boolean => {
+  const isValueEmpty = (value: unknown): boolean => {
     if (value === null || value === undefined) return true;
     if (typeof value === 'string' && value.trim() === '') return true;
     if (typeof value === 'number' && (isNaN(value) || value === 0)) return true;
@@ -147,7 +147,7 @@ export function ViewRequestDialog({
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => onUpdateStatus(request.id, "Rejected")}
+                  onClick={() => onUpdateStatus(request.id, "Disapproved")}
                 >
                   <XCircle className="h-4 w-4 mr-2" />
                   Reject
