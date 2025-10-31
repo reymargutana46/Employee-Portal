@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,26 +44,7 @@ import axios from "@/store/usePersonalDataSheet";
 import instance from "@/utils/axiosInstance";
 import type { Res } from "@/types/response";
 import { useAuthStore } from "@/store/useAuthStore";
-
-interface UploadedFile {
-  id: number;
-  file_path: string;
-  file_url: string;
-  file_name: string;
-  original_name: string;
-  file_size: string | number;
-  file_type: string;
-  uploader: string;
-  created_at: string;
-  updated_at: string;
-  uploaded_at: string;
-  owner_name: string | null;
-}
-
-interface StagedFile {
-  file: File;
-  employeeName: string;
-}
+import { UploadedFile, StagedFile, formatFileSize, getFileIcon } from "@/utils/pdsHelpers";
 
 const PDS = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,12 +63,7 @@ const PDS = () => {
     ['principal', 'secretary'].includes(role.name.toLowerCase())
   ) || false;
 
-  // Fetch all PDS files on component mount
-  useEffect(() => {
-    fetchAllFiles();
-  }, []);
-
-  const fetchAllFiles = async () => {
+  const fetchAllFiles = useCallback(async () => {
     try {
       setIsLoading(true);
       // Updated to match your backend route
@@ -109,25 +85,12 @@ const PDS = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  const formatFileSize = (bytes: string | number) => {
-    const numBytes = typeof bytes === "string" ? Number.parseInt(bytes) : bytes;
-    if (numBytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(numBytes) / Math.log(k));
-    return (
-      Number.parseFloat((numBytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-    );
-  };
-
-  const getFileIcon = (type: string) => {
-    if (type.includes("pdf")) return "📄";
-    if (type.includes("word") || type.includes("document")) return "📝";
-    if (type.includes("image")) return "🖼️";
-    return "📁";
-  };
+  // Fetch all PDS files on component mount
+  useEffect(() => {
+    fetchAllFiles();
+  }, [fetchAllFiles]);
 
   const handleFileSelection = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -380,8 +343,7 @@ const PDS = () => {
       (file.original_name &&
         file.original_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (file.owner_name &&
-        file.owner_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      file.uploader.toLowerCase().includes(searchTerm.toLowerCase())
+        file.owner_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (isLoading) {
@@ -531,7 +493,7 @@ const PDS = () => {
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by filename, employee, or uploader..."
+              placeholder="Search by filename or employee..."
               className="pl-10 h-11"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -580,9 +542,6 @@ const PDS = () => {
                       Employee
                     </th>
                     <th className="text-left font-semibold py-4 px-6 text-gray-900">
-                      Uploaded By
-                    </th>
-                    <th className="text-left font-semibold py-4 px-6 text-gray-900">
                       Upload Date
                     </th>
                     <th className="text-right font-semibold py-4 px-6 text-gray-900">
@@ -620,9 +579,6 @@ const PDS = () => {
                             {file.owner_name || "Not specified"}
                           </span>
                         </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="font-medium">{file.uploader}</span>
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2">

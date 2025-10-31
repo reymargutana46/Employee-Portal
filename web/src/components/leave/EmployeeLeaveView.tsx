@@ -37,6 +37,7 @@ const EmployeeLeaveView = ({
 }: EmployeeLeaveViewProps) => {
   const { userRoles } = useAuth();
   const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
+  const isFaculty = userRoles.some(role => role.name.toLowerCase() === 'faculty');
   // Use totalLeaveCount if provided, otherwise fallback to personalLeaves.length
   const displayCount = totalLeaveCount !== undefined ? totalLeaveCount : personalLeaves.length;
 
@@ -49,7 +50,7 @@ const EmployeeLeaveView = ({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>
-              My Leave Requests {isStaff && `(${displayCount})`}
+              My Leave Requests {(isStaff || isFaculty) && `(${displayCount})`}
             </CardTitle>
             <CardDescription>Track your leave applications</CardDescription>
           </CardHeader>

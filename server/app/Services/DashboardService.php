@@ -195,14 +195,14 @@ class DashboardService
 
             $leaveRequestsDiff = $leaveRequests - $leaveRequestsLastMonth;
 
-            // Get detailed leave counts by status for staff members
+            // Get detailed leave counts by status for staff and faculty members
             $staffLeaveDetails = [];
             if (!$this->user->hasRole($this->allowedRoles)) {
                 $staffLeaveDetails = [
                     'total' => Leave::where('employee_id', $this->employee->id)->count(),
                     'pending' => Leave::where('employee_id', $this->employee->id)->where('status', 'Pending')->count(),
                     'approved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Approved')->count(),
-                    'rejected' => Leave::where('employee_id', $this->employee->id)->where('status', 'Rejected')->count(),
+                    'rejected' => Leave::where('employee_id', $this->employee->id)->where('status', 'Disapproved')->count(),
                 ];
             }
 
@@ -309,18 +309,58 @@ class DashboardService
     public function ActivityLogs()
     {
         try {
-            $activity = ActivityLog::orderBy('created_at', 'desc')->take(10)->get();
+            // For staff users, only show their own activities (most recent first)
             if (!$this->user->hasRole($this->allowedRoles)) {
-                $activity = $activity->where('performed_by', $this->user->username);
+                $activities = ActivityLog::where('performed_by', $this->user->username)
+                    ->orderBy('created_at', 'desc')
+                    ->take(10)
+                    ->get();
+
+                $result = $activities->map(function ($log) {
+                    return [
+                        'performed_by' => $log->performed_by,
+                        'action' => $log->action,
+                        'description' => $log->description,
+                        'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
+                    ];
+                })->values();
+
+                // Log for debugging
+                // \Log::info('Staff user activity logs result for user: ' . $this->user->username . ', result count: ' . $result->count());
+                return $result;
             }
-            return $activity->map(function ($log) {
+
+            // For admin/principal/secretary users, prioritize their own activities
+            // Get the current user's activities first (most recent)
+            $userActivities = ActivityLog::where('performed_by', $this->user->username)
+                ->orderBy('created_at', 'desc')
+                ->take(5) // Limit to 5 most recent user activities
+                ->get();
+
+            // Get additional recent activities from other users
+            $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
+                ->orderBy('created_at', 'desc')
+                ->take(10 - $userActivities->count()) // Fill up to 10 total activities
+                ->get();
+
+            // Merge user activities first, then other activities
+            $allActivities = $userActivities->merge($otherActivities)
+                ->sortByDesc('created_at') // Sort by timestamp descending
+                ->take(10); // Ensure we don't exceed 10 activities
+
+            $result = $allActivities->map(function ($log) {
                 return [
                     'performed_by' => $log->performed_by,
                     'action' => $log->action,
                     'description' => $log->description,
-                    'created_at' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
+                    'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
                 ];
-            });
+            })->values(); // Ensure we return a reindexed array
+
+            // Log for debugging
+            // \Log::info('Admin/Principal/Secretary activity logs result for user: ' . $this->user->username . ', user activities: ' . $userActivities->count() . ', other activities: ' . $otherActivities->count() . ', total: ' . $result->count());
+
+            return $result;
         } catch (\Exception $e) {
             \Log::error('Activity logs error: ' . $e->getMessage());
             return [];

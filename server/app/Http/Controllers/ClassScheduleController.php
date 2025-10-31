@@ -45,7 +45,7 @@ class ClassScheduleController extends Controller
     {
         $auth = Auth::user();
         $employee = Employee::where('username_id', $auth->username)->first();
-        
+
         if (!$employee) {
             return $this->notFound('Employee record not found');
         }
@@ -54,21 +54,21 @@ class ClassScheduleController extends Controller
         $userFullName = trim($employee->fname . ' ' . $employee->lname);
         $userFirstName = trim($employee->fname);
         $userLastName = trim($employee->lname);
-        
+
         \Log::info('Looking for schedules for user', [
             'username' => $auth->username,
             'full_name' => $userFullName,
             'first_name' => $userFirstName,
             'last_name' => $userLastName
         ]);
-        
+
         // Get all approved schedules
         $allSchedules = ClassSchedule::with(['creator', 'approver', 'rejector'])
             ->where('status', 'APPROVED')
             ->get();
-            
+
         \Log::info('Total approved schedules found', ['count' => $allSchedules->count()]);
-        
+
         $assignedSchedules = $allSchedules->filter(function ($schedule) use ($userFullName, $userFirstName, $userLastName) {
             // Check if user is the adviser teacher (multiple matching strategies)
             $adviserMatches = [
@@ -76,7 +76,7 @@ class ClassScheduleController extends Controller
                 stripos($schedule->adviser_teacher, $userFirstName) !== false && stripos($schedule->adviser_teacher, $userLastName) !== false,
                 stripos($schedule->adviser_teacher, $userLastName) !== false && stripos($schedule->adviser_teacher, $userFirstName) !== false
             ];
-            
+
             if (array_filter($adviserMatches)) {
                 \Log::info('Found schedule match via adviser', [
                     'schedule_id' => $schedule->id,
@@ -86,7 +86,7 @@ class ClassScheduleController extends Controller
                 ]);
                 return true;
             }
-            
+
             // Check if user is mentioned in any schedule data
             foreach ($schedule->schedule_data as $row) {
                 $mondayThursdayMatches = [
@@ -94,13 +94,13 @@ class ClassScheduleController extends Controller
                     stripos($row['mondayThursday'], $userFirstName) !== false && stripos($row['mondayThursday'], $userLastName) !== false,
                     stripos($row['mondayThursday'], $userLastName) !== false && stripos($row['mondayThursday'], $userFirstName) !== false
                 ];
-                
+
                 $fridayMatches = [
                     stripos($row['friday'], $userFullName) !== false,
                     stripos($row['friday'], $userFirstName) !== false && stripos($row['friday'], $userLastName) !== false,
                     stripos($row['friday'], $userLastName) !== false && stripos($row['friday'], $userFirstName) !== false
                 ];
-                
+
                 if (array_filter($mondayThursdayMatches) || array_filter($fridayMatches)) {
                     \Log::info('Found schedule match via schedule data', [
                         'schedule_id' => $schedule->id,
@@ -112,7 +112,7 @@ class ClassScheduleController extends Controller
                     return true;
                 }
             }
-            
+
             return false;
         })->values(); // Reset array keys
 
@@ -142,7 +142,7 @@ class ClassScheduleController extends Controller
 
         try {
             $schedule = null;
-            
+
             DB::transaction(function () use ($validated, &$schedule) {
                 $schedule = ClassSchedule::create([
                     ...$validated,
@@ -151,10 +151,15 @@ class ClassScheduleController extends Controller
                 ]);
             });
 
+            // Check if schedule was created successfully
+            if (!$schedule) {
+                throw new \Exception('Failed to create schedule');
+            }
+
             // Determine the creator role for the notification message
             $creator = Auth::user();
             $creatorRole = 'Grade Leader';
-            
+
             // Check if the creator is a Principal
             if ($creator->hasRole('Principal')) {
                 $creatorRole = 'Principal';
@@ -170,7 +175,7 @@ class ClassScheduleController extends Controller
                     Notification::create([
                         'username_id' => $principal->username,
                         'title' => 'New Class Schedule Requires Approval',
-                        'message' => "{$creatorRole} has created a new class schedule for '{$schedule->grade_section}' - School Year {$schedule->school_year}. Please review and approve.",
+                        'message' => $creatorRole . ' has created a new class schedule for \'' . $schedule->grade_section . '\' - School Year ' . $schedule->school_year . '. Please review and approve.',
                         'type' => 'info',
                         'url' => '/workload',
                     ]);
@@ -203,7 +208,7 @@ class ClassScheduleController extends Controller
     public function update(Request $request, string $id)
     {
         $schedule = ClassSchedule::findOrFail($id);
-        
+
         // Only allow updates if status is PENDING or REJECTED
         if (!in_array($schedule->status, ['PENDING', 'REJECTED'])) {
             return $this->badRequest('Cannot update an approved schedule');
@@ -237,7 +242,7 @@ class ClassScheduleController extends Controller
         ]);
 
         $schedule = ClassSchedule::findOrFail($id);
-        
+
         $schedule->update([
             'status' => 'APPROVED',
             'approved_by' => Auth::user()->username,
@@ -256,13 +261,13 @@ class ClassScheduleController extends Controller
 
         // Notify teachers/faculty mentioned in the schedule
         $teachers = $this->findTeachersBySchedule($schedule);
-        
+
         \Log::info('Found teachers for notification', [
             'schedule_id' => $schedule->id,
             'teacher_count' => $teachers->count(),
             'teachers' => $teachers->pluck('matched_name')->toArray()
         ]);
-        
+
         foreach ($teachers as $teacherData) {
             try {
                 Notification::create([
@@ -272,7 +277,7 @@ class ClassScheduleController extends Controller
                     'type' => 'info',
                     'url' => '/schedule',
                 ]);
-                
+
                 \Log::info('Teacher notification sent', [
                     'teacher' => $teacherData['matched_name'],
                     'username' => $teacherData['user']->username,
@@ -300,7 +305,7 @@ class ClassScheduleController extends Controller
         ]);
 
         $schedule = ClassSchedule::findOrFail($id);
-        
+
         $schedule->update([
             'status' => 'REJECTED',
             'rejected_by' => Auth::user()->username,
@@ -311,26 +316,26 @@ class ClassScheduleController extends Controller
         // Notify the creator (grade leader)
         Notification::create([
             'username_id' => $schedule->created_by,
-            'title' => 'Class Schedule Rejected',
-            'message' => "Your class schedule for '{$schedule->grade_section}' was rejected by the Principal." . ($schedule->approval_remarks ? " Remarks: {$schedule->approval_remarks}" : ""),
+            'title' => 'Class Schedule Disapproved',
+            'message' => "Your class schedule for '".$schedule->grade_section."' was disapproved by the Principal." . ($schedule->approval_remarks ? " Remarks: '".$schedule->approval_remarks."'" : ""),
             'type' => 'error',
             'url' => '/schedule',
         ]);
 
-        // Notify teachers/faculty that the schedule assignment was rejected
+        // Notify teachers/faculty that the schedule assignment was disapproved
         $teachers = $this->findTeachersBySchedule($schedule);
-        
+
         foreach ($teachers as $teacherData) {
             try {
                 Notification::create([
                     'username_id' => $teacherData['user']->username,
                     'title' => 'Class Schedule Assignment Canceled',
-                    'message' => "The class schedule assignment for '{$schedule->grade_section}' - School Year {$schedule->school_year} has been rejected by the Principal.",
+                    'message' => "The class schedule assignment for '".$schedule->grade_section."' - School Year ".$schedule->school_year." has been disapproved by the Principal.",
                     'type' => 'warning',
                     'url' => '/schedule',
                 ]);
             } catch (\Exception $e) {
-                \Log::error('Failed to create teacher rejection notification', [
+                \Log::error('Failed to create teacher disapproval notification', [
                     'teacher' => $teacherData['user']->username,
                     'schedule_id' => $schedule->id,
                     'error' => $e->getMessage()
@@ -338,7 +343,7 @@ class ClassScheduleController extends Controller
             }
         }
 
-        return $this->ok($schedule->load(['creator', 'rejector']), 'Schedule rejected');
+        return $this->ok($schedule->load(['creator', 'rejector']), 'Schedule disapproved');
     }
 
     /**
@@ -347,7 +352,7 @@ class ClassScheduleController extends Controller
     public function destroy(string $id)
     {
         $schedule = ClassSchedule::findOrFail($id);
-        
+
         // Only allow deletion if status is PENDING or REJECTED
         if ($schedule->status === 'APPROVED') {
             return $this->badRequest('Cannot delete an approved schedule');
@@ -363,12 +368,12 @@ class ClassScheduleController extends Controller
     private function findTeachersBySchedule(ClassSchedule $schedule)
     {
         $teacherNames = collect();
-        
+
         // Add adviser teacher
         if (!empty($schedule->adviser_teacher)) {
             $teacherNames->push($schedule->adviser_teacher);
         }
-        
+
         // Extract teacher names from schedule_data (subjects might contain teacher names)
         foreach ($schedule->schedule_data as $row) {
             if (!empty($row['mondayThursday']) && !in_array($row['mondayThursday'], ['Flag Ceremony', 'Recess', 'Lunch'])) {
@@ -383,39 +388,38 @@ class ClassScheduleController extends Controller
                 }
             }
         }
-        
+
         // Find employees/users matching these names
         $teachers = collect();
-        
+
         foreach ($teacherNames->unique() as $teacherName) {
             // Try different matching strategies
             $employee = null;
-            
+
             // 1. Exact match with full name
             $employee = Employee::whereRaw("CONCAT(fname, ' ', lname) = ?", [$teacherName])
                 ->orWhereRaw("CONCAT(fname, ' ', mname, ' ', lname) = ?", [$teacherName])
                 ->first();
-            
+
             // 2. If no exact match, try case-insensitive match
             if (!$employee) {
                 $employee = Employee::whereRaw("LOWER(CONCAT(fname, ' ', lname)) = LOWER(?)", [$teacherName])
                     ->orWhereRaw("LOWER(CONCAT(fname, ' ', mname, ' ', lname)) = LOWER(?)", [$teacherName])
                     ->first();
             }
-            
-            // 3. If still no match, try partial match (useful for "Rey Gutana" vs "rey gutana")
+
             if (!$employee) {
                 $nameParts = explode(' ', $teacherName);
                 if (count($nameParts) >= 2) {
                     $firstName = $nameParts[0];
                     $lastName = $nameParts[count($nameParts) - 1];
-                    
-                    $employee = Employee::whereRaw("LOWER(fname) LIKE LOWER(?) AND LOWER(lname) LIKE LOWER(?)", 
+
+                    $employee = Employee::whereRaw("LOWER(fname) LIKE LOWER(?) AND LOWER(lname) LIKE LOWER(?)",
                         ["%{$firstName}%", "%{$lastName}%"])
                         ->first();
                 }
             }
-            
+
             if ($employee && $employee->username_id) {
                 // Check if user has Faculty role
                 $user = User::where('username', $employee->username_id)
@@ -423,7 +427,7 @@ class ClassScheduleController extends Controller
                         $query->where('name', 'Faculty');
                     })
                     ->first();
-                
+
                 if ($user) {
                     $teachers->push([
                         'user' => $user,
@@ -434,7 +438,7 @@ class ClassScheduleController extends Controller
                 }
             }
         }
-        
+
         return $teachers;
     }
 }

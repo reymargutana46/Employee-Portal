@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DTRActions from "@/components/DTRAction"
 import { DTRList } from "@/types/dtr"
 
-
-
 interface ListViewProps {
   records: DTRList[]
   isAdmin: boolean
@@ -24,7 +22,10 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [sortField, setSortField] = useState<string>("date")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [activeTab, setActiveTab] = useState("all")
+  const [activeTab, setActiveTab] = useState("present") // Changed default to "present"
+
+  // Debug: Log the incoming records
+  console.log("DTRListView received records:", records);
 
   // Sort records
   const sortedRecords = [...records].sort((a, b) => {
@@ -39,24 +40,112 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
     }
 
     if (sortField === "status") {
-      return sortDirection === "asc" ? a.status.localeCompare(b.status) : b.status.localeCompare(a.status)
+      // For status sorting, we'll use the derived status
+      const statusA = deriveStatusFromTimeData(a);
+      const statusB = deriveStatusFromTimeData(b);
+      return sortDirection === "asc" ? statusA.localeCompare(statusB) : statusB.localeCompare(statusA)
     }
 
     return 0
   })
 
+  // Function to derive status from time data
+  const deriveStatusFromTimeData = (record: DTRList) => {
+    // If status is already explicitly set to Leave, return it
+    if (record.status === "Leave") {
+      return "Leave";
+    }
+    
+    // Check if all time fields are missing (Absent)
+    const isAmEmpty = !record.am_arrival || record.am_arrival === "-" || record.am_arrival.trim() === "";
+    const isAmDepartureEmpty = !record.am_departure || record.am_departure === "-" || record.am_departure.trim() === "";
+    const isPmArrivalEmpty = !record.pm_arrival || record.pm_arrival === "-" || record.pm_arrival.trim() === "";
+    const isPmDepartureEmpty = !record.pm_departure || record.pm_departure === "-" || record.pm_departure.trim() === "";
+    
+    if (isAmEmpty && isAmDepartureEmpty && isPmArrivalEmpty && isPmDepartureEmpty) {
+      return "Absent";
+    }
+    
+    // Check if there's a late arrival (Late)
+    if (
+      (record.am_arrival && record.am_arrival !== "-" && isLateArrival(record.am_arrival)) ||
+      (record.pm_arrival && record.pm_arrival !== "-" && isLateArrival(record.pm_arrival))
+    ) {
+      return "Late";
+    }
+    
+    // Default to Present if not explicitly Absent or Late
+    return "Present";
+  };
+
+  // Function to check if arrival time is late
+  const isLateArrival = (arrivalTime: string) => {
+    try {
+      // Handle cases where time might be empty or just "-"
+      if (!arrivalTime || arrivalTime === "-" || arrivalTime.trim() === "") {
+        return false;
+      }
+      
+      const parts = arrivalTime.trim().split(" ");
+      if (parts.length !== 2) return false;
+      
+      const [time, modifier] = parts;
+      const [hours, minutes] = time.split(":").map(Number);
+      
+      // Validate numbers
+      if (isNaN(hours) || isNaN(minutes)) return false;
+      
+      // Convert to 24-hour format for comparison
+      let hour24 = hours;
+      if (modifier === "PM" && hours !== 12) hour24 += 12;
+      if (modifier === "AM" && hours === 12) hour24 = 0;
+      
+      // Consider late if after 8:15 AM (you can adjust this threshold)
+      if (hour24 > 8 || (hour24 === 8 && minutes > 15)) {
+        return true;
+      }
+    } catch (error) {
+      console.log("Error parsing time:", arrivalTime, error);
+      return false;
+    }
+    
+    return false;
+  };
+
   // Filter by tab
   const tabFilteredRecords = sortedRecords.filter((record) => {
-    if (activeTab === "all") return true
-    if (activeTab === "present") return record.status === "Present"
-    // if (activeTab === "leave") return record.status === "Leave"
-    // if (activeTab === "absent") return record.status === "Absent"
-    // if (activeTab === "late") return record.status === "Late"
-
-    return true
+    // Derive status based on time data for Absent and Late tabs
+    const derivedStatus = deriveStatusFromTimeData(record);
+    
+    // Debug: Log the derived status for each record
+    if (activeTab !== "all") {
+      console.log(`Record ${record.date}: Status=${record.status}, Derived=${derivedStatus}`);
+    }
+    
+    switch (activeTab) {
+      case "present":
+        return derivedStatus === "Present";
+      case "absent":
+        return derivedStatus === "Absent";
+      case "late":
+        return derivedStatus === "Late";
+      default:
+        return true;
+    }
   })
 
+  // Calculate counts for each tab
+  const presentCount = sortedRecords.filter(record => deriveStatusFromTimeData(record) === "Present").length
+  const absentCount = sortedRecords.filter(record => deriveStatusFromTimeData(record) === "Absent").length
+  const lateCount = sortedRecords.filter(record => deriveStatusFromTimeData(record) === "Late").length
+
   const totalPages = Math.ceil(tabFilteredRecords.length / itemsPerPage)
+  
+  // Debug: Log the active tab and filtered records count
+  console.log("Active tab:", activeTab);
+  console.log("Filtered records count:", tabFilteredRecords.length);
+  console.log("All records count:", sortedRecords.length);
+
   const paginatedRecords = tabFilteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   // Handle sort
@@ -72,9 +161,32 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
   // Format date for display
   const formatDate = (dateString: string) => {
     try {
+      // Try to parse the date string as is first
       const date = new Date(dateString)
-      return format(date, "MMM dd, yyyy")
+      if (!isNaN(date.getTime())) {
+        return format(date, "MMM dd, yyyy")
+      }
+      
+      // If that fails, try to parse it as a different format
+      // Backend seems to send "M d, Y" format
+      const parts = dateString.split(' ')
+      if (parts.length === 3) {
+        const month = parts[0]
+        const day = parseInt(parts[1].replace(',', ''))
+        const year = parseInt(parts[2])
+        
+        // Create a new date object
+        const formattedDateString = `${month} ${day}, ${year}`
+        const parsedDate = new Date(formattedDateString)
+        
+        if (!isNaN(parsedDate.getTime())) {
+          return format(parsedDate, "MMM dd, yyyy")
+        }
+      }
+      
+      return dateString
     } catch (error) {
+      console.error("Error formatting date:", dateString, error)
       return dateString
     }
   }
@@ -99,13 +211,7 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
           <Clock className="mr-1 h-3 w-3" /> Late
         </Badge>
       )
-    } else if (status === "Leave" && type) {
-      return (
-        <Badge variant="outline" className="bg-orange-100 text-orange-800 hover:bg-orange-100">
-          <Calendar className="mr-1 h-3 w-3" /> {type}
-        </Badge>
-      )
-    }
+    } 
 
     return (
       <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-100">
@@ -123,16 +229,25 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
     requiredHours = 8,
   ): { hours: number; minutes: number } => {
     const to24HrMinutes = (time: string): number => {
-      if (!time || time === "-") return 0
+      // Handle empty or invalid times
+      if (!time || time === "-" || time.trim() === "") return 0
 
-      const [timeStr, modifier] = time.trim().split(" ")
-      // eslint-disable-next-line prefer-const
-      let [hours, minutes] = timeStr.split(":").map(Number)
+      try {
+        const [timeStr, modifier] = time.trim().split(" ")
+        // eslint-disable-next-line prefer-const
+        let [hours, minutes] = timeStr.split(":").map(Number)
+        
+        // Validate numbers
+        if (isNaN(hours) || isNaN(minutes)) return 0
 
-      if (modifier === "PM" && hours !== 12) hours += 12
-      if (modifier === "AM" && hours === 12) hours = 0
+        if (modifier === "PM" && hours !== 12) hours += 12
+        if (modifier === "AM" && hours === 12) hours = 0
 
-      return hours * 60 + minutes
+        return hours * 60 + minutes
+      } catch (error) {
+        console.log("Error parsing time for undertime calculation:", time, error)
+        return 0
+      }
     }
 
     // Handle missing times
@@ -179,32 +294,32 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex space-x-2 mb-2 sm:mb-0">
-          <Button variant={activeTab === "all" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("all")}>
-            All
-          </Button>
+          {/* Removed "All" tab and "Leave" tab */}
           <Button
             variant={activeTab === "present" ? "default" : "outline"}
             size="sm"
-            onClick={() => setActiveTab("present")}
+            onClick={() => {
+              console.log("Clicked Present tab");
+              setActiveTab("present");
+            }}
           >
-            Present
+            Present ({presentCount})
           </Button>
-          {/* <Button
-            variant={activeTab === "leave" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("leave")}
-          >
-            Leave
-          </Button> */}
           <Button
             variant={activeTab === "absent" ? "default" : "outline"}
             size="sm"
-            onClick={() => setActiveTab("absent")}
+            onClick={() => {
+              console.log("Clicked Absent tab");
+              setActiveTab("absent");
+            }}
           >
-            Absent
+            Absent ({absentCount})
           </Button>
-          <Button variant={activeTab === "late" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("late")}>
-            Late
+          <Button variant={activeTab === "late" ? "default" : "outline"} size="sm" onClick={() => {
+            console.log("Clicked Late tab");
+            setActiveTab("late");
+          }}>
+            Late ({lateCount})
           </Button>
         </div>
 
@@ -248,50 +363,63 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
           <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No records found</h3>
           <p className="text-muted-foreground mt-1">Try adjusting your filters.</p>
+          <p className="text-muted-foreground text-sm mt-2">
+            Active tab: {activeTab} | Total records: {records.length} | Filtered records: {tabFilteredRecords.length}
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {paginatedRecords.map((record, index) => {
+            // Debug: Log each record to see what data we're working with
+            console.log("Processing record:", record);
+            
             const { hours, minutes } = calculateUndertime(
               record.am_arrival,
               record.am_departure,
               record.pm_arrival,
               record.pm_departure,
             )
+            
+            // Get derived status for styling and display
+            const derivedStatus = deriveStatusFromTimeData(record);
 
             return (
-              <Card key={index} className={`overflow-hidden ${record.status === "Leave" ? "bg-orange-50" : ""}`}>
+              <Card key={`${record.date}-${index}`} className={`overflow-hidden border ${
+                derivedStatus === "Absent" ? "border-red-200 bg-red-50" : 
+                derivedStatus === "Late" ? "border-amber-200 bg-amber-50" : 
+                "border-green-200 bg-green-50"
+              }`}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="space-y-1">
                       <h3 className="font-medium">{formatDate(record.date)}</h3>
                       {isAdmin && <p className="text-sm text-muted-foreground">{record.employee}</p>}
                     </div>
-                    {getStatusBadge(record.status, record.type)}
+                    {getStatusBadge(derivedStatus, record.type)}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">AM Time</p>
                       <p className="text-sm">
-                        {record.am_arrival !== "-" ? (
+                        {record.am_arrival && record.am_arrival !== "-" ? (
                           <>
                             {record.am_arrival} - {record.am_departure}
                           </>
                         ) : (
-                          "-"
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">PM Time</p>
                       <p className="text-sm">
-                        {record.pm_arrival !== "-" ? (
+                        {record.pm_arrival && record.pm_arrival !== "-" ? (
                           <>
                             {record.pm_arrival} - {record.pm_departure}
                           </>
                         ) : (
-                          "-"
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </p>
                     </div>

@@ -96,7 +96,7 @@ class LeaveController extends Controller
     {
         $request->validate([
             'status' => 'required|string|in:Approved,Disapproved',
-            'reason' => 'required_if:status,rejected|string|nullable',
+            'reason' => 'required_if:status,Disapproved|string|nullable',
             'id' => 'required|exists:leaves,id',
         ]);
         return  DB::transaction(function () use ($request) {

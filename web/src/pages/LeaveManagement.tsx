@@ -67,7 +67,7 @@ const LeaveManagement = () => {
     }
 
     fetchLeaves();
-  }, [fetchLeaves]);
+  }, [fetchLeaves, leaveTypes.length, setLeaveTypes]);
 
   useEffect(() => {
     setFilteredLeaveRequests(

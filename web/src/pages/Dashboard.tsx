@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -47,6 +47,7 @@ import { Res } from "@/types/response";
 import { ServiceRequestChart } from "@/components/ServiceRequestChart";
 import { Calendar as UICalendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
+import { ClassSchedule } from "@/types/classSchedule";
 
 export interface DashboardCard {
   totalEmployees: number;
@@ -116,7 +117,7 @@ const Dashboard = () => {
   const [workload, setWorkload] = useState<WorkloadData[]>([]);
   const [recentLogs, setRecentLogs] = useState<RecentLog[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequestDate[]>([]);
-  const [classSchedules, setClassSchedules] = useState<any[]>([]);
+  const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(true);
   const [currentQuarter, setCurrentQuarter] = useState(1); // 1 for Jan-Jun, 2 for Jul-Dec
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +129,7 @@ const Dashboard = () => {
   const userRole = userRoles.length > 0 ? userRoles[0] : null;
 
   // Ensure card data has default values if some properties are missing
-  const safeCard = {
+  const safeCard = useMemo(() => ({
     totalEmployees: card?.totalEmployees || 0,
     employeeDiff: card?.employeeDiff || 0,
     attendanceData: card?.attendanceData || { total: 0, present: 0, absent: 0, late: 0 },
@@ -137,10 +138,10 @@ const Dashboard = () => {
     leaveRequests: card?.leaveRequests || 0,
     leaveRequestsDiff: card?.leaveRequestsDiff || 0,
     staffLeaveDetails: card?.staffLeaveDetails || { total: 0, pending: 0, approved: 0, rejected: 0 },
-  };
+  }), [card]);
 
   // Function to fetch dashboard data with quarter parameter
-  const fetchDashboardData = (quarter: number) => {
+  const fetchDashboardData = useCallback((quarter: number) => {
     setIsLoading(true);
     setError(null);
     
@@ -157,6 +158,7 @@ const Dashboard = () => {
         
         // Log the response for debugging
         console.log("Dashboard data received:", response.data.data);
+        console.log("Recent logs received:", recentlogs);
         
         setWorkload(workloads || []);
         setMonthlyAttendance(monthlyAttendance || null);
@@ -177,42 +179,42 @@ const Dashboard = () => {
           variant: "destructive",
         });
       });
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchDashboardData(currentQuarter);
-  }, [currentQuarter]);
+  }, [currentQuarter, fetchDashboardData]);
 
   // Fetch class schedules for principal
-  useEffect(() => {
-    const fetchClassSchedules = async () => {
-      if (userRole && userRole.name.toLowerCase() === 'principal') {
-        setIsSchedulesLoading(true);
-        try {
-          const { fetchSchedules } = useClassScheduleStore.getState();
-          await fetchSchedules();
-          const { schedules } = useClassScheduleStore.getState();
-          // Filter for approved schedules only
-          const approvedSchedules = schedules.filter(schedule => schedule.status === 'APPROVED');
-          setClassSchedules(approvedSchedules);
-        } catch (error) {
-          console.error('Failed to fetch class schedules:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load class schedules.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsSchedulesLoading(false);
-        }
+  const fetchClassSchedules = useCallback(async () => {
+    if (userRole && userRole.name.toLowerCase() === 'principal') {
+      setIsSchedulesLoading(true);
+      try {
+        const { fetchSchedules } = useClassScheduleStore.getState();
+        await fetchSchedules();
+        const { schedules } = useClassScheduleStore.getState();
+        // Filter for approved schedules only
+        const approvedSchedules = schedules.filter(schedule => schedule.status === 'APPROVED');
+        setClassSchedules(approvedSchedules);
+      } catch (error) {
+        console.error('Failed to fetch class schedules:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load class schedules.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSchedulesLoading(false);
       }
-    };
+    }
+  }, [userRole, toast]);
 
+  useEffect(() => {
     fetchClassSchedules();
-  }, [userRole]);
+  }, [fetchClassSchedules]);
 
   // Demo stats for different roles
-  const stats = {
+  const stats = useMemo(() => ({
     admin: [
       {
         title: "Total Employees",
@@ -282,25 +284,32 @@ const Dashboard = () => {
         color: "bg-blue-500",
       },
       {
-        title: "Leave Balance",
-        value: "12 days",
+        title: "Total Leave Requests",
+        value: safeCard.staffLeaveDetails?.total || 0,
         icon: Calendar,
         change: "",
         color: "bg-emerald-500",
       },
       {
         title: "Pending Requests",
-        value: 2,
-        icon: CheckSquare,
+        value: safeCard.staffLeaveDetails?.pending || 0,
+        icon: Clock,
         change: "",
         color: "bg-amber-500",
       },
       {
-        title: "Schedule Today",
-        value: "4 hrs",
-        icon: Clock,
+        title: "Approved Requests",
+        value: safeCard.staffLeaveDetails?.approved || 0,
+        icon: CheckSquare,
         change: "",
-        color: "bg-purple-500",
+        color: "bg-blue-500",
+      },
+      {
+        title: "Disapproved Requests",
+        value: safeCard.staffLeaveDetails?.rejected || 0,
+        icon: AlertTriangle,
+        change: "",
+        color: "bg-red-500",
       },
     ],
     gradeleader: [
@@ -393,10 +402,10 @@ const Dashboard = () => {
         color: "bg-red-500",
       },
     ],
-  };
+  }), [safeCard, Users, Calendar, Clock, FileText, CheckSquare, AlertTriangle]);
 
   // Get the appropriate stats for the current user role
-  const currentRoleStats = userRole ? stats[userRole.name] : [];
+  const currentRoleStats = useMemo(() => userRole ? stats[userRole.name] : [], [userRole, stats]);
 
   const topPerformers = [
     {
@@ -679,7 +688,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {userRole && userRole.name.toLowerCase() === 'staff' && safeCard.staffLeaveDetails ? (
+              {(userRole && (userRole.name.toLowerCase() === 'staff' || userRole.name.toLowerCase() === 'faculty')) && safeCard.staffLeaveDetails ? (
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
@@ -756,7 +765,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {userRole && userRole.name.toLowerCase() === 'staff' && safeCard.staffLeaveDetails ? (
+              {(userRole && (userRole.name.toLowerCase() === 'staff' || userRole.name.toLowerCase() === 'faculty')) && safeCard.staffLeaveDetails ? (
                 <div className="space-y-2">
                   <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
                   <div className="grid grid-cols-3 gap-2 text-xs">

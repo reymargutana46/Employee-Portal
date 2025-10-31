@@ -85,15 +85,15 @@ export function ClassScheduleApproval() {
       markNotificationsByUrlAsRead('/schedule')
       
       toast({
-        title: "Schedule Rejected",
-        description: `Class schedule for ${schedule.grade_section} has been rejected.`,
+        title: "Schedule Disapproved",
+        description: `Class schedule for ${schedule.grade_section} has been disapproved.`,
       })
       // Clear remarks for this schedule
       setRemarks(prev => ({ ...prev, [schedule.id]: '' }))
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to reject schedule",
+        description: "Failed to disapprove schedule",
         variant: "destructive",
       })
     } finally {
@@ -172,7 +172,7 @@ export function ClassScheduleApproval() {
                       ) : (
                         <XCircle className="h-4 w-4 mr-2" />
                       )}
-                      Reject
+                      Disapprove
                     </Button>
                     <Button 
                       onClick={() => handleApprove(schedule)} 

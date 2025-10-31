@@ -141,7 +141,7 @@ export function ViewRequestDialog({
               </Button>
             )}
           
-          {/* For the Principal - can approve or reject if For Approval */}
+          {/* For the Principal - can approve or disapprove if For Approval */}
           {request.status === "For Approval" &&
             canDoAction(["Principal"]) && (
               <div className="flex gap-2">
@@ -150,7 +150,7 @@ export function ViewRequestDialog({
                   onClick={() => onUpdateStatus(request.id, "Disapproved")}
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  Reject
+                  Disapprove
                 </Button>
                 <Button onClick={() => onUpdateStatus(request.id, "Pending")}>
                   <CheckCircle className="h-4 w-4 mr-2" />

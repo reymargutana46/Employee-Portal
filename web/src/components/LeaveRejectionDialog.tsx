@@ -36,7 +36,7 @@ const LeaveRejectionDialog = ({
     if (!reason.trim()) {
       toast({
         title: "Error",
-        description: "Please provide a reason for rejection",
+        description: "Please provide a reason for disapproval",
         variant: "destructive",
       });
       return;
