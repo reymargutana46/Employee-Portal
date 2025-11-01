@@ -901,7 +901,9 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle>Recent Logs</CardTitle>
               <CardDescription>
-                Latest activities across the system
+                {userRole && userRole.name.toLowerCase() === 'staff'
+                  ? "Your recent activities in the system"
+                  : "Latest activities across the system"}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow overflow-y-auto">
@@ -916,20 +918,28 @@ const Dashboard = () => {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Service Request Status Trends</CardTitle>
+            <CardTitle>
+              {userRole && userRole.name.toLowerCase() === 'staff'
+                ? "Your Service Request Status Trends"
+                : "Service Request Status Trends"}
+            </CardTitle>
             <CardDescription>
-              Monthly trends of service request statuses throughout the year
+              {userRole && userRole.name.toLowerCase() === 'staff'
+                ? "Monthly trends of your service request statuses throughout the year"
+                : "Monthly trends of service request statuses throughout the year"}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center h-64 text-muted-foreground">
-            No service request data available
+            {userRole && userRole.name.toLowerCase() === 'staff'
+              ? "You haven't created any service requests yet"
+              : "No service request data available"}
           </CardContent>
         </Card>
       )}
 
-      {/* Conditionally render workload section - hide for admin, secretary, and staff users */}
-      {/* Show workload section for all roles except admin, secretary, and staff */}
-      {userRole && userRole.name.toLowerCase() !== 'staff' && !userRoles.some(role => role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'secretary') && (
+      {/* Conditionally render workload section - hide for admin, secretary, staff, and faculty users */}
+      {/* Show workload section for all roles except admin, secretary, staff, and faculty */}
+      {userRole && userRole.name.toLowerCase() !== 'staff' && !userRoles.some(role => role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'secretary' || role.name.toLowerCase() === 'faculty') && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
           <Card className="col-span-5">
             <CardHeader>

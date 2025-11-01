@@ -65,7 +65,9 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
         })
       ) : (
         <div className="text-center py-4 text-muted-foreground text-sm">
-          No recent activities
+          {isStaff 
+            ? "You haven't performed any activities yet" 
+            : "No recent activities"}
         </div>
       )}
     </div>

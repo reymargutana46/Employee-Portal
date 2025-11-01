@@ -13,6 +13,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { ServiceRequestDate } from "@/pages/Dashboard"
+import { useAuthStore } from "@/store/useAuthStore"
 
 
 
@@ -47,6 +48,12 @@ export function ServiceRequestChart({ services }: ServiceRequestProps) {
   // Handle case where services might be undefined or null
   const safeServices = services || [];
   
+  // Get user roles from auth store
+  const { userRoles } = useAuthStore();
+  
+  // Check if user is staff
+  const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
+  
   // Calculate total requests and completion rate
   const totalRequests = safeServices.reduce(
     (sum, month) => sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
@@ -58,9 +65,13 @@ export function ServiceRequestChart({ services }: ServiceRequestProps) {
   return (
     <Card className="w-full">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-semibold">Service Request Status Trends</CardTitle>
+        <CardTitle className="text-xl font-semibold">
+          {isStaff ? "Your Service Request Status Trends" : "Service Request Status Trends"}
+        </CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
-          Monthly trends of service request statuses throughout the year
+          {isStaff 
+            ? "Monthly trends of your service request statuses throughout the year"
+            : "Monthly trends of service request statuses throughout the year"}
         </CardDescription>
       </CardHeader>
       <CardContent className="pb-4">
