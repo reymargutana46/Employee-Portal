@@ -93,9 +93,6 @@ const DTRDashboard = () => {
     return true;
   });
 
-  // Calculate attendance count (excluding Leave records)
-  const attendanceCount = countAttendanceRecords(filteredRecords);
-
   const { userRoles } = useAuth();
   const { canDoAction } = useAuthStore();
   const isSecretary = userRoles.some((role) => role.name === "secretary");
@@ -175,6 +172,19 @@ const DTRDashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
+            Daily Time Record
+          </h1>
+          <p className="text-muted-foreground">
+            Monitor and manage attendance records
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <TimeInOutDialog />
+          {isSecretary && <ImportDTRDialog />}
+          {!isStaff && !isFaculty && (
+            <Button variant="secondary" onClick={handleDownloadTemplate}>
+              <Download className="mr-2 h-4 w-4" /> Download Template
+            </Button>
           )}
           {isSecretary && (
             <Dialog>
@@ -206,6 +216,7 @@ const DTRDashboard = () => {
                   value={selectedEmployee}
                   onValueChange={setSelectedEmployee}
                 >
+                  <SelectTrigger>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,7 +266,7 @@ const DTRDashboard = () => {
                   className="flex-1"
                 >
                   <List className="h-4 w-4 mr-2" />
-                  List View ({attendanceCount})
+                  List
                 </Button>
                 {/* <Button
                   variant={viewMode === "summary" ? "default" : "outline"}
@@ -303,6 +314,7 @@ const DTRDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
         {/* Removed Leave card as requested */}
       </div>
 
