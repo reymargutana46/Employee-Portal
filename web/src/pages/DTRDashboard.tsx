@@ -87,14 +87,11 @@ const DTRDashboard = () => {
   // Get filtered records
   const filteredRecords = getFilteredRecords().filter((record) => {
     // Filter by selected employee if not "all"
-    if (selectedEmployee !== "all" && record.employee !== selectedEmployee) {
+    if (selectedEmployee !== "all" && record.employee_id !== parseInt(selectedEmployee)) {
       return false;
     }
     return true;
   });
-
-  // Calculate attendance count (excluding Leave records)
-  const attendanceCount = countAttendanceRecords(filteredRecords);
 
   const { userRoles } = useAuth();
   const { canDoAction } = useAuthStore();
@@ -120,7 +117,7 @@ const DTRDashboard = () => {
   // Calculate summary statistics for DTR records
   const calculateDTRSummary = () => {
     // Function to determine if a record is late based on arrival time
-    const isLate = (record: import('@/types/dtr').DTRList) => {
+    const isLate = (record: DTRList) => {
       // Only check for late if the record is marked as "Present"
       if (record.status !== "Present") return false
       
@@ -175,6 +172,19 @@ const DTRDashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
+            Daily Time Record
+          </h1>
+          <p className="text-muted-foreground">
+            Monitor and manage attendance records
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <TimeInOutDialog />
+          {isSecretary && <ImportDTRDialog />}
+          {!isStaff && !isFaculty && (
+            <Button variant="secondary" onClick={handleDownloadTemplate}>
+              <Download className="mr-2 h-4 w-4" /> Download Template
+            </Button>
           )}
           {isSecretary && (
             <Dialog>
@@ -206,6 +216,7 @@ const DTRDashboard = () => {
                   value={selectedEmployee}
                   onValueChange={setSelectedEmployee}
                 >
+                  <SelectTrigger>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,7 +266,7 @@ const DTRDashboard = () => {
                   className="flex-1"
                 >
                   <List className="h-4 w-4 mr-2" />
-                  List View ({attendanceCount})
+                  List
                 </Button>
                 {/* <Button
                   variant={viewMode === "summary" ? "default" : "outline"}
@@ -273,7 +284,7 @@ const DTRDashboard = () => {
       </Card>
 
       {/* Summary Cards - Only showing Total Records and Present as requested */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex justify-between items-center">
@@ -303,7 +314,38 @@ const DTRDashboard = () => {
             </div>
           </CardContent>
         </Card>
-        {/* Removed Leave card as requested */}
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Absent
+                </p>
+                <p className="text-2xl font-bold text-red-600">
+                  {dtrSummary.absent}
+                </p>
+              </div>
+              <XCircle className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Late
+                </p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {dtrSummary.late}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content Area */}
@@ -313,7 +355,7 @@ const DTRDashboard = () => {
             {viewMode === "calendar"
               ? "Calendar View"
               : viewMode === "list"
-              ? `List View (${dtrSummary.total})`
+              ? "List View (" + dtrSummary.total + ")"
               : "Summary View"}
           </CardTitle>
           <CardDescription>
