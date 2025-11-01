@@ -87,7 +87,7 @@ const DTRDashboard = () => {
   // Get filtered records
   const filteredRecords = getFilteredRecords().filter((record) => {
     // Filter by selected employee if not "all"
-    if (selectedEmployee !== "all" && record.employee !== selectedEmployee) {
+    if (selectedEmployee !== "all" && record.employee_id !== parseInt(selectedEmployee)) {
       return false;
     }
     return true;
@@ -117,7 +117,7 @@ const DTRDashboard = () => {
   // Calculate summary statistics for DTR records
   const calculateDTRSummary = () => {
     // Function to determine if a record is late based on arrival time
-    const isLate = (record: import('@/types/dtr').DTRList) => {
+    const isLate = (record: DTRList) => {
       // Only check for late if the record is marked as "Present"
       if (record.status !== "Present") return false
       
@@ -284,7 +284,7 @@ const DTRDashboard = () => {
       </Card>
 
       {/* Summary Cards - Only showing Total Records and Present as requested */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex justify-between items-center">
@@ -315,7 +315,41 @@ const DTRDashboard = () => {
           </CardContent>
         </Card>
 
+<<<<<<< HEAD
         {/* Removed Leave card as requested */}
+=======
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Absent
+                </p>
+                <p className="text-2xl font-bold text-red-600">
+                  {dtrSummary.absent}
+                </p>
+              </div>
+              <XCircle className="h-8 w-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Late
+                </p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {dtrSummary.late}
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+>>>>>>> dd4e896e1fc6692f85ce5cbde9d03fb04de46971
       </div>
 
       {/* Main Content Area */}
@@ -325,7 +359,7 @@ const DTRDashboard = () => {
             {viewMode === "calendar"
               ? "Calendar View"
               : viewMode === "list"
-              ? `List View (${dtrSummary.total})`
+              ? "List View (" + dtrSummary.total + ")"
               : "Summary View"}
           </CardTitle>
           <CardDescription>
