@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { type ServiceRequest, type RequestStatus, requestTypes } from "@/types/serviceRequest"
 import { useEmployeeStore } from "@/store/useEmployeeStore"
 import { useAuthStore } from "@/store/useAuthStore"
-import { useServiceRequestStore } from "@/store/useServiceRequestStore"
+import { useSeerviceRequestStore } from "@/store/useServiceRequestStore"
 
 const ServiceRequests = () => {
   const [searchTerm, setSearchTerm] = useState("")
@@ -44,7 +44,7 @@ const ServiceRequests = () => {
     deleteRequest,
     submitRating,
     setSelectedRequest,
-  } = useServiceRequestStore()
+  } = useSeerviceRequestStore()
 
   useEffect(() => {
     if (employees.length <= 0) fetchEmployee()
@@ -65,7 +65,7 @@ const ServiceRequests = () => {
       (activeTab === "inProgress" && request.status === "In Progress") ||
       (activeTab === "completed" && request.status === "Completed") ||
       (activeTab === "forApproval" && request.status === "For Approval") ||
-      (activeTab === "rejected" && request.status === "Disapproved")
+      (activeTab === "disapproved" && request.status === "Disapproved")
     // Priority filtering (from dropdown)
     const matchesPriority = priorityFilter === "" || request.priority === priorityFilter
 
@@ -296,7 +296,7 @@ const ServiceRequests = () => {
           <TabsTrigger value="completed">
             Completed <span className="ml-1 text-xs">({counts.completed})</span>
           </TabsTrigger>
-          <TabsTrigger value="rejected">
+          <TabsTrigger value="disapproved">
             Disapproved <span className="ml-1 text-xs">({counts.rejected})</span>
           </TabsTrigger>
           <TabsTrigger value="forApproval">

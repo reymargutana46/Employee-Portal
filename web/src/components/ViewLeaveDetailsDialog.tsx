@@ -190,9 +190,9 @@ const ViewLeaveDetailsDialog = ({
           <div>
             <b>Reason:</b> {leave.reason}
           </div>
-          {leave.status === "Disapproved" && leave.leave_rejection && (
+          {leave.status === "Rejected" && leave.leave_rejection && (
             <div>
-              <b>Disapproved Reason:</b>{" "}
+              <b>Rejected Reason:</b>{" "}
               <span className="text-red-600">
                 {leave.leave_rejection.rejreason}
               </span>

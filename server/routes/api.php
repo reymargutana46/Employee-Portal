@@ -29,6 +29,13 @@ Route::post('/register', [AuthenticationController::class, 'register']);
 
 Route::post('/login', [AuthenticationController::class, 'login']);
 
+Route::prefix('/set-up')->controller(SetupController::class)->group(function () {
+    Route::get('/role', 'roles');
+    Route::get('/department', 'departments');
+    Route::get('/position', 'positions');
+    Route::get('/rooms', 'rooms');
+});
+
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/logout', [AuthenticationController::class, 'logout']);
@@ -135,14 +142,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', 'destroy')->middleware('role:GradeLeader');
         Route::post('/{id}/approve', 'approve')->middleware('role:Principal');
         Route::post('/{id}/reject', 'reject')->middleware('role:Principal');
-    });
-
-
-    Route::prefix('/set-up')->controller(SetupController::class)->group(function () {
-        Route::get('/role', 'roles');
-        Route::get('/department', 'departments');
-        Route::get('/position', 'positions');
-        Route::get('/rooms', 'rooms');
     });
 
 

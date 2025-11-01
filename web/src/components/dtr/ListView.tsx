@@ -27,6 +27,36 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
   // Debug: Log the incoming records
   console.log("DTRListView received records:", records);
 
+  // Function to determine if a record is late based on arrival time
+  const isLate = (record: DTRList): boolean => {
+    // Only check for late if the record is marked as "Present"
+    if (record.status !== "Present") return false
+    
+    // Check AM arrival time
+    if (record.am_arrival && record.am_arrival !== "-") {
+      try {
+        // Parse time string like "8:05 AM"
+        const [time, modifier] = record.am_arrival.split(" ")
+        const [hours, minutes] = time.split(":").map(Number)
+        
+        // Convert to 24-hour format for comparison
+        let hour24 = hours
+        if (modifier === "PM" && hours !== 12) hour24 += 12
+        if (modifier === "AM" && hours === 12) hour24 = 0
+        
+        // If arrival is after 8:00 AM, consider it late
+        if (hour24 > 8 || (hour24 === 8 && minutes > 0)) {
+          return true
+        }
+      } catch (e) {
+        // If parsing fails, assume not late
+        return false
+      }
+    }
+    
+    return false
+  }
+
   // Sort records
   const sortedRecords = [...records].sort((a, b) => {
     if (sortField === "date") {
@@ -114,30 +144,25 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
 
   // Filter by tab
   const tabFilteredRecords = sortedRecords.filter((record) => {
-    // Derive status based on time data for Absent and Late tabs
-    const derivedStatus = deriveStatusFromTimeData(record);
-    
-    // Debug: Log the derived status for each record
-    if (activeTab !== "all") {
-      console.log(`Record ${record.date}: Status=${record.status}, Derived=${derivedStatus}`);
+    if (activeTab === "present") {
+      // Show present records that are NOT late
+      return record.status === "Present" && !isLate(record)
     }
-    
-    switch (activeTab) {
-      case "present":
-        return derivedStatus === "Present";
-      case "absent":
-        return derivedStatus === "Absent";
-      case "late":
-        return derivedStatus === "Late";
-      default:
-        return true;
+    if (activeTab === "absent") {
+      // Show absent records (no DTR entries for expected work days)
+      return record.status === "Absent"
     }
+    if (activeTab === "late") {
+      // Show present records that ARE late
+      return record.status === "Present" && isLate(record)
+    }
+    return true // "all" tab shows everything
   })
 
   // Calculate counts for each tab
-  const presentCount = sortedRecords.filter(record => deriveStatusFromTimeData(record) === "Present").length
-  const absentCount = sortedRecords.filter(record => deriveStatusFromTimeData(record) === "Absent").length
-  const lateCount = sortedRecords.filter(record => deriveStatusFromTimeData(record) === "Late").length
+  const presentCount = sortedRecords.filter(record => record.status === "Present" && !isLate(record)).length
+  const absentCount = sortedRecords.filter(record => record.status === "Absent").length
+  const lateCount = sortedRecords.filter(record => record.status === "Present" && isLate(record)).length
 
   const totalPages = Math.ceil(tabFilteredRecords.length / itemsPerPage)
   
@@ -199,19 +224,13 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
           <CheckCircle className="mr-1 h-3 w-3" /> Present
         </Badge>
       )
-    } else if (status === "Absent") {
+    } else if (status === "Leave" && type) {
       return (
-        <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">
-          <XCircle className="mr-1 h-3 w-3" /> Absent
+        <Badge variant="outline" className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+          <Calendar className="mr-1 h-3 w-3" /> {type}
         </Badge>
       )
-    } else if (status === "Late") {
-      return (
-        <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-          <Clock className="mr-1 h-3 w-3" /> Late
-        </Badge>
-      )
-    } 
+    }
 
     return (
       <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-100">
@@ -294,7 +313,7 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex space-x-2 mb-2 sm:mb-0">
-          {/* Removed "All" tab and "Leave" tab */}
+          {/* Removed "All" tab as requested, keeping Present, Absent, and Late tabs with counts */}
           <Button
             variant={activeTab === "present" ? "default" : "outline"}
             size="sm"
@@ -315,10 +334,11 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
           >
             Absent ({absentCount})
           </Button>
-          <Button variant={activeTab === "late" ? "default" : "outline"} size="sm" onClick={() => {
-            console.log("Clicked Late tab");
-            setActiveTab("late");
-          }}>
+          <Button
+            variant={activeTab === "late" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("late")}
+          >
             Late ({lateCount})
           </Button>
         </div>
@@ -332,7 +352,8 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
-                {isAdmin && <SelectItem value="employee">Employee</SelectItem>}
+                {isAdmin && <SelectItem value="employee">Employee</SelectItem>
+}
                 <SelectItem value="status">Status</SelectItem>
               </SelectContent>
             </Select>

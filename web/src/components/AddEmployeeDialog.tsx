@@ -400,7 +400,7 @@ const AddEmployeeDialog = () => {
                                 <SelectValue placeholder="Select position" />
                               </SelectTrigger>
                               <SelectContent>
-                                {positions.map((position) => (
+                                {Array.from(new Map(positions.map(position => [position.title, position])).values()).map((position) => (
                                   <SelectItem
                                     key={position.id}
                                     value={position.title}

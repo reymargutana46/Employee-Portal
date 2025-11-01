@@ -10,7 +10,7 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
   switch (priority) {
     case "Low":
       return (
-        <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
+        <Badge variant="outline" className="bg-gray-100 text-gray-800 hover:bg-gray-100">
           Low
         </Badge>
       )

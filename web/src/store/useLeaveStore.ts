@@ -108,7 +108,7 @@ export const useLeaveStore = create<LeaveState>((set) => ({
       if (request.id === id) {
         return {
           ...request,
-          status: 'Disapproved' as LeaveStatus,
+          status: 'Rejected' as LeaveStatus,
           leave_rejection: {
             id: Math.floor(Math.random() * 10000),
             rejected_by: "Admin User",
@@ -126,7 +126,7 @@ export const useLeaveStore = create<LeaveState>((set) => ({
       if (request.id === id) {
         return {
           ...request,
-          status: 'Disapproved' as LeaveStatus,
+          status: 'Rejected' as LeaveStatus,
           leave_rejection: {
             id: Math.floor(Math.random() * 10000),
             rejected_by: "Admin User",

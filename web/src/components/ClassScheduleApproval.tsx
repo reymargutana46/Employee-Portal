@@ -1,60 +1,60 @@
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { useClassScheduleStore } from "@/store/useClassScheduleStore"
+import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { useClassScheduleStore } from "@/store/useClassScheduleStore"
-import { useNotificationStore } from "@/store/useNotificationStore"
-import { useToast } from "@/components/ui/use-toast"
-import { CheckCircle, XCircle, Loader2, Eye } from "lucide-react"
-import type { ClassSchedule } from "@/types/classSchedule"
-import { ScheduleDetailView } from "./ScheduleDetailView"
+import { Label } from "@/components/ui/label"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog"
+import { Loader2, CheckCircle, XCircle } from "lucide-react"
+import type { ClassSchedule, ScheduleRow } from "@/types/classSchedule"
 
 export function ClassScheduleApproval() {
-  const { schedules, fetchSchedules, approveSchedule, rejectSchedule } = useClassScheduleStore()
-  const { markNotificationsByUrlAsRead } = useNotificationStore()
+  const { schedules, isLoading, error, fetchSchedules, approveSchedule, rejectSchedule } = useClassScheduleStore()
   const { toast } = useToast()
-  const [remarks, setRemarks] = useState<Record<number, string>>({})
-  const [isProcessing, setIsProcessing] = useState<Record<number, boolean>>({})
+  const [approvalRemarks, setApprovalRemarks] = useState<Record<number, string>>({})
+  const [isApproving, setIsApproving] = useState<Record<number, boolean>>({})
+  const [isRejecting, setIsRejecting] = useState<Record<number, boolean>>({})
   const [selectedSchedule, setSelectedSchedule] = useState<ClassSchedule | null>(null)
-  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+
+  // Filter pending schedules
+  const pendingSchedules = schedules.filter(schedule => schedule.status === 'PENDING')
 
   useEffect(() => {
     fetchSchedules()
-    // Mark notifications as read when Principal accesses the approval page
-    markNotificationsByUrlAsRead('/workload')
-  }, [fetchSchedules, markNotificationsByUrlAsRead])
+  }, [fetchSchedules])
 
-  const pendingSchedules = schedules.filter(s => s.status === 'PENDING')
-
-  const handleRemarksChange = (scheduleId: number, value: string) => {
-    setRemarks(prev => ({ ...prev, [scheduleId]: value }))
-  }
-
-  const setProcessingState = (scheduleId: number, processing: boolean) => {
-    setIsProcessing(prev => ({ ...prev, [scheduleId]: processing }))
-  }
-
-  const handleViewSchedule = (schedule: ClassSchedule) => {
-    setSelectedSchedule(schedule)
-    setIsDetailViewOpen(true)
-  }
-
-  const handleApprove = async (schedule: ClassSchedule) => {
-    setProcessingState(schedule.id, true)
+  const handleApprove = async (scheduleId: number) => {
+    setIsApproving(prev => ({ ...prev, [scheduleId]: true }))
     try {
-      await approveSchedule(schedule.id, { remarks: remarks[schedule.id] || '' })
+      const remarks = approvalRemarks[scheduleId] || ''
+      const result = await approveSchedule(scheduleId, { remarks })
       
-      // Mark any related notifications as read
-      markNotificationsByUrlAsRead('/workload')
-      markNotificationsByUrlAsRead('/schedule')
-      
-      toast({
-        title: "Schedule Approved",
-        description: `Class schedule for ${schedule.grade_section} has been approved and teachers have been notified.`,
-      })
-      // Clear remarks for this schedule
-      setRemarks(prev => ({ ...prev, [schedule.id]: '' }))
+      if (result) {
+        toast({
+          title: "Success",
+          description: "Schedule approved successfully",
+        })
+        // Clear remarks for this schedule
+        setApprovalRemarks(prev => {
+          const newRemarks = { ...prev }
+          delete newRemarks[scheduleId]
+          return newRemarks
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to approve schedule",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -62,34 +62,34 @@ export function ClassScheduleApproval() {
         variant: "destructive",
       })
     } finally {
-      setProcessingState(schedule.id, false)
+      setIsApproving(prev => ({ ...prev, [scheduleId]: false }))
     }
   }
 
-  const handleReject = async (schedule: ClassSchedule) => {
-    const scheduleRemarks = remarks[schedule.id] || ''
-    if (!scheduleRemarks.trim()) {
-      toast({
-        title: "Remarks Required",
-        description: "Please provide remarks when rejecting a schedule.",
-        variant: "destructive",
-      })
-      return
-    }
-    setProcessingState(schedule.id, true)
+  const handleReject = async (scheduleId: number) => {
+    setIsRejecting(prev => ({ ...prev, [scheduleId]: true }))
     try {
-      await rejectSchedule(schedule.id, { remarks: scheduleRemarks })
+      const remarks = approvalRemarks[scheduleId] || ''
+      const result = await rejectSchedule(scheduleId, { remarks })
       
-      // Mark any related notifications as read
-      markNotificationsByUrlAsRead('/workload')
-      markNotificationsByUrlAsRead('/schedule')
-      
-      toast({
-        title: "Schedule Disapproved",
-        description: `Class schedule for ${schedule.grade_section} has been disapproved.`,
-      })
-      // Clear remarks for this schedule
-      setRemarks(prev => ({ ...prev, [schedule.id]: '' }))
+      if (result) {
+        toast({
+          title: "Success",
+          description: "Schedule disapproved successfully",
+        })
+        // Clear remarks for this schedule
+        setApprovalRemarks(prev => {
+          const newRemarks = { ...prev }
+          delete newRemarks[scheduleId]
+          return newRemarks
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to disapprove schedule",
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -97,95 +97,249 @@ export function ClassScheduleApproval() {
         variant: "destructive",
       })
     } finally {
-      setProcessingState(schedule.id, false)
+      setIsRejecting(prev => ({ ...prev, [scheduleId]: false }))
     }
+  }
+
+  const handleViewSchedule = (schedule: ClassSchedule) => {
+    setSelectedSchedule(schedule)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleRemarksChange = (scheduleId: number, value: string) => {
+    setApprovalRemarks(prev => ({
+      ...prev,
+      [scheduleId]: value
+    }))
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-500">
+              Error loading schedules: {error}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Class Schedule Approvals</h2>
-        <p className="text-muted-foreground">Review and approve class schedules created by Grade Leaders</p>
+        <h1 className="text-2xl font-bold">Class Schedule Approval</h1>
+        <p className="text-muted-foreground">
+          Review and approve pending class schedules
+        </p>
       </div>
 
       {pendingSchedules.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              No pending class schedules for approval
-            </p>
+            <div className="text-center">
+              <p className="text-muted-foreground">
+                No pending class schedules for approval.
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
           {pendingSchedules.map((schedule) => (
             <Card key={schedule.id}>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {schedule.grade_section}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewSchedule(schedule)}
-                        className="ml-2"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Full Schedule
-                      </Button>
-                    </CardTitle>
+                    <CardTitle className="text-lg">{schedule.grade_section}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
                       {schedule.school_year} • {schedule.adviser_teacher}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {schedule.total_learners} learners ({schedule.male_learners} male, {schedule.female_learners} female) • Created by: {schedule.creator?.fullname || schedule.created_by}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Created: {new Date(schedule.created_at).toLocaleDateString()}
-                    </p>
+                    {schedule.creator && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Created by: {schedule.creator.fullname} ({schedule.creator.username})
+                      </p>
+                    )}
                   </div>
-                  <Badge className="bg-yellow-100 text-yellow-800">PENDING</Badge>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      {schedule.status}
+                    </span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Remarks (optional for approval, required for rejection)
-                    </label>
-                    <Textarea
-                      placeholder="Add your remarks here..."
-                      value={remarks[schedule.id] ?? ''}
-                      onChange={(e) => handleRemarksChange(schedule.id, e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleReject(schedule)}
-                      disabled={!!isProcessing[schedule.id]}
-                    >
-                      {isProcessing[schedule.id] ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Disapprove
-                    </Button>
-                    <Button 
-                      onClick={() => handleApprove(schedule)} 
-                      disabled={!!isProcessing[schedule.id]}
-                    >
-                      {isProcessing[schedule.id] ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
+                <div className="flex justify-between text-sm mb-4">
+                  <span>Learners: {schedule.total_learners} (M: {schedule.male_learners}, F: {schedule.female_learners})</span>
+                  <span>Created: {new Date(schedule.created_at).toLocaleDateString()}</span>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleViewSchedule(schedule)}
+                  >
+                    View Details
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
                         <CheckCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Approve & Send to Teachers
-                    </Button>
-                  </div>
+                        Approve
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Approve Schedule</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p>
+                          Are you sure you want to approve the schedule for <strong>{schedule.grade_section}</strong>?
+                        </p>
+                        <div>
+                          <Label htmlFor={`approve-remarks-${schedule.id}`}>
+                            Remarks (Optional)
+                          </Label>
+                          <Textarea
+                            id={`approve-remarks-${schedule.id}`}
+                            placeholder="Add any remarks for the approval..."
+                            value={approvalRemarks[schedule.id] || ''}
+                            onChange={(e) => handleRemarksChange(schedule.id, e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              const dialog = document.querySelector('[data-state="open"]')?.closest('[role="dialog"]')
+                              if (dialog) {
+                                const closeButton = dialog.querySelector('button[aria-label="Close"]')
+                                if (closeButton) (closeButton as HTMLButtonElement).click()
+                              }
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              handleApprove(schedule.id)
+                              // Close dialog after approval
+                              const dialog = document.querySelector('[data-state="open"]')?.closest('[role="dialog"]')
+                              if (dialog) {
+                                const closeButton = dialog.querySelector('button[aria-label="Close"]')
+                                if (closeButton) (closeButton as HTMLButtonElement).click()
+                              }
+                            }}
+                            disabled={isApproving[schedule.id]}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {isApproving[schedule.id] ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Approving...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Approve
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="destructive">
+                    <XCircle className="h-4 w-4 mr-2" />
+                        Disapprove
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Disapprove Schedule</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p>
+                          Are you sure you want to disapprove the schedule for <strong>{schedule.grade_section}</strong>?
+                        </p>
+                        <div>
+                          <Label htmlFor={`reject-remarks-${schedule.id}`}>
+                            Remarks (Required)
+                          </Label>
+                          <Textarea
+                            id={`reject-remarks-${schedule.id}`}
+                            placeholder="Please provide a reason for disapproval..."
+                            value={approvalRemarks[schedule.id] || ''}
+                            onChange={(e) => handleRemarksChange(schedule.id, e.target.value)}
+                            className="mt-1"
+                            required
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              const dialog = document.querySelector('[data-state="open"]')?.closest('[role="dialog"]')
+                              if (dialog) {
+                                const closeButton = dialog.querySelector('button[aria-label="Close"]')
+                                if (closeButton) (closeButton as HTMLButtonElement).click()
+                              }
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            variant="destructive"
+                            onClick={() => {
+                              if (!approvalRemarks[schedule.id]?.trim()) {
+                                toast({
+                                  title: "Validation Error",
+                                  description: "Remarks are required for disapproval",
+                                  variant: "destructive",
+                                })
+                                return
+                              }
+                              handleReject(schedule.id)
+                              // Close dialog after rejection
+                              const dialog = document.querySelector('[data-state="open"]')?.closest('[role="dialog"]')
+                              if (dialog) {
+                                const closeButton = dialog.querySelector('button[aria-label="Close"]')
+                                if (closeButton) (closeButton as HTMLButtonElement).click()
+                              }
+                            }}
+                            disabled={isRejecting[schedule.id] || !approvalRemarks[schedule.id]?.trim()}
+                          >
+                            {isRejecting[schedule.id] ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Disapproving...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Disapprove
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>
@@ -193,13 +347,89 @@ export function ClassScheduleApproval() {
         </div>
       )}
 
-      {selectedSchedule && (
-        <ScheduleDetailView
-          schedule={selectedSchedule}
-          open={isDetailViewOpen}
-          onOpenChange={setIsDetailViewOpen}
-        />
-      )}
+      {/* Schedule Detail Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg font-bold">
+              CLASS PROGRAM
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedSchedule && (
+            <div className="space-y-6">
+              {/* Header Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Grade & Section</Label>
+                  <div className="font-medium">{selectedSchedule.grade_section}</div>
+                </div>
+                <div>
+                  <Label>School Year</Label>
+                  <div className="font-medium">{selectedSchedule.school_year}</div>
+                </div>
+                <div>
+                  <Label>Adviser / Class Teacher</Label>
+                  <div className="font-medium">{selectedSchedule.adviser_teacher}</div>
+                </div>
+                <div>
+                  <Label>No. of Learners</Label>
+                  <div className="font-medium">
+                    {selectedSchedule.total_learners} (M: {selectedSchedule.male_learners}, F: {selectedSchedule.female_learners})
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Table */}
+              <div className="overflow-x-auto border rounded-md">
+                <table className="w-full border-collapse text-sm text-center table-fixed">
+                  <colgroup>
+                    <col className="w-[110px]" /> {/* Time */}
+                    <col className="w-[60px]" />  {/* Mins */}
+                    <col className="w-[220px]" /> {/* Mon–Thu */}
+                    <col className="w-[220px]" /> {/* Friday */}
+                  </colgroup>
+
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th rowSpan={2} className="border px-2 py-1">Time</th>
+                      <th rowSpan={2} className="border px-2 py-1">Mins</th>
+                      <th colSpan={2} className="border px-2 py-1">Learning Areas</th>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <th className="border px-2 py-1">Monday–Thursday</th>
+                      <th className="border px-2 py-1">Friday</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {/* Morning Session */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="border px-2 py-1 font-semibold text-left">
+                        MORNING SESSION
+                      </td>
+                    </tr>
+
+                    {/* Schedule Rows */}
+                    {selectedSchedule.schedule_data.map((row: ScheduleRow, index: number) => (
+                      <tr key={index}>
+                        <td className="border px-2 py-1">{row.time}</td>
+                        <td className="border px-2 py-1">{row.mins}</td>
+                        <td className="border px-2 py-1">{row.mondayThursday}</td>
+                        <td className="border px-2 py-1">{row.friday}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

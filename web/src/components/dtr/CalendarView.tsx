@@ -26,6 +26,41 @@ const DTRCalendarView = ({ records, dateRange, isAdmin, isSecretary, onRefresh }
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedRecords, setSelectedRecords] = useState<DTRList[]>([])
   const { canDoAction} = useAuthStore()
+  
+  // Function to check if a date is a Philippine holiday
+  const isPhilippineHoliday = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth(); // 0 = January, 11 = December
+    const day = date.getDate();
+
+    // Fixed date holidays based on your list
+    const holidayDates: Record<string, string> = {
+      "0-1": "New Year's Day",        // Jan 1
+      "0-29": "Chinese New Year",     // Jan 29 (example)
+      "3-9": "Araw ng Kagitingan",    // Apr 9
+      "4-1": "Labor Day",             // May 1
+      "5-12": "Independence Day",     // Jun 12
+      "7-21": "Ninoy Aquino Day",     // Aug 21
+      "9-31": "All Saints' Eve",      // Oct 31
+      "10-1": "All Saints' Day",      // Nov 1
+      "10-30": "Bonifacio Day",       // Nov 30
+      "11-8": "Feast of the Immaculate Conception", // Dec 8
+      "11-25": "Christmas Day",       // Dec 25
+      "11-30": "Rizal Day",           // Dec 30
+      "11-31": "New Year's Eve"       // Dec 31
+    };
+
+    // Check for fixed date holidays
+    const dateKey = `${month}-${day}`;
+    if (holidayDates[dateKey]) {
+      return holidayDates[dateKey];
+    }
+
+    // For holidays that change each year, we would need a more complex calculation
+    // For now, let's just return null for these
+    return null;
+  };
+
   // Generate days for the calendar
   const days =
     dateRange?.from && dateRange?.to
@@ -182,15 +217,22 @@ const DTRCalendarView = ({ records, dateRange, isAdmin, isSecretary, onRefresh }
         {days.map((day, i) => {
           const dayStatus = getDayStatus(day)
           const isWeekendDay = isWeekend(day)
+          const holidayName = isPhilippineHoliday(day)
 
           return (
             <Button
               key={i}
               variant="outline"
-              className={`h-24 p-1 flex flex-col items-start justify-start ${isWeekendDay ? "bg-gray-50" : ""}`}
+              className={`h-24 p-1 flex flex-col items-start justify-start ${isWeekendDay ? "bg-gray-50" : ""} ${holidayName ? "bg-blue-50" : ""}`}
               onClick={() => handleDayClick(day)}
             >
               <span className={`text-sm font-medium ${isWeekendDay ? "text-gray-400" : ""}`}>{format(day, "d")}</span>
+              
+              {holidayName && (
+                <div className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded mb-0.5 truncate w-full">
+                  {holidayName}
+                </div>
+              )}
 
               {dayStatus && (
                 <div className="mt-1 w-full">

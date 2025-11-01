@@ -8,7 +8,7 @@ import DateRangeFilter from "@/components/DateRangeFilter";
 interface LeaveSearchAndFilterProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  onFilterStatus: (status?: "Pending" | "Approved" | "Disapproved") => void;
+  onFilterStatus: (status?: "Pending" | "Approved" | "Rejected") => void;
   onFilterType: (type?: string) => void;
   onDateRangeFilter: (start: Date | null, end: Date | null) => void;
 }

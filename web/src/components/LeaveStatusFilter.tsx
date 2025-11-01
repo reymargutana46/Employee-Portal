@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface LeaveStatusFilterProps {
-  onFilterStatus: (status?: 'Pending' | 'Approved' | 'Disapproved') => void;
+  onFilterStatus: (status?: 'Pending' | 'Approved' | 'Rejected') => void;
   onFilterType: (type?: string) => void;
 }
 
@@ -40,11 +40,11 @@ const LeaveStatusFilter = ({ onFilterStatus, onFilterType }: LeaveStatusFilterPr
           <span className="hidden sm:inline">Filter</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
         <DropdownMenuLabel>Filter By Status</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => onFilterStatus('Pending')}>Status: Pending</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onFilterStatus('Approved')}>Status: Approved</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onFilterStatus('Disapproved')}>Status: Disapproved</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onFilterStatus('Rejected')}>Status: Rejected</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onFilterStatus(undefined)}>Clear Status Filter</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Filter By Type</DropdownMenuLabel>

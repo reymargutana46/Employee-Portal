@@ -9,7 +9,7 @@ export interface DTRList {
   am_departure: string,
   pm_arrival: string,
   pm_departure: string,
-  status: "Leave" | "Present"
+  status: "Leave" | "Present" | "Absent"
   type: string
 }
 

@@ -123,8 +123,8 @@ class LeaveController extends Controller
                 return $this->ok($leave, "Leave Approved");
             }
 
-            // If disapproved
-            $leave->status = 'Disapproved';
+            // If rejected
+            $leave->status = 'Rejected';
             $leave->save();
 
             // Create the leave rejection
@@ -134,13 +134,13 @@ class LeaveController extends Controller
             ]);
             ActivityLog::create([
                 'performed_by' => Auth::user()->username,
-                'action' => 'disapprove',
-                'description' => "Disapproved leave {$leave->employee->fname} {$leave->employee->lname}",
+                'action' => 'reject',
+                'description' => "Rejected leave {$leave->employee->fname} {$leave->employee->lname}",
                 'entity_type' => Leave::class,
                 'entity_id' => $leave->id,
             ]);
 
-            return $this->ok($leave, "Leave Disapproved");
+            return $this->ok($leave, "Leave Rejected");
         });
     }
     public function leaveTypes()

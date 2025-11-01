@@ -50,7 +50,7 @@ const EmployeeLeaveView = ({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle>
-              My Leave Requests {(isStaff || isFaculty) && `(${displayCount})`}
+              My Leave Requests ({displayCount})
             </CardTitle>
             <CardDescription>Track your leave applications</CardDescription>
           </CardHeader>

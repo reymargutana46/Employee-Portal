@@ -43,7 +43,7 @@ const LeaveRejectionDialog = ({
     }
     axios
       .post<Res<Leave>>("/leaves/decision", {
-        status: "Disapproved" as LeaveStatus,
+        status: "Rejected" as LeaveStatus,
         id: leave.id,
         reason,
       })
@@ -51,8 +51,8 @@ const LeaveRejectionDialog = ({
         rejectLeave(leave.id, reason);
 
         toast({
-          title: "Leave Disapproved",
-          description: "The leave request has been disapproved with a reason",
+          title: "Leave Rejected",
+          description: "The leave request has been rejected with a reason",
         });
       });
 
@@ -65,19 +65,19 @@ const LeaveRejectionDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Disapprove Leave Request</DialogTitle>
+          <DialogTitle>Reject Leave Request</DialogTitle>
           <DialogDescription>
-            Please provide a reason for disapproving this leave request.
+            Please provide a reason for rejecting this leave request.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="rejectionReason">Reason for Disapproval</Label>
+            <Label htmlFor="rejectionReason">Reason for Rejection</Label>
             <Textarea
               id="rejectionReason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter the reason for disapproving this leave request"
+              placeholder="Enter the reason for rejecting this leave request"
               className="resize-none"
               rows={4}
             />
@@ -88,7 +88,7 @@ const LeaveRejectionDialog = ({
             Cancel
           </Button>
           <Button variant="destructive" onClick={handleSubmit}>
-            Disapprove
+            Reject
           </Button>
         </DialogFooter>
       </DialogContent>

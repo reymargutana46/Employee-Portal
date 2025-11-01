@@ -42,75 +42,6 @@ import DTRListView from "@/components/dtr/ListView";
 import DTRSummaryView from "@/components/dtr/SummaryView";
 import { DTRList } from "@/types/dtr";
 
-// Function to derive status from time data
-const deriveStatusFromTimeData = (record: DTRList) => {
-  // If status is already explicitly set to Leave, return it
-  if (record.status === "Leave") {
-    return "Leave";
-  }
-  
-  // Check if all time fields are missing (Absent)
-  const isAmEmpty = !record.am_arrival || record.am_arrival === "-" || record.am_arrival.trim() === "";
-  const isAmDepartureEmpty = !record.am_departure || record.am_departure === "-" || record.am_departure.trim() === "";
-  const isPmArrivalEmpty = !record.pm_arrival || record.pm_arrival === "-" || record.pm_arrival.trim() === "";
-  const isPmDepartureEmpty = !record.pm_departure || record.pm_departure === "-" || record.pm_departure.trim() === "";
-  
-  if (isAmEmpty && isAmDepartureEmpty && isPmArrivalEmpty && isPmDepartureEmpty) {
-    return "Absent";
-  }
-  
-  // Check if there's a late arrival (Late)
-  const isLateArrival = (arrivalTime: string) => {
-    try {
-      // Handle cases where time might be empty or just "-"
-      if (!arrivalTime || arrivalTime === "-" || arrivalTime.trim() === "") {
-        return false;
-      }
-      
-      const parts = arrivalTime.trim().split(" ");
-      if (parts.length !== 2) return false;
-      
-      const [time, modifier] = parts;
-      const [hours, minutes] = time.split(":").map(Number);
-      
-      // Validate numbers
-      if (isNaN(hours) || isNaN(minutes)) return false;
-      
-      // Convert to 24-hour format for comparison
-      let hour24 = hours;
-      if (modifier === "PM" && hours !== 12) hour24 += 12;
-      if (modifier === "AM" && hours === 12) hour24 = 0;
-      
-      // Consider late if after 8:15 AM (you can adjust this threshold)
-      if (hour24 > 8 || (hour24 === 8 && minutes > 15)) {
-        return true;
-      }
-    } catch (error) {
-      return false;
-    }
-    
-    return false;
-  };
-  
-  if (
-    (record.am_arrival && record.am_arrival !== "-" && isLateArrival(record.am_arrival)) ||
-    (record.pm_arrival && record.pm_arrival !== "-" && isLateArrival(record.pm_arrival))
-  ) {
-    return "Late";
-  }
-  
-  // Default to Present if not explicitly Absent or Late
-  return "Present";
-};
-
-// Function to count non-leave records
-const countAttendanceRecords = (records: DTRList[]) => {
-  return records.filter(record => {
-    const derivedStatus = deriveStatusFromTimeData(record);
-    return derivedStatus === "Present" || derivedStatus === "Absent" || derivedStatus === "Late";
-  }).length;
-};
-
 const DTRDashboard = () => {
   const {
     searchTerm,
@@ -175,6 +106,7 @@ const DTRDashboard = () => {
       role.name === "principal"
   );
   const isStaff = userRoles.some((role) => role.name === "staff");
+  const isFaculty = userRoles.some((role) => role.name === "faculty");
 
   const handleDownloadTemplate = () => {
     const link = document.createElement("a");
@@ -185,19 +117,52 @@ const DTRDashboard = () => {
     document.body.removeChild(link);
   };
 
-  // Calculate summary statistics
-  const calculateSummary = () => {
-    const summary = {
-      total: filteredRecords.length,
-      present: filteredRecords.filter((r) => deriveStatusFromTimeData(r) === "Present").length,
-      leave: filteredRecords.filter((r) => r.status === "Leave").length,
-      absent: filteredRecords.filter((r) => deriveStatusFromTimeData(r) === "Absent").length,
-      late: filteredRecords.filter((r) => deriveStatusFromTimeData(r) === "Late").length,
-    };
-    return summary;
-  };
+  // Calculate summary statistics for DTR records
+  const calculateDTRSummary = () => {
+    // Function to determine if a record is late based on arrival time
+    const isLate = (record: import('@/types/dtr').DTRList) => {
+      // Only check for late if the record is marked as "Present"
+      if (record.status !== "Present") return false
+      
+      // Check AM arrival time
+      if (record.am_arrival && record.am_arrival !== "-") {
+        try {
+          // Parse time string like "8:05 AM"
+          const [time, modifier] = record.am_arrival.split(" ")
+          const [hours, minutes] = time.split(":").map(Number)
+          
+          // Convert to 24-hour format for comparison
+          let hour24 = hours
+          if (modifier === "PM" && hours !== 12) hour24 += 12
+          if (modifier === "AM" && hours === 12) hour24 = 0
+          
+          // If arrival is after 8:00 AM, consider it late
+          if (hour24 > 8 || (hour24 === 8 && minutes > 0)) {
+            return true
+          }
+        } catch (e) {
+          // If parsing fails, assume not late
+          return false
+        }
+      }
+      
+      return false
+    }
 
-  const summary = calculateSummary();
+    const presentCount = filteredRecords.filter(record => record.status === "Present" && !isLate(record)).length
+    const absentCount = filteredRecords.filter(record => record.status === "Absent").length
+    const lateCount = filteredRecords.filter(record => record.status === "Present" && isLate(record)).length
+    const totalCount = presentCount + absentCount + lateCount
+
+    return {
+      present: presentCount,
+      absent: absentCount,
+      late: lateCount,
+      total: totalCount
+    }
+  }
+
+  const dtrSummary = calculateDTRSummary()
 
   // Create date range from selected month for child components
   const dateRange = {
@@ -210,19 +175,6 @@ const DTRDashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Daily Time Record
-          </h1>
-          <p className="text-muted-foreground">
-            Monitor and manage attendance records
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <TimeInOutDialog />
-          {isSecretary && <ImportDTRDialog />}
-          {!isStaff && (
-            <Button variant="secondary" onClick={handleDownloadTemplate}>
-              <Download className="mr-2 h-4 w-4" /> Download Template
-            </Button>
           )}
           {isSecretary && (
             <Dialog>
@@ -254,7 +206,6 @@ const DTRDashboard = () => {
                   value={selectedEmployee}
                   onValueChange={setSelectedEmployee}
                 >
-                  <SelectTrigger>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
@@ -321,8 +272,8 @@ const DTRDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Summary Cards - Only showing Total Records and Present as requested */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex justify-between items-center">
@@ -330,7 +281,7 @@ const DTRDashboard = () => {
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Records
                 </p>
-                <p className="text-2xl font-bold">{summary.total}</p>
+                <p className="text-2xl font-bold">{dtrSummary.total}</p>
               </div>
               <FileText className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -345,53 +296,14 @@ const DTRDashboard = () => {
                   Present
                 </p>
                 <p className="text-2xl font-bold text-green-600">
-                  {summary.present}
+                  {dtrSummary.present}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Leave
-                </p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {summary.leave}
-                </p>
-              </div>
-              <Calendar className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Absent</p>
-                <p className="text-2xl font-bold text-red-600">{summary.absent}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Late</p>
-                <p className="text-2xl font-bold text-amber-600">{summary.late}</p>
-              </div>
-              <Clock className="h-8 w-8 text-amber-600" />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Removed Leave card as requested */}
       </div>
 
       {/* Main Content Area */}
@@ -401,7 +313,7 @@ const DTRDashboard = () => {
             {viewMode === "calendar"
               ? "Calendar View"
               : viewMode === "list"
-              ? `List View (${attendanceCount})`
+              ? `List View (${dtrSummary.total})`
               : "Summary View"}
           </CardTitle>
           <CardDescription>
@@ -442,7 +354,7 @@ const DTRDashboard = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
 export default DTRDashboard;
