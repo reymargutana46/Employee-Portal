@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DTRActions from "@/components/DTRAction"
 import { DTRList } from "@/types/dtr"
 
-
-
 interface ListViewProps {
   records: DTRList[]
   isAdmin: boolean
@@ -25,6 +23,36 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
   const [sortField, setSortField] = useState<string>("date")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [activeTab, setActiveTab] = useState("all")
+
+  // Function to determine if a record is late based on arrival time
+  const isLate = (record: DTRList): boolean => {
+    // Only check for late if the record is marked as "Present"
+    if (record.status !== "Present") return false
+    
+    // Check AM arrival time
+    if (record.am_arrival && record.am_arrival !== "-") {
+      try {
+        // Parse time string like "8:05 AM"
+        const [time, modifier] = record.am_arrival.split(" ")
+        const [hours, minutes] = time.split(":").map(Number)
+        
+        // Convert to 24-hour format for comparison
+        let hour24 = hours
+        if (modifier === "PM" && hours !== 12) hour24 += 12
+        if (modifier === "AM" && hours === 12) hour24 = 0
+        
+        // If arrival is after 8:00 AM, consider it late
+        if (hour24 > 8 || (hour24 === 8 && minutes > 0)) {
+          return true
+        }
+      } catch (e) {
+        // If parsing fails, assume not late
+        return false
+      }
+    }
+    
+    return false
+  }
 
   // Sort records
   const sortedRecords = [...records].sort((a, b) => {
@@ -47,14 +75,25 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
 
   // Filter by tab
   const tabFilteredRecords = sortedRecords.filter((record) => {
-    if (activeTab === "all") return true
-    if (activeTab === "present") return record.status === "Present"
-    // if (activeTab === "leave") return record.status === "Leave"
-    // if (activeTab === "absent") return record.status === "Absent"
-    // if (activeTab === "late") return record.status === "Late"
-
-    return true
+    if (activeTab === "present") {
+      // Show present records that are NOT late
+      return record.status === "Present" && !isLate(record)
+    }
+    if (activeTab === "absent") {
+      // Show absent records (no DTR entries for expected work days)
+      return record.status === "Absent"
+    }
+    if (activeTab === "late") {
+      // Show present records that ARE late
+      return record.status === "Present" && isLate(record)
+    }
+    return true // "all" tab shows everything
   })
+
+  // Calculate counts for each tab
+  const presentCount = sortedRecords.filter(record => record.status === "Present" && !isLate(record)).length
+  const absentCount = sortedRecords.filter(record => record.status === "Absent").length
+  const lateCount = sortedRecords.filter(record => record.status === "Present" && isLate(record)).length
 
   const totalPages = Math.ceil(tabFilteredRecords.length / itemsPerPage)
   const paginatedRecords = tabFilteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -85,18 +124,6 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
       return (
         <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
           <CheckCircle className="mr-1 h-3 w-3" /> Present
-        </Badge>
-      )
-    } else if (status === "Absent") {
-      return (
-        <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100">
-          <XCircle className="mr-1 h-3 w-3" /> Absent
-        </Badge>
-      )
-    } else if (status === "Late") {
-      return (
-        <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-          <Clock className="mr-1 h-3 w-3" /> Late
         </Badge>
       )
     } else if (status === "Leave" && type) {
@@ -179,32 +206,27 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
         <div className="flex space-x-2 mb-2 sm:mb-0">
-          <Button variant={activeTab === "all" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("all")}>
-            All
-          </Button>
+          {/* Removed "All" tab as requested, keeping Present, Absent, and Late tabs with counts */}
           <Button
             variant={activeTab === "present" ? "default" : "outline"}
             size="sm"
             onClick={() => setActiveTab("present")}
           >
-            Present
+            Present ({presentCount})
           </Button>
-          {/* <Button
-            variant={activeTab === "leave" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("leave")}
-          >
-            Leave
-          </Button> */}
           <Button
             variant={activeTab === "absent" ? "default" : "outline"}
             size="sm"
             onClick={() => setActiveTab("absent")}
           >
-            Absent
+            Absent ({absentCount})
           </Button>
-          <Button variant={activeTab === "late" ? "default" : "outline"} size="sm" onClick={() => setActiveTab("late")}>
-            Late
+          <Button
+            variant={activeTab === "late" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("late")}
+          >
+            Late ({lateCount})
           </Button>
         </div>
 
@@ -217,7 +239,8 @@ const DTRListView = ({ records, isAdmin, isSecretary, onRefresh }: ListViewProps
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
-                {isAdmin && <SelectItem value="employee">Employee</SelectItem>}
+                {isAdmin && <SelectItem value="employee">Employee</SelectItem>
+}
                 <SelectItem value="status">Status</SelectItem>
               </SelectContent>
             </Select>
