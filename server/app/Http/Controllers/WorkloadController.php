@@ -229,6 +229,16 @@ class WorkloadController extends Controller
             'title' => $validated['title'],
         ]);
         $staffWl->save();
+        
+        // Create activity log
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'updated',
+            'description' => "Updated staff workload: {$staffWl->title}",
+            'entity_type' => StaffWL::class,
+            'entity_id' => $staffWl->id,
+        ]);
+        
         return $this->ok($staffWl);
     }
 
@@ -262,6 +272,16 @@ class WorkloadController extends Controller
             'subject' => $validated['subject'],
         ]);
         $facultyWl->save();
+        
+        // Create activity log
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'updated',
+            'description' => "Updated faculty workload: {$facultyWl->subject}",
+            'entity_type' => FacultyWL::class,
+            'entity_id' => $facultyWl->id,
+        ]);
+        
         return $this->ok($facultyWl);
     }
 
@@ -293,6 +313,15 @@ class WorkloadController extends Controller
             'approved_by' => Auth::user()->username,
             'approved_at' => now(),
             'approval_remarks' => $request->input('remarks'),
+        ]);
+
+        // Create activity log
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'approved',
+            'description' => "Approved workload: {$workload->title}",
+            'entity_type' => WorkLoadHdr::class,
+            'entity_id' => $workload->id,
         ]);
 
         // Notify assignee (teacher) if assigned
@@ -332,6 +361,15 @@ class WorkloadController extends Controller
             'rejected_by' => Auth::user()->username,
             'rejected_at' => now(),
             'approval_remarks' => $validated['remarks'] ?? null,
+        ]);
+
+        // Create activity log
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'rejected',
+            'description' => "Rejected workload: {$workload->title}" . ($workload->approval_remarks ? " - Reason: {$workload->approval_remarks}" : ""),
+            'entity_type' => WorkLoadHdr::class,
+            'entity_id' => $workload->id,
         ]);
 
         // Notify creator (grade leader)

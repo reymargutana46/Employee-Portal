@@ -51,8 +51,10 @@ export function ServiceRequestChart({ services }: ServiceRequestProps) {
   // Get user roles from auth store
   const { userRoles } = useAuthStore();
   
-  // Check if user is staff
+  // Check if user is staff or faculty
   const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
+  const isFaculty = userRoles.some(role => role.name.toLowerCase() === 'faculty');
+  const isPersonalView = isStaff || isFaculty;
   
   // Calculate total requests and completion rate
   const totalRequests = safeServices.reduce(
@@ -66,10 +68,10 @@ export function ServiceRequestChart({ services }: ServiceRequestProps) {
     <Card className="w-full">
       <CardHeader className="pb-4">
         <CardTitle className="text-xl font-semibold">
-          {isStaff ? "Your Service Request Status Trends" : "Service Request Status Trends"}
+          {isPersonalView ? "Your Service Request Status Trends" : "Service Request Status Trends"}
         </CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
-          {isStaff 
+          {isPersonalView 
             ? "Monthly trends of your service request statuses throughout the year"
             : "Monthly trends of service request statuses throughout the year"}
         </CardDescription>

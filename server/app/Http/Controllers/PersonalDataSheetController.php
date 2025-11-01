@@ -95,6 +95,15 @@ class PersonalDataSheetController extends Controller
             'owner_name' => $employeeName,
         ]);
 
+        // Create activity log for the PDS upload
+        \App\Models\ActivityLog::create([
+            'performed_by' => $user->username,
+            'action' => 'uploaded',
+            'description' => "Uploaded PDS file: {$filename}",
+            'entity_type' => PersonalDataSheet::class,
+            'entity_id' => $pds->id,
+        ]);
+
         return $this->ok($pds);
     }
     

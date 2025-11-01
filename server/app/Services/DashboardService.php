@@ -309,12 +309,15 @@ class DashboardService
     public function ActivityLogs()
     {
         try {
-            // For staff users, only show their own activities (most recent first)
+            // For staff and faculty users, only show their own activities (most recent first)
             if (!$this->user->hasRole($this->allowedRoles)) {
                 $activities = ActivityLog::where('performed_by', $this->user->username)
                     ->orderBy('created_at', 'desc')
-                    ->take(10)
+                    ->take(5) // Limit to 5 most recent activities for faculty/staff users
                     ->get();
+
+                // Log for debugging
+                \Log::info('Faculty/Staff user activity logs result for user: ' . $this->user->username . ', result count: ' . $activities->count());
 
                 $result = $activities->map(function ($log) {
                     return [
