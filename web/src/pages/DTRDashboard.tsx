@@ -315,9 +315,6 @@ const DTRDashboard = () => {
           </CardContent>
         </Card>
 
-<<<<<<< HEAD
-        {/* Removed Leave card as requested */}
-=======
         <Card>
           <CardContent className="pt-6">
             <div className="flex justify-between items-center">
@@ -349,7 +346,6 @@ const DTRDashboard = () => {
             </div>
           </CardContent>
         </Card>
->>>>>>> dd4e896e1fc6692f85ce5cbde9d03fb04de46971
       </div>
 
       {/* Main Content Area */}
