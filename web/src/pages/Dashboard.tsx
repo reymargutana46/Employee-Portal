@@ -731,38 +731,10 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-          
-          {/* Workload card for staff users who also have gradeleader role */}
-          {userRoles.some(role => role.name.toLowerCase() === 'gradeleader') && (
-            <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Workload
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{workload?.find(w => w.role === 'Total')?.workload || 0}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
-                  <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Pending</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Approved</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Disapproved</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       ) : userRole && userRole.name.toLowerCase() === 'faculty' ? (
         // Faculty-specific layout
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* Remove Total Employees card for faculty */}
           
           {/* Attendance card with detailed information */}
@@ -873,60 +845,81 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-          
-          {/* Workload card for faculty users who also have gradeleader role */}
-          {userRoles.some(role => role.name.toLowerCase() === 'gradeleader') && (
-            <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Workload
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{workload?.find(w => w.role === 'Total')?.workload || 0}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
-                  <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Pending</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Approved</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Disapproved</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       ) : (
         // Default layout for other roles
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className={userRole && userRole.name.toLowerCase() === 'gradeleader' ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800" : ""}>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Workload
+                Total Employees
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{workload?.find(w => w.role === 'Total')?.workload || 0}</div>
+              <div className="text-2xl font-bold">{safeCard.totalEmployees}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Attendance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Use detailed attendance data for all users */}
+              <div className="text-2xl font-bold">{safeCard.attendanceData.total}</div>
               <div className="grid grid-cols-3 gap-2 text-xs mt-2">
                 <div className="text-center">
-                  <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
-                  <div className="text-muted-foreground">Pending</div>
+                  <div className="font-medium">{safeCard.attendanceData.present}</div>
+                  <div className="text-muted-foreground">Present</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
-                  <div className="text-muted-foreground">Approved</div>
+                  <div className="font-medium">{safeCard.attendanceData.absent}</div>
+                  <div className="text-muted-foreground">Absent</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
-                  <div className="text-muted-foreground">Disapproved</div>
+                  <div className="font-medium">{safeCard.attendanceData.late}</div>
+                  <div className="text-muted-foreground">Late</div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Workload</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{safeCard.avgWorkload}h</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Leave Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(userRole && (userRole.name.toLowerCase() === 'staff' || userRole.name.toLowerCase() === 'faculty')) && safeCard.staffLeaveDetails ? (
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">{safeCard.staffLeaveDetails.total}</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.pending}</div>
+                      <div className="text-muted-foreground">Pending</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.approved}</div>
+                      <div className="text-muted-foreground">Approved</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
+                      <div className="text-muted-foreground">Disapproved</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-2xl font-bold">{safeCard.leaveRequests}</div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1135,53 +1128,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Conditionally render workload section - hide for admin, secretary, staff, faculty, and gradeleader users */}
-      {/* Show workload section for all roles except admin, secretary, staff, faculty, and gradeleader */}
-      {/* But show for users who have both faculty and gradeleader roles */}
-      {(userRole && userRole.name.toLowerCase() !== 'staff' && 
-       !userRoles.some(role => role.name.toLowerCase() === 'admin' || role.name.toLowerCase() === 'secretary' || role.name.toLowerCase() === 'faculty' || role.name.toLowerCase() === 'gradeleader')) ||
-       (userRoles.some(role => role.name.toLowerCase() === 'faculty') && userRoles.some(role => role.name.toLowerCase() === 'gradeleader')) && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-9">
-          <Card className="col-span-5">
-            <CardHeader>
-              <CardTitle>Workload</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Workloads</p>
-                    <p className="text-2xl font-bold">
-                      {workload?.reduce((sum, item) => sum + item.workload, 0) || 0}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-yellow-50 dark:bg-yellow-950 p-3 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Pending</p>
-                    <p className="text-lg font-semibold">{workload?.find(w => w.role === 'Pending')?.workload || 0}</p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Approved</p>
-                    <p className="text-lg font-semibold">{workload?.find(w => w.role === 'Approved')?.workload || 0}</p>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-950 p-3 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Disapproved</p>
-                    <p className="text-lg font-semibold">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-2 text-sm">
-              <div className="leading-none text-muted-foreground">
-                Showing total Workload by status
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-
 
     </div>
   );
