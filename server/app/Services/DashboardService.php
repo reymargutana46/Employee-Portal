@@ -380,17 +380,22 @@ class DashboardService
 
             $workloads = $query->get();
 
+            // Return workload statistics by status for all users
             return [
-                ['role' => 'Faculty', 'workload' => $workloads->where('type', 'FACULTY')->count(), 'fill' => "hsl(var(--chart-1))"],
-                ['role' => 'Staff', 'workload' => $workloads->where('type', 'STAFF')->count(), 'fill' => "hsl(var(--chart-2))"],
-                ['role' => 'Unassigned', 'workload' => $workloads->where('assignee_id', null)->count(), 'fill' => "hsl(var(--chart-3))"],
+                ['role' => 'Total', 'workload' => $workloads->count(), 'fill' => "hsl(var(--chart-1))"],
+                ['role' => 'Pending', 'workload' => $workloads->where('status', 'PENDING')->count(), 'fill' => "hsl(var(--chart-2))"],
+                ['role' => 'Approved', 'workload' => $workloads->where('status', 'APPROVED')->count(), 'fill' => "hsl(var(--chart-3))"],
+                ['role' => 'Disapproved', 'workload' => $workloads->where('status', 'REJECTED')->count(), 'fill' => "hsl(var(--chart-4))"],
             ];
         } catch (\Exception $e) {
             \Log::error('Workloads data error: ' . $e->getMessage());
+
+            // Return default workload statistics by status
             return [
-                ['role' => 'Faculty', 'workload' => 0, 'fill' => "hsl(var(--chart-1))"],
-                ['role' => 'Staff', 'workload' => 0, 'fill' => "hsl(var(--chart-2))"],
-                ['role' => 'Unassigned', 'workload' => 0, 'fill' => "hsl(var(--chart-3))"],
+                ['role' => 'Total', 'workload' => 0, 'fill' => "hsl(var(--chart-1))"],
+                ['role' => 'Pending', 'workload' => 0, 'fill' => "hsl(var(--chart-2))"],
+                ['role' => 'Approved', 'workload' => 0, 'fill' => "hsl(var(--chart-3))"],
+                ['role' => 'Disapproved', 'workload' => 0, 'fill' => "hsl(var(--chart-4))"],
             ];
         }
     }

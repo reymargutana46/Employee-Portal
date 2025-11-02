@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Download, FileText, Printer } from "lucide-react"
 import type { ClassSchedule } from "@/types/classSchedule"
+import { useState } from "react"
 
 interface ScheduleDetailViewProps {
   schedule: ClassSchedule
@@ -10,6 +11,8 @@ interface ScheduleDetailViewProps {
 }
 
 export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDetailViewProps) {
+  const [printSize, setPrintSize] = useState<'a4' | 'short' | 'long'>('a4')
+
   const handleDownload = () => {
     // Create a CSV download with comprehensive schedule data
     const csvContent = [
@@ -40,7 +43,7 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
     URL.revokeObjectURL(url)
   }
 
-  const handlePrint = () => {
+  const handlePrint = (size: 'a4' | 'short' | 'long' = 'a4') => {
     const printContent = document.getElementById('schedule-print-content')
     if (printContent) {
       const printWindow = window.open('', '_blank')
@@ -52,18 +55,70 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
               <style>
                 body { 
                   font-family: Arial, sans-serif; 
-                  margin: 20px; 
+                  margin: 0; 
+                  padding: 0;
                   color: #333;
-                  line-height: 1.4;
+                  line-height: 1.1;
+                }
+                @media print {
+                  @page {
+                    size: A4;
+                    margin: 10mm;
+                  }
+                  body {
+                    margin: 0;
+                    padding: 0;
+                  }
+                }
+                .print-container {
+                  max-width: 210mm;
+                  margin: 0 auto;
+                  padding: 10mm;
+                  box-sizing: border-box;
+                }
+                .size-a4 { min-height: 297mm; }
+                .size-short { min-height: 148mm; }
+                .size-long { min-height: 420mm; }
+                .header-container {
+                  display: flex;
+                  align-items: center;
+                  margin-bottom: 6px;
+                }
+                .logo {
+                  max-width: 70px;
+                  height: auto;
+                  margin-right: 15px;
+                }
+                .header-text {
+                  flex: 1;
+                }
+                .document-title {
+                  font-size: 18px;
+                  font-weight: bold;
+                  margin: 0 0 4px 0;
+                }
+                .grade-section {
+                  font-size: 16px;
+                  font-weight: bold;
+                  margin: 0 0 2px 0;
+                }
+                .school-year {
+                  font-size: 13px;
+                  margin: 0;
+                }
+                .divider {
+                  border-bottom: 1px solid #ddd;
+                  margin: 0 0 10px 0;
                 }
                 table { 
                   width: 100%; 
                   border-collapse: collapse; 
-                  margin-top: 20px; 
+                  margin: 0 0 10px 0;
+                  font-size: 11px;
                 }
                 th, td { 
                   border: 1px solid #ddd; 
-                  padding: 12px; 
+                  padding: 3px 5px; 
                   text-align: left; 
                   vertical-align: top;
                 }
@@ -71,24 +126,20 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
                   background-color: #f8f9fa; 
                   font-weight: bold;
                 }
-                .header { 
-                  text-align: center; 
-                  margin-bottom: 30px; 
-                  border-bottom: 2px solid #ddd;
-                  padding-bottom: 20px;
-                }
                 .info { 
-                  margin-bottom: 20px; 
+                  margin: 0 0 10px 0; 
                   display: grid;
                   grid-template-columns: 1fr 1fr;
-                  gap: 20px;
+                  gap: 8px;
+                  font-size: 11px;
                 }
                 .info-item {
-                  margin-bottom: 10px;
+                  margin-bottom: 3px;
                 }
                 .info-item strong {
                   display: inline-block;
-                  width: 140px;
+                  width: 130px;
+                  font-weight: bold;
                 }
                 .status-approved { color: #059669; font-weight: bold; }
                 .status-pending { color: #d97706; font-weight: bold; }
@@ -96,9 +147,10 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
                 .remarks-box {
                   background-color: #f0f9ff;
                   border: 1px solid #0ea5e9;
-                  padding: 12px;
-                  border-radius: 4px;
-                  margin: 15px 0;
+                  padding: 5px 7px;
+                  border-radius: 3px;
+                  margin: 8px 0;
+                  font-size: 11px;
                 }
                 @media print { 
                   button { display: none; }
@@ -106,13 +158,116 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
                   .no-print { display: none; }
                 }
                 tr:nth-child(even) { background-color: #f8f9fa; }
-                .time-col { width: 12%; }
-                .duration-col { width: 12%; }
-                .day-col { width: 38%; }
+                .time-col { width: 15%; }
+                .duration-col { width: 15%; }
+                .day-col { width: 35%; }
+                .footer {
+                  margin-top: 8px;
+                  text-align: center;
+                  font-size: 9px;
+                  color: #666;
+                }
+                /* Time column alignment */
+                .time-col {
+                  font-family: 'Courier New', monospace;
+                  white-space: nowrap;
+                  font-size: 10px;
+                }
+                /* Ultra compact layout */
+                .ultra-compact {
+                  font-size: 0.93em;
+                }
+                .ultra-compact th, 
+                .ultra-compact td {
+                  padding: 2px 4px;
+                }
+                .ultra-compact .info {
+                  gap: 6px;
+                }
+                .ultra-compact .info-item {
+                  margin-bottom: 2px;
+                }
+                .ultra-compact .info-item strong {
+                  width: 120px;
+                }
               </style>
             </head>
             <body>
-              ${printContent.innerHTML}
+              <div class="print-container size-${size} ultra-compact">
+                <div class="header-container">
+                  <img src="/ncslogo.jpg" alt="School Logo" class="logo" onerror="this.style.display='none'">
+                  <div class="header-text">
+                    <div class="document-title">CLASS SCHEDULE</div>
+                    <div class="grade-section">${schedule.grade_section}</div>
+                    <div class="school-year">School Year: ${schedule.school_year}</div>
+                  </div>
+                </div>
+                <div class="divider"></div>
+                
+                <div class="info">
+                  <div>
+                    <div class="info-item">
+                      <strong>Adviser/Class Teacher:</strong> ${schedule.adviser_teacher}
+                    </div>
+                    <div class="info-item">
+                      <strong>Total Learners:</strong> ${schedule.total_learners}
+                    </div>
+                    <div class="info-item">
+                      <strong>Status:</strong> <span class="${getStatusClass(schedule.status)}">${schedule.status}</span>
+                    </div>
+                    <div class="info-item">
+                      <strong>Created by:</strong> ${schedule.creator?.fullname || schedule.created_by}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="info-item">
+                      <strong>Male Learners:</strong> ${schedule.male_learners}
+                    </div>
+                    <div class="info-item">
+                      <strong>Female Learners:</strong> ${schedule.female_learners}
+                    </div>
+                    <div class="info-item">
+                      <strong>Created:</strong> ${new Date(schedule.created_at).toLocaleDateString()}
+                    </div>
+                    ${schedule.approved_at ? `
+                    <div class="info-item">
+                      <strong>Approved:</strong> ${new Date(schedule.approved_at).toLocaleDateString()}
+                    </div>
+                    ` : ''}
+                  </div>
+                </div>
+                ${schedule.approval_remarks ? `
+                <div class="remarks-box">
+                  <strong>Principal's Remarks:</strong> ${schedule.approval_remarks}
+                </div>
+                ` : ''}
+                <div class="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr class="bg-gray-50">
+                        <th class="time-col">Time</th>
+                        <th class="duration-col">Duration</th>
+                        <th class="day-col">Monday - Thursday</th>
+                        <th class="day-col">Friday</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${schedule.schedule_data.map((row, index) => `
+                        <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                          <td class="time-col">${row.time}</td>
+                          <td class="duration-col">${row.mins}</td>
+                          <td class="day-col">${row.mondayThursday}</td>
+                          <td class="day-col">${row.friday}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="footer">
+                  <p>Generated on ${new Date().toLocaleDateString()}</p>
+                  <p>This document is official and has been ${schedule.status.toLowerCase()} by the administration.</p>
+                </div>
+              </div>
             </body>
           </html>
         `)
@@ -223,7 +378,19 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
         <div className="flex justify-end gap-2 mt-6 print:hidden no-print">
           {schedule.status === 'APPROVED' && (
             <>
-              <Button variant="outline" onClick={handlePrint}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Size:</span>
+                <select 
+                  value={printSize} 
+                  onChange={(e) => setPrintSize(e.target.value as any)}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value="short">Short (A4/2)</option>
+                  <option value="a4">A4</option>
+                  <option value="long">Long (A4×2)</option>
+                </select>
+              </div>
+              <Button variant="outline" onClick={() => handlePrint(printSize)}>
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
