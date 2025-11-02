@@ -85,14 +85,28 @@ class ServiceRequestController extends Controller
                 'entity_id' => $service->id,
             ]);
 
-            // Notify the principal for approval
+            // Notify the principal and secretary for approval
             $principal = User::whereHas('roles', function ($query) {
                 $query->where('name', 'Principal');
+            })->first();
+
+            $secretary = User::whereHas('roles', function ($query) {
+                $query->where('name', 'Secretary');
             })->first();
 
             if ($principal) {
                 Notification::create([
                     'username_id' => $principal->username,
+                    'title' => "New Service Request for Approval",
+                    'message' => "A new service request titled '{$service->title}' requires your approval",
+                    'type' => "info",
+                    'url' => "/service-requests",
+                ]);
+            }
+
+            if ($secretary) {
+                Notification::create([
+                    'username_id' => $secretary->username,
                     'title' => "New Service Request for Approval",
                     'message' => "A new service request titled '{$service->title}' requires your approval",
                     'type' => "info",

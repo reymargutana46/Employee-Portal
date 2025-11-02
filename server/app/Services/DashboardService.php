@@ -153,6 +153,55 @@ class DashboardService
                 ];
             }
 
+            // Get faculty counts by grade level for secretary dashboard
+            $facultyByGrade = [];
+            if ($this->user->hasRole('Secretary')) {
+                // Define faculty positions (these are teaching positions)
+                $facultyPositions = [
+                    'Teacher I', 'Teacher II', 'Teacher III', 
+                    'Master Teacher I', 'Master Teacher II', 
+                    'SPED Teacher I', 'SPET I'
+                ];
+                
+                // Get faculty employees
+                $facultyEmployees = Employee::whereIn('position_id', function($query) use ($facultyPositions) {
+                    $query->select('id')
+                          ->from('positions')
+                          ->whereIn('title', $facultyPositions);
+                })->get();
+                
+                // Initialize grade level counts
+                $facultyByGrade = [
+                    'kinder' => 0,
+                    'grade1' => 0,
+                    'grade2' => 0,
+                    'grade3' => 0,
+                    'grade4' => 0,
+                    'grade5' => 0,
+                    'grade6' => 0,
+                    'staff' => Employee::whereNotIn('position_id', function($query) use ($facultyPositions) {
+                        $query->select('id')
+                              ->from('positions')
+                              ->whereIn('title', $facultyPositions);
+                    })->count()
+                ];
+                
+                // For now, we'll distribute faculty counts evenly as we don't have grade level data in the database
+                // In a real implementation, this would come from actual assignment data
+                $facultyCount = $facultyEmployees->count();
+                if ($facultyCount > 0) {
+                    $perGrade = floor($facultyCount / 7); // 7 grade levels (Kinder to Grade 6)
+                    $remainder = $facultyCount % 7;
+                    
+                    foreach (array_keys($facultyByGrade) as $key) {
+                        if ($key !== 'staff') {
+                            $facultyByGrade[$key] = $perGrade + ($remainder > 0 ? 1 : 0);
+                            $remainder--;
+                        }
+                    }
+                }
+            }
+
             $workloads = WorkLoadHdr::whereDate('from', '<=', $now->endOfMonth())
                 ->whereDate('to', '>=', $now->startOfMonth())
                 ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
@@ -179,6 +228,13 @@ class DashboardService
 
             $avgWorkloadDiff = $avgWorkload - $avgWorkloadLastMonth;
 
+            // Get workload statistics by status for secretary dashboard
+            $workloadStats = [
+                'total' => $workloads->count(),
+                'approved' => $workloads->where('status', 'APPROVED')->count(),
+                'disapproved' => $workloads->where('status', 'REJECTED')->count()
+            ];
+
             $leaveRequests = Leave::whereMonth('created_at', $now->month)
                 ->whereYear('created_at', $now->year)
                 ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
@@ -195,9 +251,18 @@ class DashboardService
 
             $leaveRequestsDiff = $leaveRequests - $leaveRequestsLastMonth;
 
+            // Get detailed leave counts by status for all employees (for secretary)
+            $leaveStats = [];
+            if ($this->user->hasRole('Secretary')) {
+                $leaveStats = [
+                    'total' => Leave::count(),
+                    'pending' => Leave::where('status', 'Pending')->count(),
+                    'approved' => Leave::where('status', 'Approved')->count(),
+                    'rejected' => Leave::where('status', 'Disapproved')->count(),
+                ];
+            }
             // Get detailed leave counts by status for staff and faculty members
-            $staffLeaveDetails = [];
-            if (!$this->user->hasRole($this->allowedRoles)) {
+            else if (!$this->user->hasRole($this->allowedRoles)) {
                 $staffLeaveDetails = [
                     'total' => Leave::where('employee_id', $this->employee->id)->count(),
                     'pending' => Leave::where('employee_id', $this->employee->id)->where('status', 'Pending')->count(),
@@ -209,16 +274,19 @@ class DashboardService
             return [
                 'totalEmployees' => $totalEmployees,
                 'employeeDiff' => $employeeDifference,
+                'facultyByGrade' => $facultyByGrade,
 
                 // Return detailed attendance data instead of just a rate
                 'attendanceData' => $attendanceData,
 
                 'avgWorkload' => $avgWorkload,
                 'avgWorkloadDiff' => $avgWorkloadDiff,
+                'workloadStats' => $workloadStats,
 
                 'leaveRequests' => $leaveRequests,
                 'leaveRequestsDiff' => $leaveRequestsDiff,
-                'staffLeaveDetails' => $staffLeaveDetails,
+                'leaveStats' => $leaveStats,
+                'staffLeaveDetails' => $staffLeaveDetails ?? [],
             ];
         } catch (\Exception $e) {
             \Log::error('Dashboard cards error: ' . $e->getMessage());
@@ -226,6 +294,7 @@ class DashboardService
             return [
                 'totalEmployees' => 0,
                 'employeeDiff' => 0,
+                'facultyByGrade' => [],
                 'attendanceData' => [
                     'total' => 0,
                     'present' => 0,
@@ -234,8 +303,15 @@ class DashboardService
                 ],
                 'avgWorkload' => 0,
                 'avgWorkloadDiff' => 0,
+                'workloadStats' => [
+                    'total' => 0,
+                    'approved' => 0,
+                    'disapproved' => 0
+                ],
                 'leaveRequests' => 0,
                 'leaveRequestsDiff' => 0,
+                'leaveStats' => [],
+                'staffLeaveDetails' => [],
             ];
         }
     }
@@ -309,7 +385,7 @@ class DashboardService
     public function ActivityLogs()
     {
         try {
-            // For staff and faculty users, only show their own activities (most recent first)
+            // For staff, faculty, and secretary users, only show their own activities (most recent first)
             if (!$this->user->hasRole($this->allowedRoles)) {
                 $activities = ActivityLog::where('performed_by', $this->user->username)
                     ->orderBy('created_at', 'desc')
@@ -340,7 +416,21 @@ class DashboardService
                 ->take(5) // Limit to 5 most recent user activities
                 ->get();
 
-            // Get additional recent activities from other users
+            // For secretary users, only show their own activities
+            if ($this->user->hasRole('Secretary')) {
+                $result = $userActivities->map(function ($log) {
+                    return [
+                        'performed_by' => $log->performed_by,
+                        'action' => $log->action,
+                        'description' => $log->description,
+                        'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
+                    ];
+                })->values();
+
+                return $result;
+            }
+
+            // Get additional recent activities from other users (for admin and principal only)
             $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
                 ->orderBy('created_at', 'desc')
                 ->take(10 - $userActivities->count()) // Fill up to 10 total activities
@@ -403,12 +493,19 @@ class DashboardService
     public function getServiceRequestCountPerMonthByStatus()
     {
         try {
-            $rawData = ServiceRequest::whereYear('created_at', now()->year)
-                ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
-                    $query->where('request_by', $this->user->username); // or whatever is applicable
-                })
-                ->select('status', 'created_at')
-                ->get();
+            $query = ServiceRequest::whereYear('created_at', now()->year);
+            
+            // For staff, faculty, and secretary users, only show their own service requests
+            if (!$this->user->hasRole($this->allowedRoles)) {
+                // Regular users (staff/faculty) - show only their requests
+                $query->where('request_by', $this->user->username);
+            } else if ($this->user->hasRole('Secretary')) {
+                // Secretary users - show only their own submitted requests
+                $query->where('request_by', $this->user->username);
+            }
+            // For Admin and Principal, show all requests (no additional filtering)
+
+            $rawData = $query->select('status', 'created_at')->get();
 
             $statuses = [
                 "Pending" => "pending",

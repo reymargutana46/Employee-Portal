@@ -159,6 +159,24 @@ export function ViewRequestDialog({
               </div>
             )}
 
+          {/* For the Secretary - can also approve or disapprove if For Approval */}
+          {request.status === "For Approval" &&
+            canDoAction(["Secretary"]) && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => onUpdateStatus(request.id, "Disapproved")}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Disapprove
+                </Button>
+                <Button onClick={() => onUpdateStatus(request.id, "Pending")}>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Approve
+                </Button>
+              </div>
+            )}
+
           {/* For the receiver - can mark as completed if in progress */}
           {request.status === "In Progress" &&
             request.requestToId === String(user.employee_id) && (
