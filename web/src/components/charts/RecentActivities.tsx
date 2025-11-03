@@ -10,11 +10,6 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
   // Handle case where activities might be undefined
   const safeActivities = activities || [];
   
-  // Log for debugging
-  console.log('RecentActivities received:', activities);
-  console.log('Safe activities:', safeActivities);
-  console.log('Number of safe activities:', safeActivities.length);
-  
   // Get user from auth store
   const { user, userRoles } = useAuthStore();
   
@@ -24,28 +19,21 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
   const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
   const isFaculty = userRoles.some(role => role.name.toLowerCase() === 'faculty');
   
-  // Log for debugging
-  console.log('User roles:', userRoles);
-  console.log('Is principal:', isPrincipal);
-  console.log('Is secretary:', isSecretary);
-  console.log('Is staff:', isStaff);
-  console.log('Is faculty:', isFaculty);
-  
   // Determine how many activities to show based on user role
   // Staff, Faculty, and Secretary users should see 5 activities, Principal users should see 5, others should see 3
-  const activityCount = isPrincipal ? 5 : (isStaff || isFaculty || isSecretary) ? 5 : 3;
-  
-  // Log for debugging
-  console.log('Activity count to display:', activityCount);
+  const activityCount = isPrincipal ? 10 : (isStaff || isFaculty || isSecretary) ? 5 : 3;
   
   return (
     <div className="space-y-3">
       {safeActivities.length > 0 ? (
         (() => {
-          const slicedActivities = safeActivities.slice(0, activityCount);
-          console.log('Sliced activities:', slicedActivities);
-          console.log('Number of sliced activities:', slicedActivities.length);
-          return slicedActivities.map((activity, index) => {
+          // For principal users, we want to show activities from oldest to latest
+          // For other users, we show from latest to oldest (default behavior)
+          const displayActivities = isPrincipal 
+            ? safeActivities.slice(0, activityCount) // Already ordered from oldest to latest in backend
+            : safeActivities.slice(0, activityCount); // Default slice from beginning
+          
+          return displayActivities.map((activity, index) => {
             // Check if this activity was performed by the current user
             const isCurrentUserActivity = activity.performed_by === user?.username;
             

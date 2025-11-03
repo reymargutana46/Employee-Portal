@@ -430,7 +430,26 @@ class DashboardService
                 return $result;
             }
 
-            // Get additional recent activities from other users (for admin and principal only)
+            // For principal users, show their own activities ordered from oldest to latest
+            if ($this->user->hasRole('Principal')) {
+                $principalActivities = ActivityLog::where('performed_by', $this->user->username)
+                    ->orderBy('created_at', 'asc') // Order from oldest to latest
+                    ->take(10) // Show up to 10 activities
+                    ->get();
+
+                $result = $principalActivities->map(function ($log) {
+                    return [
+                        'performed_by' => $log->performed_by,
+                        'action' => $log->action,
+                        'description' => $log->description,
+                        'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
+                    ];
+                })->values();
+
+                return $result;
+            }
+
+            // Get additional recent activities from other users (for admin only)
             $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
                 ->orderBy('created_at', 'desc')
                 ->take(10 - $userActivities->count()) // Fill up to 10 total activities
@@ -503,7 +522,8 @@ class DashboardService
                 // Secretary users - show only their own submitted requests
                 $query->where('request_by', $this->user->username);
             }
-            // For Admin and Principal, show all requests (no additional filtering)
+            // For Admin, Principal, remove user filtering to show all requests
+            // This will now show data for all users/employees in the system
 
             $rawData = $query->select('status', 'created_at')->get();
 

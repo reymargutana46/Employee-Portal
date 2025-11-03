@@ -44,7 +44,7 @@ const LeaveStatusFilter = ({ onFilterStatus, onFilterType }: LeaveStatusFilterPr
         <DropdownMenuLabel>Filter By Status</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => onFilterStatus('Pending')}>Status: Pending</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onFilterStatus('Approved')}>Status: Approved</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onFilterStatus('Rejected')}>Status: Rejected</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onFilterStatus('Rejected')}>Status: Disapproved</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onFilterStatus(undefined)}>Clear Status Filter</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Filter By Type</DropdownMenuLabel>

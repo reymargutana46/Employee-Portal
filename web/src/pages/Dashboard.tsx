@@ -956,7 +956,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{workload?.reduce((sum, item) => sum + item.workload, 0) || 0}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
                   <div className="text-center">
                     <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
                     <div className="text-muted-foreground">Pending</div>
@@ -965,7 +965,7 @@ const Dashboard = () => {
                     <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
                     <div className="text-muted-foreground">Approved</div>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center col-span-2">
                     <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
@@ -1050,8 +1050,188 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
-      ) : userRole && (userRole.name.toLowerCase() === 'principal' || userRole.name.toLowerCase() === 'admin') ? (
-        // Default layout for admin, principal, and secretary
+      ) : userRole && userRole.name.toLowerCase() === 'principal' ? (
+        // Principal-specific layout with detailed information (same as secretary)
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {/* Total Employees Card with Faculty by Grade Level */}
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Employees
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{safeCard.totalEmployees || 0}</div>
+                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.kinder || 0}</div>
+                    <div className="text-muted-foreground">Kinder</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.grade1 || 0}</div>
+                    <div className="text-muted-foreground">Grade 1</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.grade2 || 0}</div>
+                    <div className="text-muted-foreground">Grade 2</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.grade3 || 0}</div>
+                    <div className="text-muted-foreground">Grade 3</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.grade4 || 0}</div>
+                    <div className="text-muted-foreground">Grade 4</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.grade5 || 0}</div>
+                    <div className="text-muted-foreground">Grade 5</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.grade6 || 0}</div>
+                    <div className="text-muted-foreground">Grade 6</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.facultyByGrade?.staff || 0}</div>
+                    <div className="text-muted-foreground">Staff</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Attendance Card with Present, Absent, Late */}
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Attendance
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{safeCard.attendanceData?.total || 0}</div>
+                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.attendanceData?.present || 0}</div>
+                    <div className="text-muted-foreground">Present</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.attendanceData?.absent || 0}</div>
+                    <div className="text-muted-foreground">Absent</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.attendanceData?.late || 0}</div>
+                    <div className="text-muted-foreground">Late</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Workload Card with Pending, Approved, and Disapproved */}
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Workload</CardTitle>
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{workload?.reduce((sum, item) => sum + item.workload, 0) || 0}</div>
+                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                  <div className="text-center">
+                    <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
+                    <div className="text-muted-foreground">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
+                    <div className="text-muted-foreground">Approved</div>
+                  </div>
+                  <div className="text-center col-span-2">
+                    <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
+                    <div className="text-muted-foreground">Disapproved</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Service Requests Card */}
+            <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Service Requests</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {serviceRequests?.reduce(
+                    (sum, month) => 
+                      sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
+                    0
+                  ) || 0}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                  <div className="text-center">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.pending, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.inProgress, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">In Progress</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.completed, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.rejected, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">Disapproved</div>
+                  </div>
+                  <div className="text-center col-span-2">
+                    <div className="font-medium">
+                      {serviceRequests?.reduce((sum, month) => sum + month.forApproval, 0) || 0}
+                    </div>
+                    <div className="text-muted-foreground">For Approval</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Leave Requests Card with Pending, Approved, Disapproved */}
+            <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Leave Requests
+                </CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{safeCard.leaveStats?.total || 0}</div>
+                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.leaveStats?.pending || 0}</div>
+                    <div className="text-muted-foreground">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{safeCard.leaveStats?.approved || 0}</div>
+                    <div className="text-muted-foreground">Approved</div>
+                  </div>
+                  <div className="text-center col-span-2">
+                    <div className="font-medium">{safeCard.leaveStats?.rejected || 0}</div>
+                    <div className="text-muted-foreground">Disapproved</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      ) : userRole && (userRole.name.toLowerCase() === 'admin' || userRole.name.toLowerCase() === 'secretary') ? (
+        // Default layout for admin and secretary
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {currentRoleStats.map((stat, index) => (
             <Card key={index} className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">

@@ -279,7 +279,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         {!isCollapsed ? (
           <div className="flex items-center">
             <img 
-              src="/src/images/logos.png" 
+              src="/NCS-Logo.png" 
               alt="NCS Logo" 
               className="h-6 w-6 mr-2 object-contain"
             />
@@ -288,7 +288,7 @@ const Sidebar = ({ isCollapsed }: SidebarProps) => {
         ) : (
           <div className="flex items-center">
             <img 
-              src="/src/images/logos.png" 
+              src="/NCS-Logo.png" 
               alt="NCS Logo" 
               className="h-6 w-6 object-contain"
             />

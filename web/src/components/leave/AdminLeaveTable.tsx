@@ -32,6 +32,7 @@ interface AdminLeaveTableProps {
   onEdit: (leave: Leave) => void;
   onView: (leave: Leave) => void;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
+  itemsPerPage?: number;
 }
 
 const LoadingTableRow = ({ cols }: { cols: number }) => (
@@ -66,8 +67,16 @@ const AdminLeaveTable = ({
   onReject,
   onEdit,
   onView,
+  itemsPerPage = 10,
 }: AdminLeaveTableProps) => {
   const canDoAction = useAuthStore((state) => state.canDoAction);
+  
+  // Paginate the leave requests
+  const paginatedRequests = leaveRequests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div>
       <Table>
@@ -85,8 +94,8 @@ const AdminLeaveTable = ({
         <TableBody>
           {isLoading ? (
             <LoadingTable rows={5} cols={7} />
-          ) : leaveRequests.length > 0 ? (
-            leaveRequests.map((request) => (
+          ) : paginatedRequests.length > 0 ? (
+            paginatedRequests.map((request) => (
               <TableRow key={request.id}>
                 <TableCell>{request.employee.fname}</TableCell>
                 <TableCell>{request.leave_type.name}</TableCell>

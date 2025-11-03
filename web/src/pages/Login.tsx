@@ -53,7 +53,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
         <img
-          src="/src/images/logos.png"
+          src="/NCS-Logo.png"
           alt="Naawan Central School Logo"
           className="mx-auto mb-2 w-20 h-25 object-contain"
           />

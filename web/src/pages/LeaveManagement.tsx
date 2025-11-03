@@ -109,9 +109,11 @@ const LeaveManagement = () => {
         personalLeaves.filter((request) => request.status === status)
       );
 
+      // Display "Disapproved" instead of "Rejected" in the toast message
+      const displayStatus = status === 'Rejected' ? 'Disapproved' : status;
       toast({
         title: "Filter Applied",
-        description: `Showing ${status} leaves only`,
+        description: `Showing ${displayStatus} leaves only`,
       });
     } else {
       resetFilters();
@@ -272,17 +274,19 @@ const LeaveManagement = () => {
         onDateRangeFilter={handleDateRangeFilter}
       />
 
-      {canDoAction(['principal']) ? (
+      {canDoAction(['principal', 'secretary']) ? (
         <AdminLeaveView
         setCurrentPage={setCurrentPage}
         totalPages={totalPages}
         currentPage={currentPage}
-          leaveRequests={paginatedLeaves}
+          leaveRequests={filteredLeaveRequests}
+          totalLeaveCount={filteredLeaveRequests.length}
           isLoading={isLoading}
           onApprove={handleApproveLeave}
           onReject={handleRejectLeaveClick}
           onEdit={handleEditLeaveClick}
           onView={handleViewLeaveClick}
+          onFilterStatus={handleFilterStatus}
         />
       ) : (
           <EmployeeLeaveView

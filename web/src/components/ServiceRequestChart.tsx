@@ -51,10 +51,11 @@ export function ServiceRequestChart({ services }: ServiceRequestProps) {
   // Get user roles from auth store
   const { userRoles } = useAuthStore();
   
-  // Check if user is staff or faculty
+  // Check if user is staff, faculty, or secretary (personal view)
   const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
   const isFaculty = userRoles.some(role => role.name.toLowerCase() === 'faculty');
-  const isPersonalView = isStaff || isFaculty;
+  const isSecretary = userRoles.some(role => role.name.toLowerCase() === 'secretary');
+  const isPersonalView = isStaff || isFaculty || isSecretary;
   
   // Calculate total requests and completion rate
   const totalRequests = safeServices.reduce(

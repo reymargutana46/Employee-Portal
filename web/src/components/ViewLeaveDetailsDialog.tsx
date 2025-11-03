@@ -35,7 +35,7 @@ const ViewLeaveDetailsDialog = ({
     // School information
     const schoolName = "Naawan Central School";
     const schoolAddress = "Magsaysay St. Poblacion 9023 Naawan, Philippines";
-    const schoolLogo = "/ncslogo.jpg"; // Updated to use actual logo instead of placeholder
+    const schoolLogo = "/NCS-Logo.png"; // Updated to use actual logo instead of placeholder
 
     win.document.write(`
       <html>

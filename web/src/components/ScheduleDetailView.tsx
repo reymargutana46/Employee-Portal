@@ -195,7 +195,7 @@ export function ScheduleDetailView({ schedule, open, onOpenChange }: ScheduleDet
             <body>
               <div class="print-container size-${size} ultra-compact">
                 <div class="header-container">
-                  <img src="/ncslogo.jpg" alt="School Logo" class="logo" onerror="this.style.display='none'">
+                  <img src="/NCS-Logo.png" alt="School Logo" class="logo" onerror="this.style.display='none'">
                   <div class="header-text">
                     <div class="document-title">CLASS SCHEDULE</div>
                     <div class="grade-section">${schedule.grade_section}</div>
