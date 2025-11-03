@@ -948,21 +948,25 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Workload Card with Approved and Disapproved */}
+            {/* Workload Card with Pending, Approved, and Disapproved */}
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Workload</CardTitle>
                 <CheckSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{safeCard.workloadStats?.total || 0}</div>
-                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                <div className="text-2xl font-bold">{workload?.reduce((sum, item) => sum + item.workload, 0) || 0}</div>
+                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
                   <div className="text-center">
-                    <div className="font-medium">{safeCard.workloadStats?.approved || 0}</div>
+                    <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
+                    <div className="text-muted-foreground">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
                     <div className="text-muted-foreground">Approved</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium">{safeCard.workloadStats?.disapproved || 0}</div>
+                    <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
                 </div>
@@ -1081,7 +1085,7 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">{safeCard.totalEmployees}</div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-100 border-blue-200 dark:border-blue-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Attendance

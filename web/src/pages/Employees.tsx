@@ -235,7 +235,7 @@ const Employees = () => {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>Employee List</CardTitle>
+          <CardTitle>Employee List ({filteredEmployees.length})</CardTitle>
           <CardDescription>
             A list of all employees in the system.
           </CardDescription>
