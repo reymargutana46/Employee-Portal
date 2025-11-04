@@ -45,13 +45,20 @@ const AdminLeaveView = ({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle>Leave Requests ({totalLeaveCount})</CardTitle>
+        <CardTitle>Leave Requests</CardTitle>
         <CardDescription>
           Process and review employee leave requests
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2 mb-4 flex-wrap">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onFilterStatus(undefined)}
+          >
+            All ({totalLeaveCount})
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 

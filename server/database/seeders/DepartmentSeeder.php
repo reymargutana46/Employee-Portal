@@ -74,7 +74,10 @@ class DepartmentSeeder extends Seeder
             
             // Non-Graded SPED Sections
             "NON-GRADED - GRACIOUS SPED",
-            "NON-GRADED - GRATEFUL SPED"
+            "NON-GRADED - GRATEFUL SPED",
+            
+            // District Office
+            "DISTRICT OFFICE"
         ];
 
         // Cleanup legacy department names that should not appear

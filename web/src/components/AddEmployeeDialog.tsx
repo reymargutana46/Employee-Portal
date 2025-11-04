@@ -363,14 +363,13 @@ const AddEmployeeDialog = () => {
                               </SelectTrigger>
                               <SelectContent>
                                 {departments
-                                  .filter(department => department.name !== 'Admin Department')
-                                  .map((deparment) => (
+                                  .map((department) => (
                                     <SelectItem
-                                      key={deparment.id}
-                                      value={deparment.name}
+                                      key={department.id}
+                                      value={department.name}
                                       className="capitalize"
                                     >
-                                      {deparment.name}
+                                      {department.name}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
