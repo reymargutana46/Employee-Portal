@@ -181,7 +181,7 @@ const DTRDashboard = () => {
         <div className="flex flex-wrap gap-2">
           <TimeInOutDialog />
           {isSecretary && <ImportDTRDialog />}
-          {!isStaff && !isFaculty && (
+          {!isStaff && !isFaculty && !canDoAction(["principal", "admin"]) && (
             <Button variant="secondary" onClick={handleDownloadTemplate}>
               <Download className="mr-2 h-4 w-4" /> Download Template
             </Button>

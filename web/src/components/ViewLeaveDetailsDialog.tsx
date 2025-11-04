@@ -185,14 +185,14 @@ const ViewLeaveDetailsDialog = ({
             {dayjs(leave.to).format("MMM D, YYYY")}
           </div>
           <div>
-            <b>Status of Action on Application:</b> {leave.status}
+            <b>Status of Action on Application:</b> {leave.status === "Rejected" ? "Disapproved" : leave.status}
           </div>
           <div>
             <b>Reason:</b> {leave.reason}
           </div>
           {leave.status === "Rejected" && leave.leave_rejection && (
             <div>
-              <b>Rejected Reason:</b>{" "}
+              <b>Disapproved Reason:</b>{" "}
               <span className="text-red-600">
                 {leave.leave_rejection.rejreason}
               </span>

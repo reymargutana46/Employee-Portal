@@ -153,9 +153,9 @@ class DashboardService
                 ];
             }
 
-            // Get faculty counts by grade level for admin, principal, and secretary dashboard
+            // Get faculty counts by grade level for secretary dashboard
             $facultyByGrade = [];
-            if ($this->user->hasRole(['Admin', 'Principal', 'Secretary'])) {
+            if ($this->user->hasRole('Secretary')) {
                 // Define faculty positions (these are teaching positions)
                 $facultyPositions = [
                     'Teacher I', 'Teacher II', 'Teacher III', 
@@ -228,7 +228,7 @@ class DashboardService
 
             $avgWorkloadDiff = $avgWorkload - $avgWorkloadLastMonth;
 
-            // Get workload statistics by status for secretary and principal dashboard
+            // Get workload statistics by status for secretary dashboard
             $workloadStats = [
                 'total' => $workloads->count(),
                 'approved' => $workloads->where('status', 'APPROVED')->count(),
@@ -251,9 +251,9 @@ class DashboardService
 
             $leaveRequestsDiff = $leaveRequests - $leaveRequestsLastMonth;
 
-            // Get detailed leave counts by status for all employees (for secretary and principal)
+            // Get detailed leave counts by status for all employees (for secretary)
             $leaveStats = [];
-            if ($this->user->hasRole(['Secretary', 'Principal'])) {
+            if ($this->user->hasRole('Secretary')) {
                 $leaveStats = [
                     'total' => Leave::count(),
                     'pending' => Leave::where('status', 'Pending')->count(),
@@ -514,12 +514,15 @@ class DashboardService
         try {
             $query = ServiceRequest::whereYear('created_at', now()->year);
             
-            // For staff and faculty users, only show their own service requests
+            // For staff, faculty, and secretary users, only show their own service requests
             if (!$this->user->hasRole($this->allowedRoles)) {
                 // Regular users (staff/faculty) - show only their requests
                 $query->where('request_by', $this->user->username);
+            } else if ($this->user->hasRole('Secretary')) {
+                // Secretary users - show only their own submitted requests
+                $query->where('request_by', $this->user->username);
             }
-            // For Admin, Principal, and Secretary, remove user filtering to show all requests
+            // For Admin, Principal, remove user filtering to show all requests
             // This will now show data for all users/employees in the system
 
             $rawData = $query->select('status', 'created_at')->get();

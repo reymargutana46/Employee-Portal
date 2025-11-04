@@ -146,7 +146,7 @@ const AdminLeaveTable = ({
                           className="flex items-center gap-1 bg-red-500"
                           onClick={() => onReject(request)}
                         >
-                          <span>Reject</span>
+                          <span>Disapprove</span>
                         </Button>
                       </>
                     )}

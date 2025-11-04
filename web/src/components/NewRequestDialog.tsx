@@ -247,9 +247,9 @@ export function NewRequestDialog({
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>Type of Work</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter request title" {...field} />
+                      <Input placeholder="Enter type of work" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
