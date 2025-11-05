@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  
   DialogTitle,
   DialogTrigger,
   DialogFooter,
@@ -56,7 +57,7 @@ const formSchema = z.object({
   position: z.string(),
   password: z.string().min(8, "Password must be 8 character long"),
   contactno: z.string(),
-  telno: z.string(),
+  telno: z.string().optional(),
 });
 
 const AddEmployeeDialog = () => {
@@ -64,6 +65,7 @@ const AddEmployeeDialog = () => {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { roles, departments, positions} = useEmployeeStore()
+  const [showErrors, setShowErrors] = useState(false);
 
   // Fetch setup data when component mounts or dialog opens
   useEffect(() => {
@@ -111,6 +113,7 @@ const AddEmployeeDialog = () => {
         });
         setOpen(false);
         form.reset();
+        setShowErrors(false);
         // setTimeout(() => {
         //   setIsLoading(false);
         //   toast({
@@ -125,6 +128,11 @@ const AddEmployeeDialog = () => {
       });
   };
 
+  const onError = (errors: any) => {
+    setShowErrors(true);
+    console.log("Form errors:", errors);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -137,7 +145,7 @@ const AddEmployeeDialog = () => {
         <Form {...form}>
           <form
             className="items-center "
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(onSubmit, onError)}
           >
             <DialogHeader>
               <DialogTitle>Create New Employee</DialogTitle>
@@ -153,13 +161,19 @@ const AddEmployeeDialog = () => {
                     name="fname"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             First Name
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" required />
+                            <Input {...field} className={`col-span-3 ${showErrors && form.formState.errors.fname ? "border-red-500" : "border-black"}`} />
                           </FormControl>
+                          {showErrors && form.formState.errors.fname && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -171,12 +185,12 @@ const AddEmployeeDialog = () => {
                     name="extname"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Ext
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" />
+                            <Input {...field} className="col-span-3 border-black" />
                           </FormControl>
                         </div>
                       </FormItem>
@@ -191,12 +205,12 @@ const AddEmployeeDialog = () => {
                     name="mname"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Middle Name
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" />
+                            <Input {...field} className="col-span-3 border-black" />
                           </FormControl>
                         </div>
                       </FormItem>
@@ -209,13 +223,19 @@ const AddEmployeeDialog = () => {
                     name="lname"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Last Name
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" required />
+                            <Input {...field} className={`col-span-3 ${showErrors && form.formState.errors.lname ? "border-red-500" : "border-black"}`} />
                           </FormControl>
+                          {showErrors && form.formState.errors.lname && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -228,13 +248,19 @@ const AddEmployeeDialog = () => {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex flex-col  gap-4">
-                        <FormLabel htmlFor="name" className="">
+                      <div className="flex flex-col gap-4">
+                        <FormLabel htmlFor="name" className="text-black">
                           Username
                         </FormLabel>
                         <FormControl>
-                          <Input {...field} className="col-span-3" required />
+                          <Input {...field} className={`col-span-3 ${showErrors && form.formState.errors.username ? "border-red-500" : "border-black"}`} />
                         </FormControl>
+                        {showErrors && form.formState.errors.username && (
+                          <div className="flex items-center gap-2 text-red-500 text-sm">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>This is required field</span>
+                          </div>
+                        )}
                       </div>
                     </FormItem>
                   )}
@@ -246,18 +272,23 @@ const AddEmployeeDialog = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex flex-col  gap-4">
-                        <FormLabel htmlFor="name" className="">
+                      <div className="flex flex-col gap-4">
+                        <FormLabel htmlFor="name" className="text-black">
                           Password
                         </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            className="col-span-3"
+                            className={`col-span-3 ${showErrors && form.formState.errors.password ? "border-red-500" : "border-black"}`}
                             type="password"
-                            required
                           />
                         </FormControl>
+                        {showErrors && form.formState.errors.password && (
+                          <div className="flex items-center gap-2 text-red-500 text-sm">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>This is required field</span>
+                          </div>
+                        )}
                       </div>
                     </FormItem>
                   )}
@@ -269,18 +300,23 @@ const AddEmployeeDialog = () => {
                   name="bioid"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex flex-col  gap-4">
-                        <FormLabel htmlFor="name" className="">
+                      <div className="flex flex-col gap-4">
+                        <FormLabel htmlFor="name" className="text-black">
                           Bio ID
                         </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            className="col-span-3"
+                            className={`col-span-3 ${showErrors && form.formState.errors.bioid ? "border-red-500" : "border-black"}`}
                             type="text"
-                            required
                           />
                         </FormControl>
+                        {showErrors && form.formState.errors.bioid && (
+                          <div className="flex items-center gap-2 text-red-500 text-sm">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>This is required field</span>
+                          </div>
+                        )}
                       </div>
                     </FormItem>
                   )}
@@ -293,13 +329,19 @@ const AddEmployeeDialog = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Email
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" required />
+                            <Input {...field} className={`col-span-3 ${showErrors && form.formState.errors.email ? "border-red-500" : "border-black"}`} />
                           </FormControl>
+                          {showErrors && form.formState.errors.email && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -311,8 +353,8 @@ const AddEmployeeDialog = () => {
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Role
                           </FormLabel>
                           <FormControl>
@@ -349,8 +391,8 @@ const AddEmployeeDialog = () => {
                     name="department"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Building & Section
                           </FormLabel>
                           <FormControl>
@@ -358,7 +400,7 @@ const AddEmployeeDialog = () => {
                               onValueChange={field.onChange}
                               value={field.value}
                             >
-                              <SelectTrigger className="col-span-3">
+                              <SelectTrigger className={`col-span-3 ${showErrors && form.formState.errors.department ? "border-red-500" : "border-black"}`}>
                                 <SelectValue placeholder="Select building & section" />
                               </SelectTrigger>
                               <SelectContent>
@@ -375,6 +417,12 @@ const AddEmployeeDialog = () => {
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          {showErrors && form.formState.errors.department && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -386,8 +434,8 @@ const AddEmployeeDialog = () => {
                     name="position"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Position
                           </FormLabel>
                           <FormControl>
@@ -395,7 +443,7 @@ const AddEmployeeDialog = () => {
                               onValueChange={field.onChange}
                               value={field.value}
                             >
-                              <SelectTrigger className="col-span-3">
+                              <SelectTrigger className={`col-span-3 ${showErrors && form.formState.errors.position ? "border-red-500" : "border-black"}`}>
                                 <SelectValue placeholder="Select position" />
                               </SelectTrigger>
                               <SelectContent>
@@ -411,6 +459,12 @@ const AddEmployeeDialog = () => {
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          {showErrors && form.formState.errors.position && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -424,21 +478,26 @@ const AddEmployeeDialog = () => {
                     name="workhour_am"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Time In
                           </FormLabel>
                           <FormControl>
                             <div className="col-span-3 flex items-center">
-                              {/* <Clock className="mr-2 h-4 w-4 text-muted-foreground" /> */}
                               <Input
                                 id="timeIn"
                                 type="time"
                                 {...field}
-                                required
+                                className={`flex-1 ${showErrors && form.formState.errors.workhour_am ? "border-red-500" : "border-black"}`}
                               />
                             </div>
                           </FormControl>
+                          {showErrors && form.formState.errors.workhour_am && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -450,21 +509,26 @@ const AddEmployeeDialog = () => {
                     name="workhour_pm"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Time Out
                           </FormLabel>
                           <FormControl>
                             <div className="col-span-3 flex items-center">
-                              {/* <Clock className="mr-2 h-4 w-4 text-muted-foreground" /> */}
                               <Input
                                 id="timeOut"
                                 type="time"
                                 {...field}
-                                required
+                                className={`flex-1 ${showErrors && form.formState.errors.workhour_pm ? "border-red-500" : "border-black"}`}
                               />
                             </div>
                           </FormControl>
+                          {showErrors && form.formState.errors.workhour_pm && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -478,13 +542,19 @@ const AddEmployeeDialog = () => {
                     name="contactno"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
                             Contact
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" required />
+                            <Input {...field} className={`col-span-3 ${showErrors && form.formState.errors.contactno ? "border-red-500" : "border-black"}`} />
                           </FormControl>
+                          {showErrors && form.formState.errors.contactno && (
+                            <div className="flex items-center gap-2 text-red-500 text-sm">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>This is required field</span>
+                            </div>
+                          )}
                         </div>
                       </FormItem>
                     )}
@@ -496,12 +566,12 @@ const AddEmployeeDialog = () => {
                     name="telno"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex flex-col  gap-4">
-                          <FormLabel htmlFor="name" className="">
-                            Tel. No.
+                        <div className="flex flex-col gap-4">
+                          <FormLabel htmlFor="name" className="text-black">
+                            Tel. No. (Optional)
                           </FormLabel>
                           <FormControl>
-                            <Input {...field} className="col-span-3" required />
+                            <Input {...field} className="col-span-3 border-black" />
                           </FormControl>
                         </div>
                       </FormItem>

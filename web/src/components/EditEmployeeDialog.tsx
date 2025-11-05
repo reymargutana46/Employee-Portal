@@ -74,6 +74,26 @@ const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
     },
   });
 
+  // Reset form when employee prop changes or when dialog opens
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        fname: employee.fname,
+        lname: employee.lname,
+        username: employee.username,
+        mname: employee.mname || "",
+        extName: employee.extname || "",
+        email: employee.email,
+        contactno: employee.contactno,
+        department: employee.department,
+        position: employee.position,
+        telno: employee.telno,
+        workhour_am: employee.workhours_am,
+        workhour_pm: employee.workhours_pm,
+      });
+    }
+  }, [employee, open, form]);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
@@ -107,7 +127,6 @@ const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
         });
         
         setOpen(false);
-        form.reset();
       })
       .catch((err) => {
         setIsLoading(false);
@@ -120,7 +139,13 @@ const EditEmployeeDialog = ({ employee }: EditEmployeeDialogProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      // Reset form when dialog closes
+      if (!isOpen) {
+        form.reset();
+      }
+    }}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon">
           <Edit className="h-4 w-4" />
