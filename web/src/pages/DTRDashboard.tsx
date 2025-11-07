@@ -22,7 +22,7 @@ import {
 import { useDTRStore } from "@/store/useDTRStore";
 import TimeInOutDialog from "@/components/TimeInOutDialog";
 import { useToast } from "@/hooks/use-toast";
-import { ImportDTRDialog } from "@/components/ImportDTRDialog";
+import { ImportDTRDialog } from "@/components/newDTR";
 import { useAuth } from "@/context/AuthContext";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import DTRExport from "@/components/exports/DTRExport";

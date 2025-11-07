@@ -392,8 +392,7 @@ export function ImportDTRDialog() {
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="max-w-4xl w-full h-[90vh] flex flex-col outline-none"
-        style={{ maxHeight: "90vh", minHeight: "600px" }}
+        className="max-w-4xl w-full max-h-[90vh] flex flex-col outline-none"
       >
         <DialogHeader>
           <DialogTitle>Import Daily Time Record (CSV/XLSX)</DialogTitle>
@@ -455,7 +454,7 @@ export function ImportDTRDialog() {
           )}
 
           {parsedRows.length > 0 && (
-            <div className="max-h-[380px] overflow-y-auto border rounded mb-2">
+            <div className="flex-grow overflow-y-auto border rounded mb-2">
               <Table>
                 <TableHeader>
                   <TableRow>
