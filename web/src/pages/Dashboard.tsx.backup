@@ -67,7 +67,7 @@ export interface DashboardCard {
     total: number;
     pending: number;
     approved: number;
-    disapproved: number;
+    rejected: number;
   };
   facultyByGrade?: {
     admin: number;
@@ -161,7 +161,7 @@ const Dashboard = () => {
     avgWorkloadDiff: card?.avgWorkloadDiff || 0,
     leaveRequests: card?.leaveRequests || 0,
     leaveRequestsDiff: card?.leaveRequestsDiff || 0,
-    staffLeaveDetails: card?.staffLeaveDetails || { total: 0, pending: 0, approved: 0, disapproved: 0 },
+    staffLeaveDetails: card?.staffLeaveDetails || { total: 0, pending: 0, approved: 0, rejected: 0 },
     facultyByGrade: card?.facultyByGrade || { admin: 0, principal: 0, secretary: 0, grade1: 0, grade2: 0, grade3: 0, grade4: 0, grade5: 0, grade6: 0, staff: 0 },
     workloadStats: card?.workloadStats || { total: 0, approved: 0, disapproved: 0 },
     leaveStats: card?.leaveStats || { total: 0, pending: 0, approved: 0, disapproved: 0 },
@@ -367,7 +367,7 @@ const Dashboard = () => {
       },
       {
         title: "Disapproved Requests",
-        value: safeCard.staffLeaveDetails?.disapproved || 0,
+        value: safeCard.staffLeaveDetails?.rejected || 0,
         icon: AlertTriangle,
         change: "",
         color: "bg-red-500",
@@ -427,8 +427,8 @@ const Dashboard = () => {
         color: "bg-blue-500",
       },
       {
-        title: "Disapproved Requests",
-        value: safeCard.staffLeaveDetails?.disapproved || 0,
+        title: "Rejected Requests",
+        value: safeCard.staffLeaveDetails?.rejected || 0,
         icon: AlertTriangle,
         change: "",
         color: "bg-red-500",
@@ -767,7 +767,7 @@ const Dashboard = () => {
                       <div className="text-muted-foreground">Approved</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-medium">{safeCard.staffLeaveDetails.disapproved}</div>
+                      <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
                       <div className="text-muted-foreground">Disapproved</div>
                     </div>
                   </div>
@@ -1255,7 +1255,7 @@ const Dashboard = () => {
                     <div className="text-muted-foreground">Approved</div>
                   </div>
                   <div className="text-center col-span-2">
-                    <div className="font-medium">{safeCard.leaveStats?.disapproved || 0}</div>
+                    <div className="font-medium">{safeCard.leaveStats?.rejected || 0}</div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
                 </div>
@@ -1411,7 +1411,7 @@ const Dashboard = () => {
                     <div className="text-muted-foreground">Approved</div>
                   </div>
                   <div className="text-center col-span-2">
-                    <div className="font-medium">{safeCard.leaveStats?.disapproved || 0}</div>
+                    <div className="font-medium">{safeCard.leaveStats?.rejected || 0}</div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
                 </div>
@@ -1639,7 +1639,7 @@ const Dashboard = () => {
                       <div className="text-muted-foreground">Approved</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-medium">{safeCard.staffLeaveDetails.disapproved}</div>
+                      <div className="font-medium">{safeCard.staffLeaveDetails.rejected}</div>
                       <div className="text-muted-foreground">Disapproved</div>
                     </div>
                   </div>

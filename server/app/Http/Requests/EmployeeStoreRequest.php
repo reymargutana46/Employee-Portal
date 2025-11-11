@@ -28,14 +28,14 @@ class EmployeeStoreRequest extends FormRequest
             'extname' => ['nullable', 'string'],
             'username' => ['required', 'unique:users,username'],
             'password' => 'required',
-            "bioid" => 'required',
+            "bioid" => 'nullable',
             'position',
             'department',
             'email' => ['required', 'unique:employees,email', 'email'],
-            'contactno' => 'required',
+            'contactno' => 'nullable',
             'workhour_am' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'workhour_pm' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
-            'telno' => 'required',
+            'telno' => 'nullable',
             'role' => ['required', 'exists:roles,name']
         ];
     }

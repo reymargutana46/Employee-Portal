@@ -97,7 +97,7 @@ const LeaveManagement = () => {
     );
   }, [leaveRequests, personalLeaves, searchTerm]);
 
-  const handleFilterStatus = (status?: "Pending" | "Approved" | "Rejected") => {
+  const handleFilterStatus = (status?: "Pending" | "Approved" | "Disapproved") => {
     if (status) {
       applyFilter({ status });
 
@@ -110,7 +110,7 @@ const LeaveManagement = () => {
       );
 
       // Display "Disapproved" instead of "Rejected" in the toast message
-      const displayStatus = status === 'Rejected' ? 'Disapproved' : status;
+      const displayStatus = status === 'Disapproved' ? 'Disapproved' : status;
       toast({
         title: "Filter Applied",
         description: `Showing ${displayStatus} leaves only`,

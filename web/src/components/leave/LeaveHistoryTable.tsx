@@ -74,11 +74,11 @@ const LeaveHistoryTable = ({ leaves, isLoading }: LeaveHistoryTableProps) => {
                       : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {leave.status === "Rejected" ? "Disapproved" : leave.status}
+                  {leave.status === "Disapproved" ? "Disapproved" : leave.status}
                 </span>
               </TableCell>
               <TableCell>
-                {leave.status === "Rejected" && leave.leave_rejection
+                {leave.status === "Disapproved" && leave.leave_rejection
                   ? leave.leave_rejection.rejreason
                   : leave.reason || "-"}
               </TableCell>

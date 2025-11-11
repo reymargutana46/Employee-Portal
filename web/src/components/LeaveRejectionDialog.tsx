@@ -20,6 +20,7 @@ interface LeaveRejectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRejectSuccess?: () => void;
+  onDashboardRefresh?: () => void; // Add this new prop
 }
 
 const LeaveRejectionDialog = ({
@@ -27,6 +28,7 @@ const LeaveRejectionDialog = ({
   open,
   onOpenChange,
   onRejectSuccess,
+  onDashboardRefresh, // Destructure the new prop
 }: LeaveRejectionDialogProps) => {
   const [reason, setReason] = useState("");
   const { rejectLeave } = useLeaveStore();
@@ -43,7 +45,7 @@ const LeaveRejectionDialog = ({
     }
     axios
       .post<Res<Leave>>("/leaves/decision", {
-        status: "Rejected" as LeaveStatus,
+        status: "Disapproved" as LeaveStatus,
         id: leave.id,
         reason,
       })
@@ -54,6 +56,11 @@ const LeaveRejectionDialog = ({
           title: "Leave Disapproved",
           description: "The leave request has been disapproved with a reason",
         });
+
+        // Call the dashboard refresh callback if provided
+        if (onDashboardRefresh) {
+          onDashboardRefresh();
+        }
       });
 
     setReason("");

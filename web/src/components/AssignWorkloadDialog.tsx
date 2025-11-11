@@ -50,7 +50,7 @@ interface AssignWorkloadDialogProps {
 
 export function AssignWorkloadDialog({ workload, open, onOpenChange, onSubmit }: AssignWorkloadDialogProps) {
   const { fetchRooms, rooms } = useWorkloadStore()
-  const { employees, fetchEmployee, getFullName } = useEmployeeStore()
+  const { employees, fetchEmployee, fetchEmployeeForce, getFullName } = useEmployeeStore()
   const [assigneeOpen, setAssigneeOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -68,9 +68,8 @@ export function AssignWorkloadDialog({ workload, open, onOpenChange, onSubmit }:
 
   useEffect(() => {
     if (open) {
-      if (!employees || employees.length === 0) {
-        fetchEmployee()
-      }
+      // Always fetch fresh employee data to ensure we have the latest
+      fetchEmployeeForce();
       if (!rooms || rooms.length === 0) {
         fetchRooms()
       }
@@ -83,7 +82,7 @@ export function AssignWorkloadDialog({ workload, open, onOpenChange, onSubmit }:
           : { title: "", description: "", schedFrom: "", schedTo: "" }),
       })
     }
-  }, [open, fetchEmployee, fetchRooms, employees, rooms, workload, form])
+  }, [open, fetchEmployeeForce, fetchRooms, rooms, workload, form])
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true)

@@ -15,13 +15,14 @@ interface AdminLeaveViewProps {
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   leaveRequests: Leave[];
+  allLeaveRequests?: Leave[]; // Make it optional to maintain backward compatibility
   isLoading: boolean;
   onApprove: (id: number) => void;
   onReject: (leave: Leave) => void;
   onEdit: (leave: Leave) => void;
   onView: (leave: Leave) => void;
   totalLeaveCount?: number;
-  onFilterStatus: (status?: "Pending" | "Approved" | "Rejected") => void;
+  onFilterStatus: (status?: "Pending" | "Approved" | "Disapproved") => void;
 }
 
 const AdminLeaveView = ({
@@ -29,6 +30,7 @@ const AdminLeaveView = ({
   currentPage,
   setCurrentPage,
   leaveRequests,
+  allLeaveRequests, // Destructure the new prop
   isLoading,
   onApprove,
   onReject,
@@ -37,18 +39,53 @@ const AdminLeaveView = ({
   totalLeaveCount = 0,
   onFilterStatus,
 }: AdminLeaveViewProps) => {
-  // Calculate counts for each status from all leave requests
-  const pendingCount = leaveRequests.filter(request => request.status === "Pending").length;
-  const approvedCount = leaveRequests.filter(request => request.status === "Approved").length;
-  const disapprovedCount = leaveRequests.filter(request => request.status === "Rejected").length;
+  // Calculate counts for each status from all leave requests (not just the filtered ones)
+  // Use allLeaveRequests if available, otherwise fall back to leaveRequests
+  const requestsToCount = allLeaveRequests || leaveRequests;
+  
+  // More robust counting that handles both old "Rejected" and new "Disapproved" statuses
+  let pendingCount = 0;
+  let approvedCount = 0;
+  let disapprovedCount = 0;
+  
+  requestsToCount.forEach(request => {
+    switch (request.status) {
+      case "Pending":
+        pendingCount++;
+        break;
+      case "Approved":
+        approvedCount++;
+        break;
+      case "Disapproved":
+        disapprovedCount++;
+        break;
+      default:
+        // Handle legacy "Rejected" status for backward compatibility
+        // Even though it's not in the type definition, it might exist in the database
+        // Type assertion to handle the case where status might be "Rejected" in the data
+        if ((request.status as string) === "Rejected") {
+          disapprovedCount++;
+        } else {
+          // Log any unexpected status values for debugging
+          console.warn("Unexpected leave status:", request.status, request);
+        }
+        break;
+    }
+  });
+  
+  const totalCount = pendingCount + approvedCount + disapprovedCount;
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle>Leave Requests</CardTitle>
-        <CardDescription>
-          Process and review employee leave requests
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-xl">Leave Requests</CardTitle>
+            <CardDescription>
+              {totalLeaveCount} total leave requests
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2 mb-4 flex-wrap">
@@ -56,8 +93,9 @@ const AdminLeaveView = ({
             variant="outline" 
             size="sm" 
             onClick={() => onFilterStatus(undefined)}
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
           >
-            All ({totalLeaveCount})
+            All ({totalCount})
           </Button>
           <Button 
             variant="outline" 
@@ -78,7 +116,7 @@ const AdminLeaveView = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => onFilterStatus("Rejected")}
+            onClick={() => onFilterStatus("Disapproved")}
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             Disapproved ({disapprovedCount})

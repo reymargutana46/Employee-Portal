@@ -170,31 +170,72 @@ class DashboardService
                           ->whereIn('title', $facultyPositions);
                 })->get();
                 
-                // Initialize grade level counts
+                // Get role-based counts
+                $adminCount = 0;
+                $principalCount = 0;
+                $secretaryCount = 0;
+                $staffCount = 0;
+                
+                // Get all employees with their roles
+                $employees = Employee::with(['user.roles'])->get();
+                
+                foreach ($employees as $employee) {
+                    // Check if employee has a user account with roles
+                    if ($employee->user && $employee->user->roles) {
+                        $hasAdminRole = false;
+                        $hasPrincipalRole = false;
+                        $hasSecretaryRole = false;
+                        $hasStaffRole = false;
+                        
+                        // Check each role for this employee
+                        foreach ($employee->user->roles as $role) {
+                            switch ($role->name) {
+                                case 'Admin':
+                                    $hasAdminRole = true;
+                                    $adminCount++;
+                                    break;
+                                case 'Principal':
+                                    $hasPrincipalRole = true;
+                                    $principalCount++;
+                                    break;
+                                case 'Secretary':
+                                    $hasSecretaryRole = true;
+                                    $secretaryCount++;
+                                    break;
+                                case 'Staff':
+                                    $hasStaffRole = true;
+                                    $staffCount++;
+                                    break;
+                            }
+                        }
+                    }
+                    // Employees without user accounts or without explicit Staff role are not counted
+                }
+                
+                // Initialize grade level counts with role-based counts
                 $facultyByGrade = [
-                    'kinder' => 0,
+                    'admin' => $adminCount,
+                    'principal' => $principalCount,
+                    'secretary' => $secretaryCount,
                     'grade1' => 0,
                     'grade2' => 0,
                     'grade3' => 0,
                     'grade4' => 0,
                     'grade5' => 0,
                     'grade6' => 0,
-                    'staff' => Employee::whereNotIn('position_id', function($query) use ($facultyPositions) {
-                        $query->select('id')
-                              ->from('positions')
-                              ->whereIn('title', $facultyPositions);
-                    })->count()
+                    'staff' => $staffCount
                 ];
                 
                 // For now, we'll distribute faculty counts evenly as we don't have grade level data in the database
                 // In a real implementation, this would come from actual assignment data
                 $facultyCount = $facultyEmployees->count();
                 if ($facultyCount > 0) {
-                    $perGrade = floor($facultyCount / 7); // 7 grade levels (Kinder to Grade 6)
-                    $remainder = $facultyCount % 7;
+                    $perGrade = floor($facultyCount / 6); // 6 grade levels (Grade 1 to Grade 6)
+                    $remainder = $facultyCount % 6;
                     
                     foreach (array_keys($facultyByGrade) as $key) {
-                        if ($key !== 'staff') {
+                        // Skip role-based counts and staff
+                        if (!in_array($key, ['admin', 'principal', 'secretary', 'staff'])) {
                             $facultyByGrade[$key] = $perGrade + ($remainder > 0 ? 1 : 0);
                             $remainder--;
                         }
@@ -258,7 +299,7 @@ class DashboardService
                     'total' => Leave::count(),
                     'pending' => Leave::where('status', 'Pending')->count(),
                     'approved' => Leave::where('status', 'Approved')->count(),
-                    'rejected' => Leave::where('status', 'Disapproved')->count(),
+                    'disapproved' => Leave::where('status', 'Disapproved')->count(),
                 ];
             }
             // Get detailed leave counts by status for staff and faculty members
@@ -267,7 +308,7 @@ class DashboardService
                     'total' => Leave::where('employee_id', $this->employee->id)->count(),
                     'pending' => Leave::where('employee_id', $this->employee->id)->where('status', 'Pending')->count(),
                     'approved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Approved')->count(),
-                    'rejected' => Leave::where('employee_id', $this->employee->id)->where('status', 'Disapproved')->count(),
+                    'disapproved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Disapproved')->count(),
                 ];
             }
 
@@ -449,7 +490,32 @@ class DashboardService
                 return $result;
             }
 
-            // Get additional recent activities from other users (for admin only)
+            // For admin users, show exactly 5 recent activities (their own + others if needed)
+            if ($this->user->hasRole('Admin')) {
+                // Get additional recent activities from other users
+                $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
+                    ->orderBy('created_at', 'desc')
+                    ->take(5 - $userActivities->count()) // Fill up to 5 total activities
+                    ->get();
+
+                // Merge user activities first, then other activities
+                $allActivities = $userActivities->merge($otherActivities)
+                    ->sortByDesc('created_at') // Sort by timestamp descending
+                    ->take(5); // Ensure we don't exceed 5 activities
+
+                $result = $allActivities->map(function ($log) {
+                    return [
+                        'performed_by' => $log->performed_by,
+                        'action' => $log->action,
+                        'description' => $log->description,
+                        'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
+                    ];
+                })->values(); // Ensure we return a reindexed array
+
+                return $result;
+            }
+
+            // Get additional recent activities from other users (for non-admin roles that reach this point)
             $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
                 ->orderBy('created_at', 'desc')
                 ->take(10 - $userActivities->count()) // Fill up to 10 total activities

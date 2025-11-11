@@ -78,7 +78,7 @@ export function AddWorkloadDialog({ onSubmit }: AddWorkloadDialogProps) {
   const [open, setOpen] = useState(false)
   const [workloadType, setWorkloadType] = useState<WorkloadType>("FACULTY")
   const { fetchRooms, rooms } = useWorkloadStore()
-  const { employees, fetchEmployee, getFullName } = useEmployeeStore()
+  const { employees, fetchEmployeeForce, getFullName } = useEmployeeStore()
   const [assigneeOpen, setAssigneeOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -95,14 +95,13 @@ export function AddWorkloadDialog({ onSubmit }: AddWorkloadDialogProps) {
 
   useEffect(() => {
     if (open) {
-      if (!employees || employees.length === 0) {
-        fetchEmployee()
-      }
+      // Always fetch fresh employee data to ensure we have the latest
+      fetchEmployeeForce();
       if (!rooms || rooms.length === 0) {
         fetchRooms()
       }
     }
-  }, [open, fetchEmployee, fetchRooms, employees, rooms])
+  }, [open, fetchEmployeeForce, fetchRooms, rooms])
 
   const handleSubmit = async (data: WorkloadFormValues) => {
     setIsSubmitting(true)

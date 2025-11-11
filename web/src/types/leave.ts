@@ -8,14 +8,14 @@ export interface LeaveRejection {
     updated_at: string;
     rejreason: string;
 }
-export type LeaveStatus = "Pending" | "Approved" | "Rejected";
+export type LeaveStatus = "Pending" | "Approved" | "Disapproved";
 
 export interface Leave {
     id: number;
     from: string;
     to: string;
     reason: string;
-    status:  LeaveStatus;
+    status: LeaveStatus;
     type_id: number;
     deleted_at: string | null;
     created_at: string;

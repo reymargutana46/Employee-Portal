@@ -24,7 +24,6 @@ import { useAuthStore } from "@/store/useAuthStore"
 import { useSeerviceRequestStore } from "@/store/useServiceRequestStore"
 
 const ServiceRequests = () => {
-  const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("")
   const [ratingFilter, setRatingFilter] = useState("") // "rated", "unrated", "hasRemarks"
@@ -36,20 +35,20 @@ const ServiceRequests = () => {
   const {
     serviceRequests,
     selectedRequest,
-
     fetchRequests,
     createRequest,
-    updateRequest,
     updateStatus,
-    deleteRequest,
+    setSearchTerm,
+    searchTerm,
     submitRating,
     setSelectedRequest,
+    fetchEmployeeForce,
   } = useSeerviceRequestStore()
 
   useEffect(() => {
-    if (employees.length <= 0) fetchEmployee()
+    fetchEmployeeForce() // Use force refresh to always get latest data
     if (serviceRequests.length <= 0) fetchRequests()
-  }, [serviceRequests.length, employees.length, fetchEmployee, fetchRequests])
+  }, [serviceRequests.length, fetchEmployeeForce, fetchRequests])
 
   // Filter requests based on search term, active tab (status), and priority
   const filteredRequests = serviceRequests.filter((request) => {

@@ -56,7 +56,7 @@ const DTRDashboard = () => {
     fetchDTR,
   } = useDTRStore();
 
-  const { employees, fetchEmployee, getFullName } = useEmployeeStore();
+  const { employees, fetchEmployeeForce, getFullName } = useEmployeeStore();
   const { toast } = useToast();
 
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
@@ -65,9 +65,9 @@ const DTRDashboard = () => {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchEmployee();
+    fetchEmployeeForce(); // Use force refresh to always get latest data
     fetchDTR();
-  }, [fetchEmployee, fetchDTR]);
+  }, [fetchEmployeeForce, fetchDTR]);
 
   // Apply date range filter when selected month changes
   useEffect(() => {

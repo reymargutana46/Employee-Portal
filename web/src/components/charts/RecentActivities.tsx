@@ -18,10 +18,11 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
   const isSecretary = userRoles.some(role => role.name.toLowerCase() === 'secretary');
   const isStaff = userRoles.some(role => role.name.toLowerCase() === 'staff');
   const isFaculty = userRoles.some(role => role.name.toLowerCase() === 'faculty');
+  const isAdmin = userRoles.some(role => role.name.toLowerCase() === 'admin');
   
   // Determine how many activities to show based on user role
-  // Staff, Faculty, and Secretary users should see 5 activities, Principal users should see 5, others should see 3
-  const activityCount = isPrincipal ? 10 : (isStaff || isFaculty || isSecretary) ? 5 : 3;
+  // Admin, Staff, Faculty, and Secretary users should see 5 activities, Principal users should see 10, others should see 5
+  const activityCount = isPrincipal ? 10 : (isAdmin || isStaff || isFaculty || isSecretary) ? 5 : 5;
   
   return (
     <div className="space-y-3">
@@ -71,7 +72,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
         })()
       ) : (
         <div className="text-center py-4 text-muted-foreground text-sm">
-          {(isStaff || isFaculty || isSecretary)
+          {(isStaff || isFaculty || isSecretary || isAdmin)
             ? "You haven't performed any activities yet" 
             : "No recent activities"}
         </div>

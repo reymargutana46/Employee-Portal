@@ -44,15 +44,16 @@ const TimeInOutDialog = () => {
   const [undertimeMinute, setUndertimeMinute] = useState("");
 
   const { fetchDTR } = useDTRStore();
-  const { employees, fetchEmployee } = useEmployeeStore();
+  const { employees, fetchEmployeeForce } = useEmployeeStore();
   const { toast } = useToast();
   const { userRoles } = useAuth();
 
   const isSecretary = userRoles.some((role) => role.name === "secretary");
 
   useEffect(() => {
-    fetchEmployee();
-  }, [fetchEmployee]);
+    // Always fetch fresh employee data to ensure we have the latest
+    fetchEmployeeForce();
+  }, [fetchEmployeeForce]);
 
   useEffect(() => {
     if (amArrival && amDeparture && pmArrival && pmDeparture) {

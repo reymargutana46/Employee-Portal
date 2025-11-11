@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,16 +61,35 @@ const formSchema = z.object({
 });
 
 const AddEmployeeDialog = () => {
-  const { addEmployee, fetchsetup } = useEmployeeStore();
+  const { addEmployee, fetchsetup, fetchEmployeeForce } = useEmployeeStore();
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { roles, departments, positions} = useEmployeeStore()
   const [showErrors, setShowErrors] = useState(false);
+  const [isSetupLoading, setIsSetupLoading] = useState(false);
 
   // Fetch setup data when component mounts or dialog opens
   useEffect(() => {
-    fetchsetup();
-  }, [fetchsetup]);
+    const loadSetupData = async () => {
+      // Only fetch if we don't have data or if it's the first time
+      if ((!roles || roles.length === 0) || 
+          (!departments || departments.length === 0) || 
+          (!positions || positions.length === 0)) {
+        setIsSetupLoading(true);
+        try {
+          await fetchsetup();
+        } catch (error) {
+          console.error("Failed to load setup data:", error);
+        } finally {
+          setIsSetupLoading(false);
+        }
+      }
+    };
+    
+    if (open) {
+      loadSetupData();
+    }
+  }, [open, fetchsetup, roles, departments, positions]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -107,6 +126,8 @@ const AddEmployeeDialog = () => {
         const employee = res.data.data;
         console.log(employee)
         addEmployee(employee);
+        // Force refresh employee list for all users to see the new employee immediately
+        fetchEmployeeForce();
         toast({
           title: "Employee Created",
           description: `${data.fname} ${data.lname} has been added as ${data.role} with work hours from ${data.workhour_am} to ${data.workhour_pm}`,
@@ -361,9 +382,17 @@ const AddEmployeeDialog = () => {
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
+                              disabled={isSetupLoading}
                             >
                               <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select role" />
+                                {isSetupLoading ? (
+                                  <div className="flex items-center">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Loading roles...
+                                  </div>
+                                ) : (
+                                  <SelectValue placeholder="Select role" />
+                                )}
                               </SelectTrigger>
                               <SelectContent>
                                 {roles.map((role) => (
@@ -399,9 +428,17 @@ const AddEmployeeDialog = () => {
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
+                              disabled={isSetupLoading}
                             >
                               <SelectTrigger className={`col-span-3 ${showErrors && form.formState.errors.department ? "border-red-500" : "border-black"}`}>
-                                <SelectValue placeholder="Select building & section" />
+                                {isSetupLoading ? (
+                                  <div className="flex items-center">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Loading departments...
+                                  </div>
+                                ) : (
+                                  <SelectValue placeholder="Select building & section" />
+                                )}
                               </SelectTrigger>
                               <SelectContent>
                                 {departments
@@ -442,9 +479,17 @@ const AddEmployeeDialog = () => {
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
+                              disabled={isSetupLoading}
                             >
                               <SelectTrigger className={`col-span-3 ${showErrors && form.formState.errors.position ? "border-red-500" : "border-black"}`}>
-                                <SelectValue placeholder="Select position" />
+                                {isSetupLoading ? (
+                                  <div className="flex items-center">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Loading positions...
+                                  </div>
+                                ) : (
+                                  <SelectValue placeholder="Select position" />
+                                )}
                               </SelectTrigger>
                               <SelectContent>
                                 {Array.from(new Map(positions.map(position => [position.title, position])).values()).map((position) => (

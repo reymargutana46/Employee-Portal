@@ -2,12 +2,14 @@ import { ServiceRequest } from "@/types/serviceRequest";
 import { create } from "zustand";
 import axios from "../utils/axiosInstance";
 import { Res } from "@/types/response";
+import { useEmployeeStore } from "./useEmployeeStore"; // Import the employee store
 
 interface ServiceRequestState {
     serviceRequests: ServiceRequest[];
     selectedRequest: ServiceRequest | null;
     isLoading: boolean;
     error: string | null;
+    searchTerm: string; // Add this
     fetchRequests: () => Promise<void>;
     createRequest: (request: Omit<ServiceRequest, "requestor" | "id">) => Promise<void>;
     updateRequest: (id: number, request: Partial<ServiceRequest>) => Promise<void>;
@@ -15,16 +17,17 @@ interface ServiceRequestState {
     deleteRequest: (id: number) => Promise<void>;
     submitRating: (id: number, rating: number, remarks: string) => Promise<void>;
     setSelectedRequest: (request: ServiceRequest | null) => void;
+    setSearchTerm: (term: string) => void; // Add this
+    fetchEmployeeForce: () => Promise<void>; // Add this to the interface
 
 }
-
-
 
 export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) => ({
     serviceRequests: [],
     selectedRequest: null,
     isLoading: false,
     error: null,
+    searchTerm: "", // Add this
     fetchRequests: async () => {
         set({ isLoading: true });
         try {
@@ -96,8 +99,17 @@ export const useSeerviceRequestStore = create<ServiceRequestState>((set, get) =>
         } catch (error) {
             set({ error: "Failed to submit rating", isLoading: false });
         }
-
-     },
+    },
+    
     setSelectedRequest: (request) => set({ selectedRequest: request }),
+    
+    // Add the setSearchTerm function
+    setSearchTerm: (term) => set({ searchTerm: term }),
+    
+    // Add the fetchEmployeeForce function
+    fetchEmployeeForce: async () => {
+        const { fetchEmployeeForce: employeeFetchForce } = useEmployeeStore.getState();
+        await employeeFetchForce();
+    },
 
 }));

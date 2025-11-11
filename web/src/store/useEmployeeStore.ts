@@ -22,6 +22,7 @@ interface EmployeeState {
   setSearchTerm: (term: string) => void;
   fetchsetup: () => void;
   fetchEmployee: () => Promise<void>;
+  fetchEmployeeForce: () => Promise<void>; // Add this new function
   fetchMe: () => Promise<void>;
   setSorting: (field: keyof Employee) => void;
   setFilterDepartment: (department: Department | null) => void;
@@ -55,8 +56,34 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
 
   fetchEmployee: async () => {
     const { employees } = get();
-    if (employees.length) return;
+    // Always fetch for principals and secretaries to ensure they see updated data
+    // For other roles, only fetch if we don't have data yet
+    const authData = localStorage.getItem('auth');
+    let isPrincipalOrSecretary = false;
+    
+    if (authData) {
+      try {
+        const auth = JSON.parse(authData);
+        isPrincipalOrSecretary = auth.user?.roles?.some((role: Role) => 
+          role.name === 'principal' || role.name === 'secretary'
+        ) || false;
+      } catch (e) {
+        console.error('Error parsing auth data:', e);
+      }
+    }
+    
+    if (employees.length && !isPrincipalOrSecretary) return;
 
+    try {
+      const res = await axios.get<Res<Employee[]>>('/employee');
+      set({ employees: res.data.data });
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+    }
+  },
+  
+  // New function to force refresh employee data
+  fetchEmployeeForce: async () => {
     try {
       const res = await axios.get<Res<Employee[]>>('/employee');
       set({ employees: res.data.data });
@@ -70,10 +97,28 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
     set({ employee: res.data.data, isLoading: false });
   },
   fetchsetup: async () => {
-    const response = await axios.get<Res<Role[]>>('/set-up/role');
-    const depts = await axios.get<Res<Department[]>>('/set-up/department');
-    const pst = await axios.get<Res<Position[]>>('/set-up/position');
-    set({ roles: response.data.data, departments: depts.data.data, positions: pst.data.data });
+    const state = get();
+    // Only fetch if we don't already have the data
+    if (state.roles.length > 0 && state.departments.length > 0 && state.positions.length > 0) {
+      return;
+    }
+    
+    try {
+      const [response, depts, pst] = await Promise.all([
+        axios.get<Res<Role[]>>('/set-up/role'),
+        axios.get<Res<Department[]>>('/set-up/department'),
+        axios.get<Res<Position[]>>('/set-up/position')
+      ]);
+      
+      set({ 
+        roles: response.data.data, 
+        departments: depts.data.data, 
+        positions: pst.data.data 
+      });
+    } catch (error) {
+      console.error('Failed to fetch setup data:', error);
+      throw error;
+    }
   },
 
   setSearchTerm: (term) => set({ searchTerm: term }),

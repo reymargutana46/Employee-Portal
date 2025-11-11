@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import DateRangeFilter from "@/components/DateRangeFilter";
 interface LeaveSearchAndFilterProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  onFilterStatus: (status?: "Pending" | "Approved" | "Rejected") => void;
+  onFilterStatus: (status?: "Pending" | "Approved" | "Disapproved") => void;
   onFilterType: (type?: string) => void;
   onDateRangeFilter: (start: Date | null, end: Date | null) => void;
 }

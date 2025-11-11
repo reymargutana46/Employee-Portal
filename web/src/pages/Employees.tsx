@@ -58,6 +58,7 @@ const Employees = () => {
     getFilteredEmployees,
     deleteEmployee,
     fetchEmployee,
+    fetchEmployeeForce,
     fetchsetup,
 
     getFullName
@@ -83,7 +84,8 @@ const Employees = () => {
 
   useEffect(() => {
     fetchsetup();
-    fetchEmployee();
+    // Always fetch fresh employee data to ensure principals and secretaries see updates
+    fetchEmployeeForce();
   }, []);
 
   const handleSort = (field: string) => {
