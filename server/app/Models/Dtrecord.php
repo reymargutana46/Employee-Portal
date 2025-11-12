@@ -10,14 +10,18 @@ class Dtrecord extends Model
         'employee_name',
         'employee_id',
         'date',
-        'time_in',
-        'time_out',
+        'am_time_in',
+        'am_time_out',
+        'pm_time_in',
+        'pm_time_out',
     ];
 
     protected $casts = [
         'date' => 'date',
-        'time_in' => 'string',
-        'time_out' => 'string',
+        'am_time_in' => 'string',
+        'am_time_out' => 'string',
+        'pm_time_in' => 'string',
+        'pm_time_out' => 'string',
     ];
 
     public function employee()

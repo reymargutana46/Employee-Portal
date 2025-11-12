@@ -37,30 +37,18 @@ class DTRController extends Controller
         $user = Auth::user();
 
 
-        // Get all AM entries
-        $amEntries = DB::table('dtr_amtimes')
+        // Get all DTR entries from the new dtrecords table
+        $dtrEntries = DB::table('dtrecords')
             ->when(!$this->hasAccess, function ($query) use ($user) {
                 return $query->where('employee_id', $user->employee->id);
             })
             ->select([
-                DB::raw('DATE(time_in) as date'),
-                'time_in',
-                'time_out',
-                DB::raw('id as am_id'),
-                'employee_id',
-            ])
-            ->get();
-
-        // Get all PM entries
-        $pmEntries = DB::table('dtr_pmtimes')
-            ->when(!$this->hasAccess, function ($query) use ($user) {
-                return $query->where('employee_id', $user->employee->id);
-            })
-            ->select([
-                DB::raw('DATE(time_in) as date'),
-                'time_in',
-                'time_out',
-                DB::raw('id as pm_id'),
+                'date',
+                'am_time_in',
+                'am_time_out',
+                'pm_time_in',
+                'pm_time_out',
+                'id as dtr_id',
                 'employee_id',
             ])
             ->get();
@@ -98,8 +86,7 @@ class DTRController extends Controller
         }
 
         // Combine all unique dates
-        $dates = $amEntries->pluck('date')
-            ->merge($pmEntries->pluck('date'))
+        $dates = $dtrEntries->pluck('date')
             ->merge($leaveEntries->pluck('date'))
             ->unique()
             ->sort();
@@ -113,22 +100,20 @@ class DTRController extends Controller
         foreach ($dates as $date) {
             // Get all involved employee IDs for this date
             $employeeIds = collect()
-                ->merge($amEntries->where('date', $date)->pluck('employee_id'))
-                ->merge($pmEntries->where('date', $date)->pluck('employee_id'))
+                ->merge($dtrEntries->where('date', $date)->pluck('employee_id'))
                 ->merge($leaveEntries->where('date', $date)->pluck('employee_id'))
                 ->unique();
 
             foreach ($employeeIds as $employeeId) {
-                $amEntry = $amEntries->where('date', $date)->where('employee_id', $employeeId)->first();
-                $pmEntry = $pmEntries->where('date', $date)->where('employee_id', $employeeId)->first();
+                $dtrEntry = $dtrEntries->where('date', $date)->where('employee_id', $employeeId)->first();
                 $leaveExist = $leaveEntries->where('date', $date)->where('employee_id', $employeeId)->first();
 
-                $amArrival = $amEntry ? Carbon::parse($amEntry->time_in)->format('g:i A') : null;
-                $amDeparture = $amEntry ? Carbon::parse($amEntry->time_out)->format('g:i A') : null;
-                $pmArrival = $pmEntry ? Carbon::parse($pmEntry->time_in)->format('g:i A') : null;
-                $pmDeparture = $pmEntry ? Carbon::parse($pmEntry->time_out)->format('g:i A') : null;
+                $amArrival = $dtrEntry && $dtrEntry->am_time_in ? Carbon::parse($dtrEntry->am_time_in)->format('g:i A') : null;
+                $amDeparture = $dtrEntry && $dtrEntry->am_time_out ? Carbon::parse($dtrEntry->am_time_out)->format('g:i A') : null;
+                $pmArrival = $dtrEntry && $dtrEntry->pm_time_in ? Carbon::parse($dtrEntry->pm_time_in)->format('g:i A') : null;
+                $pmDeparture = $dtrEntry && $dtrEntry->pm_time_out ? Carbon::parse($dtrEntry->pm_time_out)->format('g:i A') : null;
 
-                $status = $leaveExist ? 'Leave' : ($amEntry || $pmEntry ? 'Present' : 'Absent');
+                $status = $leaveExist ? 'Leave' : ($dtrEntry ? 'Present' : 'Absent');
 
                 $employee = $allEmployees->get($employeeId);
                 $fullname = $employee->extname
@@ -137,8 +122,7 @@ class DTRController extends Controller
 
                 $records[] = [
                     'employee_id' => $employeeId,
-                    'am_id' => $amEntry?->am_id,
-                    'pm_id' => $pmEntry?->pm_id,
+                    'dtr_id' => $dtrEntry?->dtr_id,
                     'leave_id' => $leaveExist?->leave_id,
                     'employee' => $fullname,
                     'date' => Carbon::parse($date)->format('M d, Y'),
@@ -192,27 +176,51 @@ class DTRController extends Controller
             ], 422);
         }
 
-        $amRecord = [
-            'time_in' => !empty($request->amArrival) ?
-                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->amArrival)->format('Y-m-d H:i:s') : null,
-            'time_out' => !empty($request->amDeparture) ?
-                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->amDeparture)->format('Y-m-d H:i:s') : null,
-        ];
-        $pmRecord = [
-            'time_in' => !empty($request->pmArrival) ?
-                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->pmArrival)->format('Y-m-d H:i:s') : null,
-            'time_out' => !empty($request->pmDeparture) ?
-                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->pmDeparture)->format('Y-m-d H:i:s') : null,
-        ];
+        // Create a single record in the new dtrecords table
         try {
-            DB::transaction(function () use ($employee,  $pmRecord, $amRecord) {
-                if (!empty($amRecord)) {
-                    $employee->DTRAmTimes()->create($amRecord);
+            DB::transaction(function () use ($employee, $request) {
+                $date = Carbon::createFromFormat('Y-m-d', $request->date);
+                
+                // Check if a record already exists for this employee and date
+                $existingRecord = DB::table('dtrecords')
+                    ->where('employee_id', $employee->id)
+                    ->where('date', $date->format('Y-m-d'))
+                    ->first();
+                
+                if ($existingRecord) {
+                    // Update existing record
+                    DB::table('dtrecords')
+                        ->where('id', $existingRecord->id)
+                        ->update([
+                            'am_time_in' => !empty($request->amArrival) ? 
+                                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->amArrival)->format('H:i:s') : null,
+                            'am_time_out' => !empty($request->amDeparture) ? 
+                                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->amDeparture)->format('H:i:s') : null,
+                            'pm_time_in' => !empty($request->pmArrival) ? 
+                                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->pmArrival)->format('H:i:s') : null,
+                            'pm_time_out' => !empty($request->pmDeparture) ? 
+                                Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->pmDeparture)->format('H:i:s') : null,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    // Create new record
+                    DB::table('dtrecords')->insert([
+                        'employee_id' => $employee->id,
+                        'employee_name' => $employee->fname . ' ' . $employee->lname,
+                        'date' => $date->format('Y-m-d'),
+                        'am_time_in' => !empty($request->amArrival) ? 
+                            Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->amArrival)->format('H:i:s') : null,
+                        'am_time_out' => !empty($request->amDeparture) ? 
+                            Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->amDeparture)->format('H:i:s') : null,
+                        'pm_time_in' => !empty($request->pmArrival) ? 
+                            Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->pmArrival)->format('H:i:s') : null,
+                        'pm_time_out' => !empty($request->pmDeparture) ? 
+                            Carbon::createFromFormat('Y-m-d H:i', $request->date . ' ' . $request->pmDeparture)->format('H:i:s') : null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
 
-                if (!empty($pmRecord)) {
-                    $employee->DTRPmTimes()->create($pmRecord);
-                }
                 ActivityLog::create([
                     'performed_by' => Auth::user()->username,
                     'action' => 'created',
@@ -258,9 +266,8 @@ class DTRController extends Controller
             'am_departure' => 'required',
             'pm_arrival' => 'required',
             'pm_departure' => 'required',
-            'am_id' => 'nullable|integer|exists:dtr_amtimes,id|required_without:leave_id',
-            'pm_id' => 'nullable|integer|exists:dtr_pmtimes,id|required_without:leave_id',
-            'leave_id' => 'nullable|integer|exists:leaves,id|required_without_all:am_id,pm_id',
+            'dtr_id' => 'nullable|integer|exists:dtrecords,id|required_without:leave_id',
+            'leave_id' => 'nullable|integer|exists:leaves,id|required_without_all:dtr_id',
             'employee_id' => 'required|integer|exists:employees,id',
             'status' => 'required|string|in:Present,Leave,Absent',
             'type' => 'nullable|string|max:255',
@@ -269,23 +276,19 @@ class DTRController extends Controller
 
         DB::transaction(function () use ($data) {
             // Parse full datetime from date + time strings
-            $amTimeIn = Carbon::parse($data['date'] . ' ' . $data['am_arrival']);
-            $amTimeOut = Carbon::parse($data['date'] . ' ' . $data['am_departure']);
-            $pmTimeIn = Carbon::parse($data['date'] . ' ' . $data['pm_arrival']);
-            $pmTimeOut = Carbon::parse($data['date'] . ' ' . $data['pm_departure']);
+            $amTimeIn = !empty($data['am_arrival']) ? Carbon::parse($data['date'] . ' ' . $data['am_arrival']) : null;
+            $amTimeOut = !empty($data['am_departure']) ? Carbon::parse($data['date'] . ' ' . $data['am_departure']) : null;
+            $pmTimeIn = !empty($data['pm_arrival']) ? Carbon::parse($data['date'] . ' ' . $data['pm_arrival']) : null;
+            $pmTimeOut = !empty($data['pm_departure']) ? Carbon::parse($data['date'] . ' ' . $data['pm_departure']) : null;
 
-            if ($data['am_id']) {
-                DtrAmtime::where('id', $data['am_id'])->update([
-                    'time_in' => $amTimeIn,
-                    'time_out' => $amTimeOut,
-                ]);
-            }
-
-            // Update PM record if present
-            if ($data['pm_id']) {
-                DTRPmtime::where('id', $data['pm_id'])->update([
-                    'time_in' => $pmTimeIn,
-                    'time_out' => $pmTimeOut,
+            if ($data['dtr_id']) {
+                // Update DTR record
+                DB::table('dtrecords')->where('id', $data['dtr_id'])->update([
+                    'am_time_in' => $amTimeIn ? $amTimeIn->format('H:i:s') : null,
+                    'am_time_out' => $amTimeOut ? $amTimeOut->format('H:i:s') : null,
+                    'pm_time_in' => $pmTimeIn ? $pmTimeIn->format('H:i:s') : null,
+                    'pm_time_out' => $pmTimeOut ? $pmTimeOut->format('H:i:s') : null,
+                    'updated_at' => now(),
                 ]);
             }
 

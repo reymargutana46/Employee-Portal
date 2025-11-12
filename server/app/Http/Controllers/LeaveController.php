@@ -14,13 +14,10 @@ use Str;
 
 class LeaveController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         $leave = Leave::with(['leaveRejection', 'employee', 'leaveType'])
-            ->when(!Auth::user()->hasRole(['Principal', 'Admin']), function ($query) {
+            ->when(!Auth::user()->hasRole(['Principal', 'Admin', 'Secretary']), function ($query) {
                 return $query->where('employee_id', Auth::user()->employee->id);
             })->get();
 
@@ -143,22 +140,7 @@ class LeaveController extends Controller
             return $this->ok($leave, "Leave Disapproved");
         });
     }
-    public function leaveTypes()
-    {
-        $types = LeaveType::all();
-        return $this->ok($types);
-    }
-
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        $leave = Leave::with('leaveRejection')->findOrFail($id);
-        return $this->ok($leave);
-    }
-
+    
     /**
      * Update the specified resource in storage.
      */
@@ -168,8 +150,11 @@ class LeaveController extends Controller
             'type' => 'required',
             'from' => 'required|date',
             'to' => 'required|date',
-            'reason' => 'required'
+            'reason' => 'required|string|min:15'
         ]);
+
+        // Log the incoming request data
+        \Log::info('Leave update request data: ', $request->all());
 
         // Optimize leave type lookup
         $typeName = trim($request->type);
@@ -187,15 +172,42 @@ class LeaveController extends Controller
             \Log::info('Leave type not found during update: ' . $typeName . '. Available types: ' . implode(', ', $availableTypes));
             return $this->notFound('Type "' . $typeName . '" is not found. Available types: ' . implode(', ', $availableTypes));
         }
+        
         $leave = Leave::findOrFail($id);
+        \Log::info('Leave before update: ', $leave->toArray());
+        
         if ($leave->status !== "Pending") {
             return $this->badRequest("Leave is already Updated");
         }
+        
+        $fromDate = Carbon::parse($request->from)->startOfDay();
+        $toDate = Carbon::parse($request->to)->startOfDay();
+        
         $leave->type_id = $type->id;
         $leave->reason = $request->reason;
+        $leave->from = $fromDate;
+        $leave->to = $toDate;
         $leave->save();
+        
+        \Log::info('Leave after update: ', $leave->fresh()->toArray());
 
-        return $this->ok();
+        return $this->ok($leave->fresh());
+    }
+
+    public function leaveTypes()
+    {
+        $types = LeaveType::all();
+        return $this->ok($types);
+    }
+
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $leave = Leave::with('leaveRejection')->findOrFail($id);
+        return $this->ok($leave);
     }
 
     /**

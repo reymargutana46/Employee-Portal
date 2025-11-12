@@ -450,16 +450,14 @@ class DashboardService
                 return $result;
             }
 
-            // For admin/principal/secretary users, prioritize their own activities
-            // Get the current user's activities first (most recent)
-            $userActivities = ActivityLog::where('performed_by', $this->user->username)
-                ->orderBy('created_at', 'desc')
-                ->take(5) // Limit to 5 most recent user activities
-                ->get();
-
             // For secretary users, only show their own activities
             if ($this->user->hasRole('Secretary')) {
-                $result = $userActivities->map(function ($log) {
+                $activities = ActivityLog::where('performed_by', $this->user->username)
+                    ->orderBy('created_at', 'desc')
+                    ->take(5) // Limit to 5 most recent activities
+                    ->get();
+
+                $result = $activities->map(function ($log) {
                     return [
                         'performed_by' => $log->performed_by,
                         'action' => $log->action,
@@ -473,12 +471,12 @@ class DashboardService
 
             // For principal users, show their own activities ordered from oldest to latest
             if ($this->user->hasRole('Principal')) {
-                $principalActivities = ActivityLog::where('performed_by', $this->user->username)
+                $activities = ActivityLog::where('performed_by', $this->user->username)
                     ->orderBy('created_at', 'asc') // Order from oldest to latest
                     ->take(10) // Show up to 10 activities
                     ->get();
 
-                $result = $principalActivities->map(function ($log) {
+                $result = $activities->map(function ($log) {
                     return [
                         'performed_by' => $log->performed_by,
                         'action' => $log->action,
@@ -490,53 +488,38 @@ class DashboardService
                 return $result;
             }
 
-            // For admin users, show exactly 5 recent activities (their own + others if needed)
+            // For admin users, show all recent activities from all users (including admin's own activities)
+            // This will show the most recent activities across the entire system
             if ($this->user->hasRole('Admin')) {
-                // Get additional recent activities from other users
-                $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
-                    ->orderBy('created_at', 'desc')
-                    ->take(5 - $userActivities->count()) // Fill up to 5 total activities
+                $activities = ActivityLog::orderBy('created_at', 'desc')
+                    ->take(20) // Show up to 20 recent activities as per project requirements
                     ->get();
 
-                // Merge user activities first, then other activities
-                $allActivities = $userActivities->merge($otherActivities)
-                    ->sortByDesc('created_at') // Sort by timestamp descending
-                    ->take(5); // Ensure we don't exceed 5 activities
-
-                $result = $allActivities->map(function ($log) {
+                $result = $activities->map(function ($log) {
                     return [
                         'performed_by' => $log->performed_by,
                         'action' => $log->action,
                         'description' => $log->description,
                         'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
                     ];
-                })->values(); // Ensure we return a reindexed array
+                })->values();
 
                 return $result;
             }
 
-            // Get additional recent activities from other users (for non-admin roles that reach this point)
-            $otherActivities = ActivityLog::where('performed_by', '!=', $this->user->username)
-                ->orderBy('created_at', 'desc')
-                ->take(10 - $userActivities->count()) // Fill up to 10 total activities
+            // Default case - show 10 recent activities for any other roles
+            $activities = ActivityLog::orderBy('created_at', 'desc')
+                ->take(10)
                 ->get();
 
-            // Merge user activities first, then other activities
-            $allActivities = $userActivities->merge($otherActivities)
-                ->sortByDesc('created_at') // Sort by timestamp descending
-                ->take(10); // Ensure we don't exceed 10 activities
-
-            $result = $allActivities->map(function ($log) {
+            $result = $activities->map(function ($log) {
                 return [
                     'performed_by' => $log->performed_by,
                     'action' => $log->action,
                     'description' => $log->description,
                     'time' => Carbon::parse($log->created_at)->format('Y-m-d H:i:s'),
                 ];
-            })->values(); // Ensure we return a reindexed array
-
-            // Log for debugging
-            // \Log::info('Admin/Principal/Secretary activity logs result for user: ' . $this->user->username . ', user activities: ' . $userActivities->count() . ', other activities: ' . $otherActivities->count() . ', total: ' . $result->count());
+            })->values();
 
             return $result;
         } catch (\Exception $e) {

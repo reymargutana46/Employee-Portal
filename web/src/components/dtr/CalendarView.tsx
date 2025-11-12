@@ -79,12 +79,10 @@ const DTRCalendarView = ({ records, dateRange, isAdmin, isSecretary, onRefresh }
 
     if (dayRecords.length === 0) return null
 
-    // Count statuses
+    // Count statuses - removed Leave status display
     const statuses = {
       Present: dayRecords.filter((r) => r.status === "Present").length,
-      Leave: dayRecords.filter((r) => r.status === "Leave").length,
-      // Absent: dayRecords.filter((r) => r.status === "Absent").length,
-      // Late: dayRecords.filter((r) => r.status === "Late").length,
+      // Leave display removed as requested
     }
 
     return statuses
@@ -241,21 +239,7 @@ const DTRCalendarView = ({ records, dateRange, isAdmin, isSecretary, onRefresh }
                       {dayStatus.Present} Present
                     </div>
                   )}
-                  {dayStatus.Leave > 0 && (
-                    <div className="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded mb-0.5 truncate">
-                      {dayStatus.Leave} Leave
-                    </div>
-                  )}
-                  {/* {dayStatus.Absent > 0 && (
-                    <div className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded mb-0.5 truncate">
-                      {dayStatus.Absent} Absent
-                    </div>
-                  )}
-                  {dayStatus.Late > 0 && (
-                    <div className="text-xs bg-amber-100 text-amber-800 px-1 py-0.5 rounded mb-0.5 truncate">
-                      {dayStatus.Late} Late
-                    </div>
-                  )} */}
+                  {/* Leave display removed as requested */}
                 </div>
               )}
             </Button>

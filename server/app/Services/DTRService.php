@@ -67,76 +67,65 @@ class DTRService
             ], 422);
         }
 
-        // Prepare AM and PM data with proper date parsing
-        $amRecords = $records->map(function ($rec) use ($monthYear) {
+        // Prepare DTR data with proper date parsing for the new dtrecords table
+        $dtrRecords = [];
+        
+        foreach ($records as $rec) {
             try {
-                return [
-                    'time_in' => !empty($rec['am_arrival']) ?
-                        Carbon::createFromFormat('F Y j g:i a', $monthYear . ' ' . $rec['day'] . ' ' . $rec['am_arrival']) : null,
-                    'time_out' => !empty($rec['am_departure']) ?
-                        Carbon::createFromFormat('F Y j g:i a', $monthYear . ' ' . $rec['day'] . ' ' . $rec['am_departure']) : null,
+                // Create date from month/year and day
+                $date = Carbon::createFromFormat('F Y j', $monthYear . ' ' . $rec['day']);
+                
+                // Check if a record already exists for this employee and date
+                $existingRecord = DB::table('dtrecords')
+                    ->where('employee_id', $employee->id)
+                    ->where('date', $date->format('Y-m-d'))
+                    ->first();
+                
+                $recordData = [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->fname . ' ' . $employee->lname,
+                    'date' => $date->format('Y-m-d'),
+                    'am_time_in' => !empty($rec['am_arrival']) ? 
+                        Carbon::createFromFormat('g:i a', $rec['am_arrival'])->format('H:i:s') : null,
+                    'am_time_out' => !empty($rec['am_departure']) ? 
+                        Carbon::createFromFormat('g:i a', $rec['am_departure'])->format('H:i:s') : null,
+                    'pm_time_in' => !empty($rec['pm_arrival']) ? 
+                        Carbon::createFromFormat('g:i a', $rec['pm_arrival'])->format('H:i:s') : null,
+                    'pm_time_out' => !empty($rec['pm_departure']) ? 
+                        Carbon::createFromFormat('g:i a', $rec['pm_departure'])->format('H:i:s') : null,
                 ];
+                
+                if ($existingRecord) {
+                    // Update existing record
+                    $recordData['updated_at'] = now();
+                    DB::table('dtrecords')
+                        ->where('id', $existingRecord->id)
+                        ->update($recordData);
+                } else {
+                    // Add new record
+                    $recordData['created_at'] = now();
+                    $recordData['updated_at'] = now();
+                    $dtrRecords[] = $recordData;
+                }
             } catch (\Exception $e) {
                 // Handle parsing error - you could log this or return an error
-                return [
-                    'time_in' => null,
-                    'time_out' => null,
-                    'error' => "Unable to parse date for day {$rec['day']}: {$e->getMessage()}"
-                ];
+                \Log::error("DTR parsing error for day {$rec['day']}: {$e->getMessage()}");
+                continue;
             }
-        })->filter(function ($record) {
-            // Filter out records with parsing errors
-            return !isset($record['error']);
-        })->toArray();
+        }
 
-        $pmRecords = $records->map(function ($rec) use ($monthYear) {
-            try {
-                return [
-                    'time_in' => !empty($rec['pm_arrival']) ?
-                        Carbon::createFromFormat('F Y j g:i a', $monthYear . ' ' . $rec['day'] . ' ' . $rec['pm_arrival']) : null,
-                    'time_out' => !empty($rec['pm_departure']) ?
-                        Carbon::createFromFormat('F Y j g:i a', $monthYear . ' ' . $rec['day'] . ' ' . $rec['pm_departure']) : null,
-                ];
-            } catch (\Exception $e) {
-                // Handle parsing error
-                return [
-                    'time_in' => null,
-                    'time_out' => null,
-                    'error' => "Unable to parse date for day {$rec['day']}: {$e->getMessage()}"
-                ];
-            }
-        })->filter(function ($record) {
-            // Filter out records with parsing errors
-            return !isset($record['error']);
-        })->toArray();
+        // Insert new records in batch
+        if (!empty($dtrRecords)) {
+            DB::table('dtrecords')->insert($dtrRecords);
+        }
 
-        // Filter out null entries
-        $amRecords = array_filter($amRecords, function ($record) {
-            return !is_null($record['time_in']) || !is_null($record['time_out']);
-        });
-
-        $pmRecords = array_filter($pmRecords, function ($record) {
-            return !is_null($record['time_in']) || !is_null($record['time_out']);
-        });
-        DB::transaction(function () use ($employee, $amRecords, $pmRecords) {
-            if (!empty($amRecords)) {
-                $employee->DTRAmTimes()->createMany($amRecords);
-            }
-
-            if (!empty($pmRecords)) {
-                $employee->DTRPmTimes()->createMany($pmRecords);
-            }
-
-            ActivityLog::create([
-                'performed_by' => Auth::user()->username,
-                'action' => 'imported',
-                'description' => "Imported DTR records for {$employee->fname} {$employee->lname}",
-                'entity_type' => Employee::class,
-                'entity_id' => $employee->id,
-            ]);
-        },2);
-        // Save the records to database
-
+        ActivityLog::create([
+            'performed_by' => Auth::user()->username,
+            'action' => 'imported',
+            'description' => "Imported DTR records for {$employee->fname} {$employee->lname}",
+            'entity_type' => Employee::class,
+            'entity_id' => $employee->id,
+        ]);
 
         return response()->json([
             'status' => true,
@@ -147,25 +136,21 @@ class DTRService
 
     public function checkForLeaveConflicts($employeeId)
     {
-        $amConflicts = DB::table('dtr_amtimes as d')
+        $dtrConflicts = DB::table('dtrecords as d')
             ->join('leaves as l', 'd.employee_id', '=', 'l.employee_id')
             ->where('d.employee_id', $employeeId)
             ->where(function ($query) {
-                $query->whereBetween(DB::raw('DATE(d.time_in)'), [
+                $query->whereBetween(DB::raw('d.date'), [
                     DB::raw('DATE(l."from")'),
                     DB::raw('DATE(l."to")')
-                ])
-                    ->orWhereBetween(DB::raw('DATE(d.time_out)'), [
-                        DB::raw('DATE(l."from")'),
-                        DB::raw('DATE(l."to")')
-                    ]);
+                ]);
             })
             ->select([
-                'd.time_in',
+                'd.date',
                 DB::raw('l."from" as leave_start'),
                 DB::raw('l."to" as leave_end')
             ])
             ->get();
-        return $amConflicts;
+        return $dtrConflicts;
     }
 }

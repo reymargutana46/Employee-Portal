@@ -77,7 +77,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::middleware('role:Admin|Faculty|Secretary')->group(function () {
 
 
-
                 Route::put('/{id}', 'update');
 
                 Route::delete('/{id}', 'destroy');
@@ -87,7 +86,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/types/all', 'leaveTypes');
             Route::get('/{id}', 'show');
 
-            Route::post('/decision', 'decision')->middleware(("role:Principal"));
+            Route::post('/decision', 'decision')->middleware(("role:Principal|Secretary"));
         });
 
     Route::prefix('service-request')->controller(ServiceRequestController::class)

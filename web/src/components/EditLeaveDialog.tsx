@@ -54,18 +54,29 @@ const EditLeaveDialog = ({ leave, open, onClose, onSuccess, isAdmin }: EditLeave
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!leaveType || !dateRange?.from || !dateRange?.to) {
       toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
     try {
-      axios.put(`/leaves/${leave.id}`, {type: leaveType, from: dateRange.from, to: dateRange.to, reason})
+      const response = await axios.put(`/leaves/${leave.id}`, {
+        type: leaveType, 
+        from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '', 
+        to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '', 
+        reason
+      })
+      console.log("Update response:", response);
       toast({ title: "Success", description: "Leave request updated successfully" });
       onClose();
       onSuccess?.();
-    } catch (error) {
-      toast({  title: "Fail", description: "Leave request updated unsuccessfully" });
+    } catch (error: any) {
+      console.error("Update error:", error);
+      toast({  
+        title: "Fail", 
+        description: error.response?.data?.message || "Leave request updated unsuccessfully",
+        variant: "destructive"
+      });
     }
   };
 
