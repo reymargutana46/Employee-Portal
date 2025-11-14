@@ -41,7 +41,7 @@ const WorkloadPage = () => {
   if (isPrincipal) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        {/* Principal view - only show Class Schedule Approval */}
+        {/* Principal view - show Class Schedule Approval with integrated workload stats */}
         <ClassScheduleApproval />
       </div>
     )

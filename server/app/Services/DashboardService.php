@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\ServiceRequest;
 use App\Models\ActivityLog;
 use App\Models\WorkLoadHdr;
+use App\Models\User;
 use App\Models\DtrAmtime;
 use App\Models\DtrPmtime;
 use Auth;
@@ -534,6 +535,12 @@ class DashboardService
             $query = WorkLoadHdr::query();
             if (!$this->user->hasRole($this->allowedRoles)) {
                 $query->where('assignee_id', $this->employee->id);
+            } elseif ($this->user->hasRole('Principal')) {
+                // Principal: show only workloads created by GradeLeader users (all statuses)
+                $gradeLeaderUsernames = User::whereHas('roles', function ($q) {
+                    $q->where('name', 'GradeLeader');
+                })->pluck('username');
+                $query->whereIn('created_by', $gradeLeaderUsernames);
             }
 
             $workloads = $query->get();

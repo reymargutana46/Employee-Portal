@@ -55,6 +55,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::put('/update/profile', 'updateProfile');
 
                 Route::delete('/{id}', 'destroy')->middleware('role:Admin');
+                Route::post('/{id}/deactivate', 'deactivate')->middleware('role:Admin');
+                Route::post('/{id}/reactivate', 'reactivate')->middleware('role:Admin');
+                Route::get('/debug/users', 'debugUsers')->middleware('role:Admin');
             }
         );
 
@@ -74,7 +77,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('leaves')
         ->controller(LeaveController::class)->group(function () {
 
-            Route::middleware('role:Admin|Faculty|Secretary')->group(function () {
+            Route::middleware('role:Admin|Faculty|Secretary|Staff')->group(function () {
 
 
                 Route::put('/{id}', 'update');

@@ -24,7 +24,8 @@ class User extends Authenticatable
     protected $fillable = [
         'username',
         'password',
-        'role_id'
+        'role_id',
+        'is_active'
     ];
 
     protected $keyType = 'string';
@@ -88,13 +89,21 @@ class User extends Authenticatable
         return $this->hasMany(WorkLoadHdr::class, 'created_by', 'username');
     }
     /**
-     * Get all of the UserRequestee for the User
+     * Get service requests where this user's employee record is the recipient
+     * Note: ServiceRequest.request_to references Employee.id, not User.username
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough
      */
-    public function UserRequestee(): HasMany
+    public function UserRequestee()
     {
-        return $this->hasMany(ServiceRequest::class, 'request_to', 'username');
+        return $this->hasManyThrough(
+            ServiceRequest::class,
+            Employee::class,
+            'username_id', // Foreign key on employees table
+            'request_to',   // Foreign key on service_requests table
+            'username',     // Local key on users table
+            'id'           // Local key on employees table
+        );
     }
 
     /**
@@ -138,6 +147,29 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Check if user has any associated data that would prevent deletion
+     */
+    public function hasAssociatedData(): bool
+    {
+        try {
+            // Check for any related data that indicates the user has been active
+            return $this->WorkLoadHdr()->exists() ||
+                   $this->UserRequestee()->exists() || // Requests TO this user's employee record
+                   $this->userRequester()->exists() || // Requests made BY this user
+                   $this->dtrAmtime()->exists() ||
+                   $this->dtrPmtime()->exists() ||
+                   $this->leaveRejection()->exists() ||
+                   \App\Models\PersonalDataSheet::where('uploader', $this->username)->exists() ||
+                   \App\Models\ActivityLog::where('performed_by', $this->username)->exists();
+        } catch (\Exception $e) {
+            // If there's an error checking relationships, assume the user has data to be safe
+            \Log::error('Error checking user associated data: ' . $e->getMessage());
+            return true;
+        }
     }
 }

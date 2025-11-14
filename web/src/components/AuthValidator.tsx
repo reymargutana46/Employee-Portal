@@ -7,6 +7,7 @@ interface AuthValidatorProps {
 
 const AuthValidator = ({ children }: AuthValidatorProps) => {
   const [isValidating, setIsValidating] = useState(true);
+  const [validationTimeout, setValidationTimeout] = useState(false);
   const { isAuthenticated, validateAuth, clearAuthState } = useAuthStore();
 
   useEffect(() => {
@@ -31,7 +32,15 @@ const AuthValidator = ({ children }: AuthValidatorProps) => {
       }
     };
 
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setValidationTimeout(true);
+      setIsValidating(false);
+    }, 10000); // 10 second timeout
+
     validateAuthentication();
+
+    return () => clearTimeout(timeout);
   }, [isAuthenticated, validateAuth, clearAuthState]);
 
   // Show loading screen while validating

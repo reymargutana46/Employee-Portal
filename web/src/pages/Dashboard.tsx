@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useClassScheduleStore } from "@/store/useClassScheduleStore";
+import { useSeerviceRequestStore } from "@/store/useServiceRequestStore";
+import { useLeaveStore } from "@/store/useLeaveStore";
 import {
   Card,
   CardHeader,
@@ -147,10 +149,26 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { userRoles } = useAuth();
+  const { user } = useAuth();
+  const { user: authUser } = useAuthStore();
+  const { personalLeaves } = useLeaveStore();
   const { toast } = useToast();
+  const { canDoAction } = useAuthStore();
+  const { serviceRequests: storeServiceRequests, fetchRequests } = useSeerviceRequestStore();
   
   // Find the first applicable role for stats display
   const userRole = userRoles.length > 0 ? userRoles[0] : null;
+
+  // Filter service requests based on user role (same logic as ServiceRequests page)
+  const userFilteredServiceRequests = useMemo(() => {
+    const isPrivilegedUser = canDoAction(["principal", "secretary"]);
+    return isPrivilegedUser 
+      ? storeServiceRequests 
+      : storeServiceRequests.filter(request => 
+          request.requestor === user?.username || 
+          request.requestToId === String(user?.employee_id)
+        );
+  }, [storeServiceRequests, canDoAction, user]);
 
   // Ensure card data has default values if some properties are missing
   const safeCard = useMemo(() => ({
@@ -229,17 +247,31 @@ const Dashboard = () => {
     fetchDashboardData(currentQuarter);
   }, [currentQuarter, fetchDashboardData]);
 
+  // Fetch service requests for accurate counting
+  useEffect(() => {
+    if (storeServiceRequests.length <= 0) {
+      fetchRequests();
+    }
+  }, [storeServiceRequests.length, fetchRequests]);
+
+  // Get schedules directly from the store
+  const { schedules, fetchSchedules, fetchMyCreatedSchedules } = useClassScheduleStore();
+
+  // Filter approved schedules for display when schedules change
+  useEffect(() => {
+    if (userRole && userRole.name.toLowerCase() === 'principal') {
+      // Filter for approved schedules only for display
+      const approvedSchedules = schedules.filter(schedule => schedule.status === 'APPROVED');
+      setClassSchedules(approvedSchedules);
+    }
+  }, [schedules, userRole]);
+
   // Fetch class schedules for principal and my created schedules for gradeleader
   const fetchClassSchedules = useCallback(async () => {
     if (userRole && userRole.name.toLowerCase() === 'principal') {
       setIsSchedulesLoading(true);
       try {
-        const { fetchSchedules } = useClassScheduleStore.getState();
         await fetchSchedules();
-        const { schedules } = useClassScheduleStore.getState();
-        // Filter for approved schedules only
-        const approvedSchedules = schedules.filter(schedule => schedule.status === 'APPROVED');
-        setClassSchedules(approvedSchedules);
       } catch (error) {
         console.error('Failed to fetch class schedules:', error);
         toast({
@@ -253,10 +285,8 @@ const Dashboard = () => {
     } else if (userRole && userRole.name.toLowerCase() === 'gradeleader') {
       setIsSchedulesLoading(true);
       try {
-        const { fetchMyCreatedSchedules } = useClassScheduleStore.getState();
         await fetchMyCreatedSchedules();
-        const { myCreatedSchedules } = useClassScheduleStore.getState();
-        setMyCreatedSchedules(myCreatedSchedules);
+        setMyCreatedSchedules(schedules);
       } catch (error) {
         console.error('Failed to fetch my created schedules:', error);
         toast({
@@ -268,7 +298,7 @@ const Dashboard = () => {
         setIsSchedulesLoading(false);
       }
     }
-  }, [userRole, toast]);
+  }, [userRole, toast, fetchSchedules, fetchMyCreatedSchedules]);
 
   useEffect(() => {
     fetchClassSchedules();
@@ -299,10 +329,10 @@ const Dashboard = () => {
         color: "bg-red-500",
       },
       {
-        title: "Service Requests",
-        value: 24,
+        title: "My Service Requests",
+        value: userFilteredServiceRequests.length,
         icon: FileText,
-        change: "+12%",
+        change: "",
         color: "bg-emerald-500",
       },
     ],
@@ -468,7 +498,7 @@ const Dashboard = () => {
         color: "bg-red-500",
       },
     ],
-  }), [safeCard, Users, Calendar, Clock, FileText, CheckSquare, AlertTriangle]);
+  }), [safeCard, userFilteredServiceRequests, Users, Calendar, Clock, FileText, CheckSquare, AlertTriangle]);
 
   // Get the appropriate stats for the current user role
   const currentRoleStats = useMemo(() => userRole ? stats[userRole.name] : [], [userRole, stats]);
@@ -704,40 +734,36 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-2">
                 <div className="text-2xl font-bold">
-                  {serviceRequests?.reduce(
-                    (sum, month) => 
-                      sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
-                    0
-                  ) || 0}
+                  {userFilteredServiceRequests.length}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.pending, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "Pending").length}
                     </div>
                     <div className="text-muted-foreground">Pending</div>
                   </div>
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.inProgress, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "In Progress").length}
                     </div>
                     <div className="text-muted-foreground">In Progress</div>
                   </div>
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.completed, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "Completed").length}
                     </div>
                     <div className="text-muted-foreground">Completed</div>
                   </div>
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.rejected, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "Disapproved").length}
                     </div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
                   <div className="text-center col-span-2">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.forApproval, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "For Approval").length}
                     </div>
                     <div className="text-muted-foreground">For Approval</div>
                   </div>
@@ -818,40 +844,36 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-2">
                 <div className="text-2xl font-bold">
-                  {serviceRequests?.reduce(
-                    (sum, month) => 
-                      sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
-                    0
-                  ) || 0}
+                  {userFilteredServiceRequests.length}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.pending, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "Pending").length}
                     </div>
                     <div className="text-muted-foreground">Pending</div>
                   </div>
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.inProgress, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "In Progress").length}
                     </div>
                     <div className="text-muted-foreground">In Progress</div>
                   </div>
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.completed, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "Completed").length}
                     </div>
                     <div className="text-muted-foreground">Completed</div>
                   </div>
                   <div className="text-center">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.rejected, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "Disapproved").length}
                     </div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
                   <div className="text-center col-span-2">
                     <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.forApproval, 0) || 0}
+                      {userFilteredServiceRequests.filter(r => r.status === "For Approval").length}
                     </div>
                     <div className="text-muted-foreground">For Approval</div>
                   </div>
@@ -869,18 +891,18 @@ const Dashboard = () => {
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{safeCard.leaveStats?.total || 0}</div>
+              <div className="text-2xl font-bold">{safeCard.staffLeaveDetails?.total || 0}</div>
               <div className="grid grid-cols-2 gap-2 text-xs mt-2">
                 <div className="text-center">
-                  <div className="font-medium">{safeCard.leaveStats?.pending || 0}</div>
+                  <div className="font-medium">{safeCard.staffLeaveDetails?.pending || 0}</div>
                   <div className="text-muted-foreground">Pending</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-medium">{safeCard.leaveStats?.approved || 0}</div>
+                  <div className="font-medium">{safeCard.staffLeaveDetails?.approved || 0}</div>
                   <div className="text-muted-foreground">Approved</div>
                 </div>
                 <div className="text-center col-span-2">
-                  <div className="font-medium">{safeCard.leaveStats?.disapproved || 0}</div>
+                  <div className="font-medium">{safeCard.staffLeaveDetails?.disapproved || 0}</div>
                   <div className="text-muted-foreground">Disapproved</div>
                 </div>
               </div>
@@ -973,26 +995,32 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Workload Card with Pending, Approved, and Disapproved */}
+            {/* Class Schedules Workload Card for Principal */}
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Workload</CardTitle>
+                <CardTitle className="text-sm font-medium">Class Schedules</CardTitle>
                 <CheckSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{workload?.reduce((sum, item) => sum + item.workload, 0) || 0}</div>
+                <div className="text-2xl font-bold">{schedules.length}</div>
                 <div className="grid grid-cols-2 gap-2 text-xs mt-2">
                   <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
+                    <div className="font-medium">
+                      {schedules.filter(s => s.status === 'PENDING').length}
+                    </div>
                     <div className="text-muted-foreground">Pending</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
+                    <div className="font-medium">
+                      {schedules.filter(s => s.status === 'APPROVED').length}
+                    </div>
                     <div className="text-muted-foreground">Approved</div>
                   </div>
                   <div className="text-center col-span-2">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
-                    <div className="text-muted-foreground">Disapproved</div>
+                    <div className="font-medium">
+                      {schedules.filter(s => s.status === 'REJECTED').length}
+                    </div>
+                    <div className="text-muted-foreground">Rejected</div>
                   </div>
                 </div>
               </CardContent>
@@ -1161,25 +1189,25 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Workload Card with Pending, Approved, and Disapproved */}
+            {/* Workload Card with Pending, Approved, and Disapproved - Shows Schedule Stats for Principal */}
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Workload</CardTitle>
+                <CardTitle className="text-sm font-medium">Class Schedules</CardTitle>
                 <CheckSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{workload?.reduce((sum, item) => sum + item.workload, 0) || 0}</div>
+                <div className="text-2xl font-bold">{schedules?.length || 0}</div>
                 <div className="grid grid-cols-2 gap-2 text-xs mt-2">
                   <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Pending')?.workload || 0}</div>
+                    <div className="font-medium">{schedules?.filter(s => s.status === 'PENDING').length || 0}</div>
                     <div className="text-muted-foreground">Pending</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Approved')?.workload || 0}</div>
+                    <div className="font-medium">{schedules?.filter(s => s.status === 'APPROVED').length || 0}</div>
                     <div className="text-muted-foreground">Approved</div>
                   </div>
                   <div className="text-center col-span-2">
-                    <div className="font-medium">{workload?.find(w => w.role === 'Disapproved')?.workload || 0}</div>
+                    <div className="font-medium">{schedules?.filter(s => s.status === 'REJECTED').length || 0}</div>
                     <div className="text-muted-foreground">Disapproved</div>
                   </div>
                 </div>
@@ -1264,160 +1292,158 @@ const Dashboard = () => {
           </div>
         </div>
       ) : userRole && userRole.name.toLowerCase() === 'admin' ? (
-        // Admin-specific layout with detailed information
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Total Employees Card with breakdown */}
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Employees
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{safeCard.totalEmployees || 0}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {safeCard.facultyByGrade?.admin || 0}
-                    </div>
-                    <div className="text-muted-foreground">Admin</div>
+        // Admin-specific layout with filtered service requests
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Total Employees Card with breakdown */}
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Employees
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{safeCard.totalEmployees || 0}</div>
+              <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                <div className="text-center">
+                  <div className="font-medium">
+                    {safeCard.facultyByGrade?.admin || 0}
                   </div>
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {safeCard.facultyByGrade?.principal || 0}
-                    </div>
-                    <div className="text-muted-foreground">Principal</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {safeCard.facultyByGrade?.secretary || 0}
-                    </div>
-                    <div className="text-muted-foreground">Secretary</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {(safeCard.facultyByGrade?.grade1 || 0) + 
-                       (safeCard.facultyByGrade?.grade2 || 0) + 
-                       (safeCard.facultyByGrade?.grade3 || 0) + 
-                       (safeCard.facultyByGrade?.grade4 || 0) + 
-                       (safeCard.facultyByGrade?.grade5 || 0) + 
-                       (safeCard.facultyByGrade?.grade6 || 0)}
-                    </div>
-                    <div className="text-muted-foreground">Faculty</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{safeCard.facultyByGrade?.staff || 0}</div>
-                    <div className="text-muted-foreground">Staff</div>
-                  </div>
+                  <div className="text-muted-foreground">Admin</div>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {safeCard.facultyByGrade?.principal || 0}
+                  </div>
+                  <div className="text-muted-foreground">Principal</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {safeCard.facultyByGrade?.secretary || 0}
+                  </div>
+                  <div className="text-muted-foreground">Secretary</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {(safeCard.facultyByGrade?.grade1 || 0) + 
+                     (safeCard.facultyByGrade?.grade2 || 0) + 
+                     (safeCard.facultyByGrade?.grade3 || 0) + 
+                     (safeCard.facultyByGrade?.grade4 || 0) + 
+                     (safeCard.facultyByGrade?.grade5 || 0) + 
+                     (safeCard.facultyByGrade?.grade6 || 0)}
+                  </div>
+                  <div className="text-muted-foreground">Faculty</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.facultyByGrade?.staff || 0}</div>
+                  <div className="text-muted-foreground">Staff</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Attendance Card with Present, Absent, Late */}
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Attendance
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{safeCard.attendanceData?.total || 0}</div>
-                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
-                  <div className="text-center">
-                    <div className="font-medium">{safeCard.attendanceData?.present || 0}</div>
-                    <div className="text-muted-foreground">Present</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{safeCard.attendanceData?.absent || 0}</div>
-                    <div className="text-muted-foreground">Absent</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">{safeCard.attendanceData?.late || 0}</div>
-                    <div className="text-muted-foreground">Late</div>
-                  </div>
+          {/* Attendance Card */}
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Attendance</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{safeCard.attendanceData?.total || 0}</div>
+              <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData?.present || 0}</div>
+                  <div className="text-muted-foreground">Present</div>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData?.absent || 0}</div>
+                  <div className="text-muted-foreground">Absent</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">{safeCard.attendanceData?.late || 0}</div>
+                  <div className="text-muted-foreground">Late</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Service Requests Card */}
-            <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Service Requests</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {serviceRequests?.reduce(
-                    (sum, month) => 
-                      sum + month.pending + month.inProgress + month.completed + month.rejected + month.forApproval,
-                    0
-                  ) || 0}
+          {/* Service Requests Card - ADMIN ONLY SEES THEIR OWN */}
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">My Service Requests</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {userFilteredServiceRequests.length}
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                <div className="text-center">
+                  <div className="font-medium">
+                    {userFilteredServiceRequests.filter(r => r.status === "Pending").length}
+                  </div>
+                  <div className="text-muted-foreground">Pending</div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.pending, 0) || 0}
-                    </div>
-                    <div className="text-muted-foreground">Pending</div>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {userFilteredServiceRequests.filter(r => r.status === "In Progress").length}
                   </div>
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.inProgress, 0) || 0}
-                    </div>
-                    <div className="text-muted-foreground">In Progress</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.completed, 0) || 0}
-                    </div>
-                    <div className="text-muted-foreground">Completed</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.rejected, 0) || 0}
-                    </div>
-                    <div className="text-muted-foreground">Disapproved</div>
-                  </div>
-                  <div className="text-center col-span-2">
-                    <div className="font-medium">
-                      {serviceRequests?.reduce((sum, month) => sum + month.forApproval, 0) || 0}
-                    </div>
-                    <div className="text-muted-foreground">For Approval</div>
-                  </div>
+                  <div className="text-muted-foreground">In Progress</div>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {userFilteredServiceRequests.filter(r => r.status === "Completed").length}
+                  </div>
+                  <div className="text-muted-foreground">Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {userFilteredServiceRequests.filter(r => r.status === "Disapproved").length}
+                  </div>
+                  <div className="text-muted-foreground">Disapproved</div>
+                </div>
+                <div className="text-center col-span-2">
+                  <div className="font-medium">
+                    {userFilteredServiceRequests.filter(r => r.status === "For Approval").length}
+                  </div>
+                  <div className="text-muted-foreground">For Approval</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Leave Requests Card with Pending, Approved, Disapproved */}
-            <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Leave Requests
-                </CardTitle>
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{safeCard.leaveStats?.total || 0}</div>
-                <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                  <div className="text-center">
-                    <div className="font-medium">{safeCard.leaveStats?.pending || 0}</div>
-                    <div className="text-muted-foreground">Pending</div>
+          {/* My Leave Requests Card */}
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                My Leave Requests
+              </CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{personalLeaves.length}</div>
+              <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                <div className="text-center">
+                  <div className="font-medium">
+                    {personalLeaves.filter(leave => leave.status === 'Pending').length}
                   </div>
-                  <div className="text-center">
-                    <div className="font-medium">{safeCard.leaveStats?.approved || 0}</div>
-                    <div className="text-muted-foreground">Approved</div>
-                  </div>
-                  <div className="text-center col-span-2">
-                    <div className="font-medium">{safeCard.leaveStats?.disapproved || 0}</div>
-                    <div className="text-muted-foreground">Disapproved</div>
-                  </div>
+                  <div className="text-muted-foreground">Pending</div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="text-center">
+                  <div className="font-medium">
+                    {personalLeaves.filter(leave => leave.status === 'Approved').length}
+                  </div>
+                  <div className="text-muted-foreground">Approved</div>
+                </div>
+                <div className="text-center col-span-2">
+                  <div className="font-medium">
+                    {personalLeaves.filter(leave => leave.status === 'Disapproved').length}
+                  </div>
+                  <div className="text-muted-foreground">Disapproved</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : userRole && userRole.name.toLowerCase() === 'secretary' ? (
         // Secretary-specific layout with detailed information (same as Principal but without Workload)
@@ -1821,8 +1847,11 @@ const Dashboard = () => {
                 )
               ) : (
                 // For users with both faculty and gradeleader roles, combine recent logs
+                // For principal, show only 3 most recent logs
                 userRoles.some(role => role.name.toLowerCase() === 'faculty') && userRoles.some(role => role.name.toLowerCase() === 'gradeleader') ? (
                   <RecentActivities activities={recentLogs} />
+                ) : userRole && userRole.name.toLowerCase() === 'principal' ? (
+                  <RecentActivities activities={recentLogs.slice(0, 3)} />
                 ) : (
                   <RecentActivities activities={recentLogs} />
                 )

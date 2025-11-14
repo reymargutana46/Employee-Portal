@@ -77,19 +77,22 @@ class PersonalDataSheetController extends Controller
             $employeeName = $user->username;
         }
 
-        // Build a clean, unique filename: employeeName-slug + timestamp + extension
-        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension    = $file->getClientOriginalExtension();
-        $filename     =  $originalName . $extension;
+        // Store original filename and create a unique filename for storage
+        $originalName = $file->getClientOriginalName();
+        $originalNameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+        $extension = $file->getClientOriginalExtension();
+        
+        // Create unique filename to avoid conflicts: timestamp + original name
+        $timestamp = now()->format('Y-m-d_H-i-s');
+        $uniqueFilename = $timestamp . '_' . $originalNameWithoutExt . '.' . $extension;
 
+        $path = $file->storeAs('uploads', $uniqueFilename, 'public'); // returns "uploads/filename.ext"
 
-        $path = $file->storeAs('uploads', $filename, 'public'); // returns "uploads/filename.ext"
-
-        $url = Storage::disk('public')->url($path); // Full URL for use in frontend
         $pds = PersonalDataSheet::create([
-            'uploader' => Auth::user()->username, // Assuming user is authenticated
+            'uploader' => Auth::user()->username,
             'file_path' => $path,
-            'file_name' => $filename,
+            'file_name' => $uniqueFilename,
+            'original_name' => $originalName, // Store the original filename
             'file_size' => $file->getSize(),
             'file_type' => $file->getMimeType(),
             'owner_name' => $employeeName,
@@ -99,7 +102,7 @@ class PersonalDataSheetController extends Controller
         \App\Models\ActivityLog::create([
             'performed_by' => $user->username,
             'action' => 'uploaded',
-            'description' => "Uploaded PDS file: {$filename}",
+            'description' => "Uploaded PDS file: {$originalName}",
             'entity_type' => PersonalDataSheet::class,
             'entity_id' => $pds->id,
         ]);
@@ -112,8 +115,16 @@ class PersonalDataSheetController extends Controller
         try {
             $pds = PersonalDataSheet::findOrFail($id);
             
-            // Check if user has permission to view this file
+            // Check if user is authenticated
             $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                    'error' => 'Please log in to view this file.'
+                ], 401);
+            }
+            
+            // Check if user has permission to view this file
             $isPrivilegedUser = false;
             foreach ($user->roles as $role) {
                 if (in_array(strtolower($role->name), ['principal', 'secretary'])) {
@@ -131,7 +142,10 @@ class PersonalDataSheetController extends Controller
                 }
                 
                 if ($pds->owner_name !== $userFullName && $pds->uploader !== $user->username) {
-                    return $this->unauthorized('You do not have permission to view this file');
+                    return response()->json([
+                        'message' => 'Unauthorized.',
+                        'error' => 'You do not have permission to view this file.'
+                    ], 403);
                 }
             }
 
@@ -143,19 +157,22 @@ class PersonalDataSheetController extends Controller
             // Return file for viewing/download
             $filePath = storage_path("app/public/" . $pds->file_path);
             
+            // Use original filename for display
+            $displayName = $pds->original_name ?: $pds->file_name;
+            
             // Set appropriate headers based on file type
             $headers = [
                 'Content-Type' => $pds->file_type,
-                'Content-Disposition' => 'inline; filename="' . $pds->file_name . '"'
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
             ];
             
-            // For PDF files, we want to display inline
-            if (strpos($pds->file_type, 'pdf') !== false) {
-                $headers['Content-Disposition'] = 'inline; filename="' . $pds->file_name . '"';
-            }
-            // For other files, we might want to download them
-            else {
-                $headers['Content-Disposition'] = 'attachment; filename="' . $pds->file_name . '"';
+            // For PDF files and images, display inline; for others, download
+            if (strpos($pds->file_type, 'pdf') !== false || strpos($pds->file_type, 'image') !== false) {
+                $headers['Content-Disposition'] = 'inline; filename="' . $displayName . '"';
+            } else {
+                $headers['Content-Disposition'] = 'attachment; filename="' . $displayName . '"';
             }
 
             return response()->file($filePath, $headers);

@@ -12,9 +12,10 @@ import {
   Filter,
   ArrowUpDown,
   Edit,
-  Trash2,
   Eye,
   Download,
+  UserMinus,
+  UserPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,6 +43,7 @@ import {
 import { Department } from "@/types/employee";
 import { useAuthStore } from "@/store/useAuthStore";
 import UserWithAvatar from "@/components/ui/user-with-avatar";
+import axios from "@/utils/axiosInstance";
 
 const Employees = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,7 +58,6 @@ const Employees = () => {
     setFilterStatus,
     exportData,
     getFilteredEmployees,
-    deleteEmployee,
     fetchEmployee,
     fetchEmployeeForce,
     fetchsetup,
@@ -124,18 +125,42 @@ const Employees = () => {
     });
   };
 
-  const handleDelete = async (id: number, name: string) => {
+  const handleDeactivateAccount = async (employeeId: number, name: string) => {
+    if (!confirm(`Are you sure you want to deactivate the account for ${name}? They will not be able to log in, but their data will be preserved.`)) {
+      return;
+    }
 
     try {
-      await deleteEmployee(id);
+      await axios.post(`/accounts/${employeeId}/deactivate`);
+      await fetchEmployeeForce(); // Refresh employee list
       toast({
-        title: "Employee Removed",
-        description: `${name} has been removed from the system`,
+        title: "Account Deactivated",
+        description: `${name}'s account has been deactivated successfully`,
       });
     } catch (error: any) {
       toast({
-        title: "Delete Failed",
-        description: error?.response?.data?.message || "You may not have permission or a server error occurred.",
+        title: "Deactivation Failed",
+        description: error?.response?.data?.message || "Failed to deactivate account",
+      });
+    }
+  };
+
+  const handleReactivateAccount = async (employeeId: number, name: string) => {
+    if (!confirm(`Are you sure you want to reactivate the account for ${name}? They will be able to log in again.`)) {
+      return;
+    }
+
+    try {
+      await axios.post(`/accounts/${employeeId}/reactivate`);
+      await fetchEmployeeForce(); // Refresh employee list
+      toast({
+        title: "Account Reactivated",
+        description: `${name}'s account has been reactivated successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Reactivation Failed",
+        description: error?.response?.data?.message || "Failed to reactivate account",
       });
     }
   };
@@ -281,15 +306,33 @@ const Employees = () => {
                           {canDoAction(["admin", "principal", "secretary"]) && (
                             <EditEmployeeDialog employee={employee} />
                           )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              handleDelete(employee.id, employee.lname)
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canDoAction(["admin"]) && employee.username_id && (
+                            employee.deleted_at ? (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleReactivateAccount(employee.id, getFullName(employee))
+                                }
+                                title={`Reactivate account for ${getFullName(employee)} - They will be able to log in again`}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <UserPlus className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleDeactivateAccount(employee.id, getFullName(employee))
+                                }
+                                title={`Deactivate account for ${getFullName(employee)} - They won't be able to log in, but data will be preserved`}
+                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                            )
+                          )}
                         </div>
                       </td>
                     </tr>

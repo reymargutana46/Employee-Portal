@@ -360,6 +360,9 @@ console.log(filtered)
         </div>
       </div>
 
+      {/*  Start Condition Rendering for admin and secretary and show filtering settings example: user.role.name =='Secretary' && 
+      <FilterComponent /> */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {/* Employee Select with Search */}
         <div className="space-y-2">
@@ -522,6 +525,7 @@ console.log(filtered)
           />
         </div>
       </div>
+      {/* END OF condition */}
 
       <div className="border rounded p-4 overflow-auto max-h-96">
         <div className="text-center font-bold mb-2">PREVIEW</div>

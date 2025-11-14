@@ -6,6 +6,8 @@ interface ColumnMapperProps {
     date: number;
     timeIn: number;
     timeOut: number;
+    timeIn2: number;
+    timeOut2: number;
   };
   onMappingChange: (field: string, columnIndex: number) => void;
 }
@@ -15,8 +17,10 @@ export const ColumnMapper = ({ columns, mappings, onMappingChange }: ColumnMappe
     { key: 'employeeName', label: 'Employee Name', required: true },
     { key: 'employeeId', label: 'Employee ID', required: false },
     { key: 'date', label: 'Date', required: true },
-    { key: 'timeIn', label: 'Time In', required: true },
-    { key: 'timeOut', label: 'Time Out', required: false },
+    { key: 'timeIn', label: 'Morning Time In', required: true },
+    { key: 'timeOut', label: 'Morning Time Out', required: false },
+    { key: 'timeIn2', label: 'Afternoon Time In', required: false },
+    { key: 'timeOut2', label: 'Afternoon Time Out', required: false },
   ];
 
   return (

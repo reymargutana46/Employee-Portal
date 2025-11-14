@@ -19,6 +19,9 @@ export interface User {
     department?: string;
     position?: string;
     has_account?: boolean;
+    is_active?: boolean;
+    is_deactivated?: boolean;
+    can_be_deleted?: boolean;
     profile_picture?: string;
     roles: Role[];
     created_at?: string;

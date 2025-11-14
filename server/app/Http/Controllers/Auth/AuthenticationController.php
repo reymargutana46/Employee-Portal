@@ -43,7 +43,8 @@ class AuthenticationController extends Controller
         ]);
         
         // Use whereRaw with LOWER to make username comparison case-insensitive
-        $user = User::with([
+        // Include soft-deleted users to check if account is deactivated
+        $user = User::withTrashed()->with([
             'employee',
             'employee.workhour',
             'employee.department',
@@ -54,6 +55,20 @@ class AuthenticationController extends Controller
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'username' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        // Check if the user account is deactivated (soft deleted)
+        if ($user->trashed()) {
+            throw ValidationException::withMessages([
+                'username' => ['Your account has been deactivated. Please contact an administrator.'],
+            ]);
+        }
+
+        // Check if the user account is marked as inactive
+        if (!$user->is_active) {
+            throw ValidationException::withMessages([
+                'username' => ['Your account is inactive. Please contact an administrator.'],
             ]);
         }
 

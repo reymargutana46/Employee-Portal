@@ -264,7 +264,11 @@ const PDS = () => {
         throw new Error("Download failed");
       }
 
-      const blob = new Blob([response.data]);
+      // Get the content type from response headers
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      
+      // Create blob with proper content type
+      const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -289,24 +293,41 @@ const PDS = () => {
     }
   };
 
-  // Updated view function to use file_url or API endpoint
+  // Updated view function to use authenticated API call and create blob URL
   const handleViewFile = async (file: UploadedFile) => {
     try {
-      // Create the URL for viewing the file
-      const viewUrl = `http://127.0.0.1:8000/api/pds/files/${file.id}/view`;
+      const response = await axios.get(`/pds/files/${file.id}/view`, {
+        responseType: "blob",
+      });
+
+      if (response.status !== 200) {
+        throw new Error("View failed");
+      }
+
+      // Get the content type from response headers
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      
+      // Create blob with proper content type
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
       
       // Open in a new tab
-      window.open(viewUrl, "_blank", "noopener,noreferrer");
+      window.open(url, "_blank", "noopener,noreferrer");
+      
+      // Clean up the blob URL after a delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
       
       toast({
         title: "Opening file",
         description: "The file is being opened in a new tab.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("View error:", error);
       toast({
         title: "View failed",
-        description: "Failed to open the file for viewing.",
+        description: error.response?.data?.message || "Failed to open the file for viewing.",
         variant: "destructive",
       });
     }

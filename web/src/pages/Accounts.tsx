@@ -277,6 +277,66 @@ export default function Accounts() {
     }
   };
 
+  const deactivateUserAccount = async () => {
+    if (!selectedUser || !selectedUser.username) {
+      toast.error("No user selected for deactivation");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to deactivate the account for ${selectedUser.fullname}? They will not be able to log in, but their data will be preserved.`)) {
+      return;
+    }
+
+    try {
+      console.log('Deactivating account for user:', selectedUser.username);
+      const response = await axios.post(`/accounts/${selectedUser.username}/deactivate`);
+      console.log('Deactivate response:', response);
+      await fetchUser();
+      
+      // Update selected user to reflect deactivation
+      const updatedUser = users.find(u => u.username === selectedUser.username);
+      if (updatedUser) {
+        setSelectedUser(updatedUser);
+      }
+      
+      toast.success("User account deactivated successfully");
+    } catch (error: any) {
+      console.error("Failed to deactivate account:", error);
+      console.error("Error response:", error.response);
+      toast.error(error.response?.data?.message || "Failed to deactivate user account: " + (error.message || "Unknown error"));
+    }
+  };
+
+  const reactivateUserAccount = async () => {
+    if (!selectedUser || !selectedUser.username) {
+      toast.error("No user selected for reactivation");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to reactivate the account for ${selectedUser.fullname}? They will be able to log in again.`)) {
+      return;
+    }
+
+    try {
+      console.log('Reactivating account for user:', selectedUser.username);
+      const response = await axios.post(`/accounts/${selectedUser.username}/reactivate`);
+      console.log('Reactivate response:', response);
+      await fetchUser();
+      
+      // Update selected user to reflect reactivation
+      const updatedUser = users.find(u => u.username === selectedUser.username);
+      if (updatedUser) {
+        setSelectedUser(updatedUser);
+      }
+      
+      toast.success("User account reactivated successfully");
+    } catch (error: any) {
+      console.error("Failed to reactivate account:", error);
+      console.error("Error response:", error.response);
+      toast.error(error.response?.data?.message || "Failed to reactivate user account: " + (error.message || "Unknown error"));
+    }
+  };
+
   // Get initials for avatar
   const getInitials = (firstName?: string, lastName?: string) => {
     const first = firstName?.charAt(0) || "";
@@ -351,6 +411,9 @@ export default function Accounts() {
                                 {employee.has_account === false && (
                                   <AlertCircle className="h-3 w-3 text-orange-500" />
                                 )}
+                                {employee.is_deactivated && (
+                                  <UserMinus className="h-3 w-3 text-red-500" />
+                                )}
                                 <ChevronRight
                                   className={`h-4 w-4 ${
                                     selectedUser?.employee_id === employee.employee_id || selectedUser?.username === employee.username
@@ -365,7 +428,11 @@ export default function Accounts() {
                                 {employee.has_account !== false && employee.username ? `@${employee.username}` : 'No account'}
                               </p>
                               {employee.has_account !== false && employee.username ? (
-                                <Badge variant="secondary" className="text-xs">Account</Badge>
+                                employee.is_deactivated ? (
+                                  <Badge variant="destructive" className="text-xs">Deactivated</Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs">Active</Badge>
+                                )
                               ) : (
                                 <Badge variant="outline" className="text-xs">No Account</Badge>
                               )}
@@ -416,7 +483,11 @@ export default function Accounts() {
                       {selectedUser.has_account !== false && selectedUser.username ? (
                         <>
                           @{selectedUser.username}
-                          <Badge variant="secondary">Has Account</Badge>
+                          {selectedUser.is_deactivated ? (
+                            <Badge variant="destructive">Deactivated Account</Badge>
+                          ) : (
+                            <Badge variant="secondary">Active Account</Badge>
+                          )}
                         </>
                       ) : (
                         <>
@@ -539,15 +610,40 @@ export default function Accounts() {
                         </Dialog>
                       )}
                       {selectedUser.has_account !== false && selectedUser.username && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={deleteUserAccount}
-                          className="flex items-center gap-2"
-                        >
-                          <UserMinus className="h-4 w-4" />
-                          Delete Account
-                        </Button>
+                        <div className="flex gap-2">
+                          {selectedUser.is_deactivated ? (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={reactivateUserAccount}
+                              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Reactivate Account
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={deactivateUserAccount}
+                              className="flex items-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50"
+                            >
+                              <UserMinus className="h-4 w-4" />
+                              Deactivate Account
+                            </Button>
+                          )}
+                          {selectedUser.can_be_deleted && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={deleteUserAccount}
+                              className="flex items-center gap-2"
+                            >
+                              <X className="h-4 w-4" />
+                              Delete Account
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

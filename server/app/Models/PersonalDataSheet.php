@@ -12,6 +12,7 @@ class PersonalDataSheet extends Model
         'uploader',
         'file_path',
         'file_name',
+        'original_name',
         'file_size',
         'file_type',
         'owner_name'
@@ -34,9 +35,9 @@ class PersonalDataSheet extends Model
         return Storage::disk('public')->url($this->file_path);
     }
 
-    // Accessor for original_name (same as file_name)
-    public function getOriginalNameAttribute()
+    // Accessor for original_name - return the actual original_name field if it exists, otherwise fallback to file_name
+    public function getOriginalNameAttribute($value)
     {
-        return $this->file_name;
+        return $value ?: $this->file_name;
     }
 }

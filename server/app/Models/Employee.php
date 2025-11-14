@@ -71,7 +71,7 @@ class Employee extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'username_id');
+        return $this->belongsTo(User::class, 'username_id', 'username');
     }
 
     public function position()

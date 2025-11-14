@@ -5,6 +5,7 @@ export interface Employee {
   mname: string | undefined;
   extname: string | undefined;
   username: string;
+  username_id?: string | null; // Account username reference
   biod: string;
 
   position: string;
@@ -16,6 +17,7 @@ export interface Employee {
   workhours_pm: string;
   telno: string;
   profile_picture?: string;
+  deleted_at?: string | null; // For account soft delete status
 }
 
 export interface Position {

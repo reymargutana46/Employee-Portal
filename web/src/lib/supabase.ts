@@ -11,9 +11,13 @@ export interface dtrecords {
   date: string;
   time_in: string;
   time_out?: string | null;
+  time_in2?: string;
+  time_out2?: string | null;
   created_at?: string;
   updated_at?: string;
 }
+
+export type DTRRecord = dtrecords;
 
 function formatDate(input: any): string {
   if (!input) return '';
@@ -80,6 +84,8 @@ export function cleanDTRRecordPayload(record: any): dtrecords | null {
 
   const timeIn = formatTime(record.time_in);
   const timeOut = formatTime(record.time_out);
+  const timeIn2 = formatTime(record.time_in2);
+  const timeOut2 = formatTime(record.time_out2);
 
   // Skip invalid time strings that failed to format
   if (!timeIn || timeIn.includes('T')) return null;
@@ -90,6 +96,8 @@ export function cleanDTRRecordPayload(record: any): dtrecords | null {
     date: formatDate(record.date),
     time_in: timeIn,
     time_out: timeOut && !timeOut.includes('T') ? timeOut : null,
+    time_in2: timeIn2,
+    time_out2: timeOut && !timeOut2.includes('T') ? timeOut2 : null,
   };
 }
 
@@ -105,7 +113,7 @@ export async function insertDTRRecords(rawRecords: any[]) {
   if (cleanedRecords.length === 0) {
     throw new Error('No valid records to insert.');
   }
-
+  console.log(cleanedRecords);
   console.log("🧩 Inserting into table: dtrecords");
 
   const { data, error, status } = await supabase

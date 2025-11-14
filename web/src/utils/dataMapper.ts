@@ -6,6 +6,8 @@ export interface ColumnMappings {
   date: number;
   timeIn: number;
   timeOut: number;
+  timeIn2: number;
+  timeOut2: number;
 }
 
 const parseDateTime = (dateValue: unknown, timeValue: unknown): string => {
@@ -70,7 +72,7 @@ export const mapRowToRecord = (
 
     const record: DTRRecord = {
       employee_name: employeeName,
-      employee_id: mappings.employeeId !== -1 ? String(row[mappings.employeeId] ?? '') : undefined,
+      employee_id: mappings.employeeId !== -1 ? Number(row[mappings.employeeId] ?? 0) || 0 : undefined,
       date: dateStr,
       time_in: parseDateTime(date, timeIn),
       time_out: mappings.timeOut !== -1 ? parseDateTime(date, row[mappings.timeOut]) : undefined,

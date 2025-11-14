@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Dialog, 
   DialogContent, 
@@ -12,8 +14,16 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog"
-import { Loader2, CheckCircle, XCircle } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, BriefcaseBusiness } from "lucide-react"
 import type { ClassSchedule, ScheduleRow } from "@/types/classSchedule"
+import axios from "@/utils/axiosInstance"
+
+interface WorkloadStats {
+  all: number
+  pending: number
+  approved: number
+  disapproved: number
+}
 
 export function ClassScheduleApproval() {
   const { schedules, isLoading, error, fetchSchedules, approveSchedule, rejectSchedule } = useClassScheduleStore()
@@ -23,13 +33,43 @@ export function ClassScheduleApproval() {
   const [isRejecting, setIsRejecting] = useState<Record<number, boolean>>({})
   const [selectedSchedule, setSelectedSchedule] = useState<ClassSchedule | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [workloadStats, setWorkloadStats] = useState<WorkloadStats>({ all: 0, pending: 0, approved: 0, disapproved: 0 })
+  const [isLoadingWorkloads, setIsLoadingWorkloads] = useState(true)
 
   // Filter pending schedules
   const pendingSchedules = schedules.filter(schedule => schedule.status === 'PENDING')
 
+  const fetchWorkloadStats = async () => {
+    try {
+      setIsLoadingWorkloads(true)
+      
+      // Use the schedules data that's already being fetched
+      // Calculate stats based on all schedules (not just pending)
+      const newStats = {
+        all: schedules.length,
+        pending: schedules.filter(s => s.status === 'PENDING').length,
+        approved: schedules.filter(s => s.status === 'APPROVED').length,
+        disapproved: schedules.filter(s => s.status === 'REJECTED').length,
+      }
+      setWorkloadStats(newStats)
+      
+    } catch (err) {
+      console.error('Error calculating schedule stats:', err)
+    } finally {
+      setIsLoadingWorkloads(false)
+    }
+  }
+
   useEffect(() => {
     fetchSchedules()
   }, [fetchSchedules])
+
+  // Recalculate stats whenever schedules data changes
+  useEffect(() => {
+    if (schedules.length >= 0) { // Check if schedules data is available (including empty array)
+      fetchWorkloadStats()
+    }
+  }, [schedules])
 
   const handleApprove = async (scheduleId: number) => {
     setIsApproving(prev => ({ ...prev, [scheduleId]: true }))
@@ -137,6 +177,46 @@ export function ClassScheduleApproval() {
 
   return (
     <div className="space-y-6">
+      {/* Schedule Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">All Schedules</CardTitle>
+            <BriefcaseBusiness className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{isLoadingWorkloads ? '-' : workloadStats.all}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <BriefcaseBusiness className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{isLoadingWorkloads ? '-' : workloadStats.pending}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{isLoadingWorkloads ? '-' : workloadStats.approved}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Disapproved</CardTitle>
+            <XCircle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{isLoadingWorkloads ? '-' : workloadStats.disapproved}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold">Class Schedule Approval</h1>
         <p className="text-muted-foreground">

@@ -196,6 +196,8 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
     date: -1,
     timeIn: -1,
     timeOut: -1,
+    timeIn2: -1,
+    timeOut2: -1,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{
@@ -259,6 +261,8 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
       for (const row of dataRows) {
         if (!Array.isArray(row) || row.length === 0) continue;
         const record = mapRowToRecord(row, columnMappings);
+
+        console.log(columnMappings);
         if (record) {
           records.push(record);
         }
@@ -298,6 +302,8 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
         date: -1,
         timeIn: -1,
         timeOut: -1,
+        timeIn2: -1,
+        timeOut2: -1,
       });
       setStartRow(1);
     } catch (error: unknown) {
@@ -384,6 +390,7 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
                       mappings={columnMappings}
                       onMappingChange={handleMappingChange}
                     />
+                    
 
                     {parsedData.data[selectedSheet] && parsedData.data[selectedSheet].length > 0 && (
                       <DataPreview data={parsedData.data[selectedSheet]} startRow={startRow} />
@@ -401,6 +408,8 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
                             date: -1,
                             timeIn: -1,
                             timeOut: -1,
+                            timeIn2: -1,
+                            timeOut2: -1,
                           });
                           setStartRow(1);
                           setUploadStatus({ type: null, message: '' });

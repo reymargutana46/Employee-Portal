@@ -27,6 +27,7 @@ import Accounts from "./pages/Accounts";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notification";
 import AuthValidator from "./components/AuthValidator";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 type UserRole = "admin" | "principal" | "secretary" | "faculty" | "staff";
 
@@ -353,17 +354,21 @@ const AppRoutes = () => {
 const App = () => {
   return (
     <React.StrictMode>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthValidator>
-              <AppRoutes />
-            </AuthValidator>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <div className="min-h-screen bg-background">
+                <AuthValidator>
+                  <AppRoutes />
+                </AuthValidator>
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </React.StrictMode>
   );
 };

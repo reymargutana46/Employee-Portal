@@ -31,13 +31,16 @@ class AccountController extends Controller
      */
     public function index()
     {
-        // Get all employees with their associated user accounts and roles
-        $employees = Employee::with(['user.roles', 'department', 'position'])
+        // Get all employees with their associated user accounts and roles (including soft-deleted users)
+        $employees = Employee::with(['user' => function($query) {
+                $query->withTrashed(); // Include deactivated accounts
+            }, 'user.roles', 'department', 'position'])
             ->get()
             ->map(function ($employee) {
+                $user = $employee->user;
                 return [
                     'employee_id' => $employee->id,
-                    'username' => $employee->user->username ?? null,
+                    'username' => $user->username ?? null,
                     'fullname' => $employee->getFullName(),
                     'firstname' => $employee->fname,
                     'lastname' => $employee->lname,
@@ -47,9 +50,12 @@ class AccountController extends Controller
                     'contactno' => $employee->contactno,
                     'department' => $employee->department->name ?? null,
                     'position' => $employee->position->title ?? null,
-                    'has_account' => $employee->user !== null,
+                    'has_account' => $user !== null,
+                    'is_active' => $user ? $user->is_active : null,
+                    'is_deactivated' => $user ? $user->trashed() : false,
+                    'can_be_deleted' => $user ? $this->canUserBeDeleted($user) : false,
                     'profile_picture' => $employee->profile_picture ? asset('storage/' . $employee->profile_picture) : null,
-                    'roles' => $employee->user ? $employee->user->roles : [],
+                    'roles' => $user ? $user->roles : [],
                     'created_at' => $employee->created_at,
                     'updated_at' => $employee->updated_at,
                 ];
@@ -194,6 +200,11 @@ class AccountController extends Controller
                     throw new \Exception('User not found');
                 }
 
+                // Check if user has associated data - prevent deletion if they do
+                if (!$this->canUserBeDeleted($user)) {
+                    throw new \Exception('Cannot delete user account that has associated data. Please deactivate the account instead.');
+                }
+
                 // Remove user account but keep employee record
                 if ($employee) {
                     $employee->update(['username_id' => null]);
@@ -329,5 +340,140 @@ class AccountController extends Controller
         });
 
         return $this->ok(null, 'Profile updated successfully');
+    }
+
+    /**
+     * Deactivate a user account (soft delete)
+     */
+    public function deactivate(string $idOrUsername)
+    {
+        try {
+            DB::transaction(function () use ($idOrUsername) {
+                $user = null;
+                $employee = null;
+
+                if (is_numeric($idOrUsername)) {
+                    // Handle case where frontend sends employee ID instead of username
+                    $employee = Employee::findOrFail($idOrUsername);
+                    if ($employee->username_id) {
+                        $user = User::where('username', $employee->username_id)->first();
+                    }
+                } else {
+                    // Handle normal case using username
+                    $user = User::where('username', $idOrUsername)->first();
+                    $employee = $user ? $user->employee : null;
+                }
+
+                if (!$user) {
+                    throw new \Exception('User not found');
+                }
+
+                if ($user->trashed()) {
+                    throw new \Exception('User account is already deactivated');
+                }
+
+                // Deactivate the account (soft delete)
+                $user->update(['is_active' => false]);
+                $user->delete(); // This will soft delete
+
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'deactivated',
+                    'description' => "Deactivated user account for {$user->username}" . ($employee ? " ({$employee->getFullName()})" : ''),
+                    'entity_type' => User::class,
+                    'entity_id' => $user->username,
+                ]);
+            });
+
+            return $this->ok(null, 'User account deactivated successfully');
+        } catch (\Exception $e) {
+            return $this->badRequest($e->getMessage());
+        }
+    }
+
+    /**
+     * Reactivate a user account (restore from soft delete)
+     */
+    public function reactivate(string $idOrUsername)
+    {
+        try {
+            DB::transaction(function () use ($idOrUsername) {
+                $user = null;
+                $employee = null;
+
+                if (is_numeric($idOrUsername)) {
+                    // Handle case where frontend sends employee ID instead of username
+                    $employee = Employee::findOrFail($idOrUsername);
+                    if ($employee->username_id) {
+                        $user = User::withTrashed()->where('username', $employee->username_id)->first();
+                    }
+                } else {
+                    // Handle normal case using username
+                    $user = User::withTrashed()->where('username', $idOrUsername)->first();
+                    $employee = $user ? $user->employee : null;
+                }
+
+                if (!$user) {
+                    throw new \Exception('User not found');
+                }
+
+                if (!$user->trashed()) {
+                    throw new \Exception('User account is already active');
+                }
+
+                // Reactivate the account (restore from soft delete)
+                $user->restore();
+                $user->update(['is_active' => true]);
+                
+                // Log the reactivation for debugging
+                \Log::info("User reactivated: {$user->username}, is_active: {$user->is_active}, deleted_at: " . ($user->deleted_at ? $user->deleted_at : 'null'));
+
+                ActivityLog::create([
+                    'performed_by' => Auth::user()->username,
+                    'action' => 'reactivated',
+                    'description' => "Reactivated user account for {$user->username}" . ($employee ? " ({$employee->getFullName()})" : ''),
+                    'entity_type' => User::class,
+                    'entity_id' => $user->username,
+                ]);
+            });
+
+            return $this->ok(null, 'User account reactivated successfully');
+        } catch (\Exception $e) {
+            return $this->badRequest($e->getMessage());
+        }
+    }
+
+    /**
+     * Debug method to check user status
+     */
+    public function debugUsers()
+    {
+        $users = User::withTrashed()->with('employee')->get()->map(function($user) {
+            return [
+                'username' => $user->username,
+                'is_active' => $user->is_active,
+                'is_deleted' => $user->trashed(),
+                'deleted_at' => $user->deleted_at,
+                'employee_name' => $user->employee ? $user->employee->getFullName() : 'No Employee',
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+            ];
+        });
+
+        return $this->ok($users, 'User debug info retrieved');
+    }
+
+    /**
+     * Safely check if a user can be deleted
+     */
+    private function canUserBeDeleted($user): bool
+    {
+        try {
+            return !$user->hasAssociatedData();
+        } catch (\Exception $e) {
+            // If there's an error checking, assume user cannot be deleted for safety
+            \Log::error('Error checking if user can be deleted: ' . $e->getMessage());
+            return false;
+        }
     }
 }
