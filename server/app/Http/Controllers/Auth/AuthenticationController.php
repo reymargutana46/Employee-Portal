@@ -76,6 +76,11 @@ class AuthenticationController extends Controller
         Auth::login($user);
         $token = $user->createToken('auth_token')->plainTextToken;
         
+        // Log for debugging reactivated users
+        if (!$user->employee) {
+            \Log::warning("Login successful but no employee record found for user: {$user->username}");
+        }
+
         $data = [
             'token' => $token,
             'user' => [

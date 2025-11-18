@@ -166,7 +166,7 @@ const Dashboard = () => {
       ? storeServiceRequests 
       : storeServiceRequests.filter(request => 
           request.requestor === user?.username || 
-          request.requestToId === String(user?.employee_id)
+          (user?.employee_id && request.requestToId === String(user?.employee_id))
         );
   }, [storeServiceRequests, canDoAction, user]);
 
@@ -217,6 +217,21 @@ const Dashboard = () => {
         console.error("Dashboard data fetch error:", err);
         setError("Failed to load dashboard data. Please try again.");
         setIsLoading(false);
+        
+        // Set default empty card data to prevent complete dashboard failure
+        setCard({
+          totalEmployees: 0,
+          employeeDiff: 0,
+          attendanceData: { total: 0, present: 0, absent: 0, late: 0 },
+          avgWorkload: 0,
+          avgWorkloadDiff: 0,
+          leaveRequests: 0,
+          leaveRequestsDiff: 0,
+          staffLeaveDetails: { total: 0, pending: 0, approved: 0, disapproved: 0 },
+          facultyByGrade: { admin: 0, principal: 0, secretary: 0, grade1: 0, grade2: 0, grade3: 0, grade4: 0, grade5: 0, grade6: 0, staff: 0 },
+          workloadStats: { total: 0, approved: 0, disapproved: 0 },
+          leaveStats: { total: 0, pending: 0, approved: 0, disapproved: 0 },
+        });
         
         // Show toast notification for better user feedback
         toast({
@@ -678,13 +693,18 @@ const Dashboard = () => {
     );
   }
 
-  // Don't render the dashboard if card data is not available
-  if (!card) {
+  // Don't render the dashboard if card data is not available and we're not loading
+  if (!card && !isLoading) {
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-red-500">
-            Failed to load dashboard data
+          <div className="text-center">
+            <div className="text-lg text-red-500 mb-4">
+              Failed to load dashboard data
+            </div>
+            <Button onClick={() => fetchDashboardData(currentQuarter)}>
+              Retry
+            </Button>
           </div>
         </div>
       </div>

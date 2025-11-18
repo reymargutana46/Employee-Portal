@@ -116,7 +116,13 @@ class DTRController extends Controller
                 $status = $leaveExist ? 'Leave' : ($dtrEntry ? 'Present' : 'Absent');
 
                 $employee = $allEmployees->get($employeeId);
-                $fullname = $employee->extname
+                
+                // Skip if employee not found
+                if (!$employee) {
+                    continue;
+                }
+                
+                $fullname = $employee->extname 
                     ? $employee->extname . ' ' . $employee->fname . ' ' . $employee->lname
                     : $employee->fname . ' ' . $employee->lname;
 
@@ -137,6 +143,23 @@ class DTRController extends Controller
         }
 
         return $this->ok($records);
+    }
+
+    /**
+     * Get raw dtrecords data for export
+     */
+    public function raw()
+    {
+        $user = Auth::user();
+        
+        $dtrecords = DB::table('dtrecords')
+            ->when(!$this->hasAccess, function ($query) use ($user) {
+                return $query->where('employee_id', $user->employee->id);
+            })
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return $this->ok($dtrecords);
     }
 
 

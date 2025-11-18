@@ -26,13 +26,25 @@ import {
 import { cn } from "@/lib/utils";
 import { useEmployeeStore } from "@/store/useEmployeeStore";
 import { Employee } from "@/types/employee";
-import { DTRList } from "@/types/dtr";
+import axios from "@/utils/axiosInstance";
 
-interface DTRExportProps {
-  DTRs: DTRList[];
+interface Dtrecord {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  date: string;
+  am_time_in: string | null;
+  am_time_out: string | null;
+  pm_time_in: string | null;
+  pm_time_out: string | null;
+  undertime_hour?: number;
+  undertime_minute?: number;
 }
 
-export default function DTRExport({ DTRs }: DTRExportProps) {
+interface DTRExportProps {
+}
+
+export default function DTRExport() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
@@ -44,9 +56,23 @@ export default function DTRExport({ DTRs }: DTRExportProps) {
   const [openEmployeeSelect, setOpenEmployeeSelect] = useState(false);
   const [regularHours, setRegularHours] = useState("8:00 AM - 5:00 PM");
   const [saturdayHours, setSaturdayHours] = useState("8:00 AM - 12:00 PM");
-  const [filteredDTRs, setFilteredDTRs] = useState<DTRList[]>([]);
-
+  const [dtrecords, setDtrecords] = useState<Dtrecord[]>([]);
+  const [filteredDTRs, setFilteredDTRs] = useState<Dtrecord[]>([]);
   const { employees } = useEmployeeStore();
+
+  // Fetch dtrecords data
+  useEffect(() => {
+    const fetchDtrecords = async () => {
+      try {
+        const response = await axios.get('/dtr/raw');
+        setDtrecords(response.data.data || []);
+      } catch (error) {
+        console.error('Error fetching dtrecords:', error);
+      }
+    };
+    
+    fetchDtrecords();
+  }, []);
 
   // All months for the picker
   const months = useMemo(
@@ -106,15 +132,16 @@ export default function DTRExport({ DTRs }: DTRExportProps) {
       return;
     }
 
-    const filtered = DTRs.filter(dtr => {
-      // Match employee
+    const filtered = dtrecords.filter(dtr => {
+      // Match employee by comparing employee_id
       const isEmployeeMatch = dtr.employee_id === selectedEmployee.id;
 
       if (!isEmployeeMatch) return false;
 
       // Parse the date string and check if it falls within the selected month
       try {
-        const dtrDate = parse(dtr.date, "MMM dd, yyyy", new Date());
+        // Backend returns dates as strings, parse them
+        const dtrDate = parseISO(dtr.date);
         return (
           dtrDate.getMonth() === selectedDate.getMonth() &&
           dtrDate.getFullYear() === selectedDate.getFullYear()
@@ -124,14 +151,26 @@ export default function DTRExport({ DTRs }: DTRExportProps) {
         return false;
       }
     });
-console.log(filtered)
+    console.log(filtered);
     setFilteredDTRs(filtered);
-  }, [selectedEmployee, selectedDate, DTRs]);
+  }, [selectedEmployee, selectedDate, dtrecords]);
 
   // Find DTR entry for a specific day
   const getDTRForDay = (dayFormatted) => {
-    const filt = filteredDTRs.find(dtr => dtr.date === dayFormatted);
-    console.log(filt)
+    const filt = filteredDTRs.find(dtr => {
+      // Check if dtr.date exists and is valid
+      if (!dtr.date) return false;
+      
+      try {
+        // Backend returns dates as strings, format them to compare
+        const dtrDate = format(parseISO(dtr.date), 'MMM dd, yyyy');
+        return dtrDate === dayFormatted;
+      } catch (error) {
+        console.error("Error parsing dtr.date:", dtr.date, error);
+        return false;
+      }
+    });
+    console.log(filt);
     return filt;
   };
 
@@ -152,20 +191,22 @@ console.log(filtered)
             body {
               font-family: Arial, sans-serif;
               margin: 0;
-              padding: 20px;
+              padding: 0;
+              font-size: 12px;
             }
             .container {
               border: 1px solid #000;
-              padding: 15px;
-              max-width: 8.5in;
+              padding: 10px;
+              max-width: 7.5in;
               margin: 0 auto;
+              page-break-inside: avoid;
             }
             .text-center { text-align: center; }
             .text-left { text-align: left; }
             .font-bold { font-weight: bold; }
-            .text-xl { font-size: 1.25rem; }
-            .mb-2 { margin-bottom: 0.5rem; }
-            .mb-4 { margin-bottom: 1rem; }
+            .text-xl { font-size: 1rem; }
+            .mb-2 { margin-bottom: 0.3rem; }
+            .mb-4 { margin-bottom: 0.5rem; }
             .flex { display: flex; }
             .w-full { width: 100%; }
             .w-2/3 { width: 66.666667%; }
@@ -177,40 +218,67 @@ console.log(filtered)
             .flex-col { flex-direction: column; }
             .justify-between { justify-content: space-between; }
             .border-b { border-bottom: 1px solid #000; }
-            .text-xs { font-size: 0.75rem; }
-            .text-sm { font-size: 0.875rem; }
-            .my-4 { margin: 1rem 0; }
-            .mt-8 { margin-top: 2rem; }
-            .mt-4 { margin-top: 1rem; }
-            .h-6 { height: 1.5rem; }
+            .text-xs { font-size: 0.65rem; }
+            .text-sm { font-size: 0.75rem; }
+            .my-4 { margin: 0.5rem 0; }
+            .mt-8 { margin-top: 1rem; }
+            .mt-4 { margin-top: 0.5rem; }
+            .h-6 { height: 1rem; }
             .leave-day { background-color: #f8d7da; }
 
             table {
               width: 100%;
               border-collapse: collapse;
+              margin: 0.5rem 0;
             }
             table th, table td {
               border: 1px solid #000;
-              padding: 2px 4px;
-              font-size: 0.875rem;
+              padding: 1px 2px;
+              font-size: 0.7rem;
+              text-align: center;
+              vertical-align: middle;
+              height: 18px;
             }
             table th {
               background-color: #f3f4f6;
+              font-weight: bold;
+            }
+            table td:first-child {
+              font-weight: bold;
             }
 
             @media print {
               @page {
                 size: letter portrait;
-                margin: 0.5cm;
+                margin: 1in;
               }
               body {
                 padding: 0;
+                margin: 0;
+                font-size: 11px;
+              }
+              .container {
+                border: 1px solid #000;
+                padding: 8px;
+                max-width: 100%;
+                margin: 0;
+                page-break-inside: avoid;
               }
               .leave-day {
-
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
               }
+              table th, table td {
+                font-size: 0.65rem;
+                padding: 1px;
+                height: 16px;
+              }
+              .text-xl { font-size: 0.9rem; }
+              .text-xs { font-size: 0.6rem; }
+              .text-sm { font-size: 0.7rem; }
+              .my-4 { margin: 0.3rem 0; }
+              .mt-8 { margin-top: 0.8rem; }
+              .mt-4 { margin-top: 0.4rem; }
             }
           </style>
         </head>
@@ -283,23 +351,56 @@ console.log(filtered)
                   .map(
                     (day) => {
                       const dtrEntry = getDTRForDay(day.formattedDate);
-                      const isLeave = dtrEntry && dtrEntry.status === "Leave";
 
                       return `
-                        <tr >
-                          <td style="text-align: center;">${day.day}</td>
-                          <td class="h-6">${
-                            dtrEntry && dtrEntry.am_arrival
-                              ? dtrEntry.am_arrival
-                              : isLeave
-                                ? dtrEntry.type || ""
-                                : ""
+                        <tr>
+                          <td>${day.day}</td>
+                          <td>${
+                            dtrEntry && dtrEntry.am_time_in
+                              ? (() => {
+                                  try {
+                                    return format(parseISO(dtrEntry.am_time_in), 'h:mm a');
+                                  } catch (e) {
+                                    return dtrEntry.am_time_in;
+                                  }
+                                })()
+                              : ""
                           }</td>
-                          <td class="h-6">${dtrEntry && dtrEntry.am_departure ? dtrEntry.am_departure : ""}</td>
-                          <td class="h-6">${dtrEntry && dtrEntry.pm_arrival ? dtrEntry.pm_arrival : ""}</td>
-                          <td class="h-6">${dtrEntry && dtrEntry.pm_departure ? dtrEntry.pm_departure : ""}</td>
-                          <td class="h-6"></td>
-                          <td class="h-6"></td>
+                          <td>${
+                            dtrEntry && dtrEntry.am_time_out
+                              ? (() => {
+                                  try {
+                                    return format(parseISO(dtrEntry.am_time_out), 'h:mm a');
+                                  } catch (e) {
+                                    return dtrEntry.am_time_out;
+                                  }
+                                })()
+                              : ""
+                          }</td>
+                          <td>${
+                            dtrEntry && dtrEntry.pm_time_in
+                              ? (() => {
+                                  try {
+                                    return format(parseISO(dtrEntry.pm_time_in), 'h:mm a');
+                                  } catch (e) {
+                                    return dtrEntry.pm_time_in;
+                                  }
+                                })()
+                              : ""
+                          }</td>
+                          <td>${
+                            dtrEntry && dtrEntry.pm_time_out
+                              ? (() => {
+                                  try {
+                                    return format(parseISO(dtrEntry.pm_time_out), 'h:mm a');
+                                  } catch (e) {
+                                    return dtrEntry.pm_time_out;
+                                  }
+                                })()
+                              : ""
+                          }</td>
+                          <td></td>
+                          <td></td>
                         </tr>
                       `;
                     }
@@ -308,26 +409,39 @@ console.log(filtered)
               </tbody>
             </table>
 
-            <div class="text-center text-xs my-4">
-              I certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from office.
+            <div class="text-center text-xs my-4" style="font-style: italic; margin: 1rem 0;">
+              I certify on my honor that the above is a true and correct report of the<br/>
+              hours of work performed, record of which was made daily at the time of<br/>
+              arrival and departure from office.
             </div>
 
-            <div class="flex justify-between mt-8">
-              <div class="w-1/3 text-center">
-                <div class="border-b h-6"></div>
-                <div class="text-sm">Employee's Signature</div>
-              </div>
-              <div class="w-1/3 text-center">
-                <div class="border-b h-6"></div>
-                <div class="text-sm">In Charge</div>
+            <div class="text-center mt-8">
+              <div style="margin: 2rem 0;">
+                <div class="border-b" style="height: 20px; width: 300px; margin: 0 auto;"></div>
+                <div class="text-sm mt-1">Employee's Signature</div>
               </div>
             </div>
 
-            <div class="mt-8 font-bold">
-              VERIFIED as to the prescribed office hours:
-              <div class="w-1/3 mt-4">
-                <div class="border-b h-6"></div>
-                <div class="text-sm font-normal text-center">In Charge</div>
+            <div class="mt-8" style="display: flex; margin: 0; padding: 0; margin-bottom: 0;">
+              <div style="width: 50%; margin: 0; padding: 0; border: 0; margin-bottom: 0;">
+                <div class="border-b" style="height: 20px; margin: 0; padding: 0; border-right: 0; margin-bottom: 0;"></div>
+              </div>
+              <div style="width: 50%; margin: 0; padding: 0; border: 0; margin-bottom: 0;">
+                <div class="border-b" style="height: 20px; margin: 0; padding: 0; border-left: 0; margin-bottom: 0;"></div>
+              </div>
+            </div>
+
+            <div style="margin: 0; padding: 0; margin-top: -1px;">
+              <div class="w-full text-center">
+                <div class="border-b" style="height: 20px; margin: 0; padding: 0; margin-top: 0;"></div>
+              </div>
+            </div>
+
+            <div class="mt-1 font-bold">
+              VERIFIED as to the prescribed office hours
+              <div class="text-center mt-4">
+                <div class="border-b" style="height: 20px; width: 300px; margin: 0 auto;"></div>
+                <div class="text-sm font-normal mt-1">In Charge</div>
               </div>
             </div>
           </div>
@@ -611,25 +725,52 @@ console.log(filtered)
               {days.map((day, index) => {
                 const dtrEntry = getDTRForDay(day.formattedDate);
 
-                const isLeave = dtrEntry && dtrEntry.status === "Leave";
                 return (
-                  <tr key={index} >
+                  <tr key={index}>
                     <td className="border border-black text-center">{day.day}</td>
                     <td className="border border-black h-6">
-                      {dtrEntry && dtrEntry.am_arrival
-                        ? dtrEntry.am_arrival
-                        : isLeave
-                          ? dtrEntry?.type || ""
-                          : ""}
+                      {dtrEntry && dtrEntry.am_time_in
+                        ? (() => {
+                            try {
+                              return format(parseISO(dtrEntry.am_time_in), 'h:mm a');
+                            } catch (e) {
+                              return dtrEntry.am_time_in;
+                            }
+                          })()
+                        : ""}
                     </td>
                     <td className="border border-black h-6">
-                      {dtrEntry && dtrEntry.am_departure ? dtrEntry.am_departure : ""}
+                      {dtrEntry && dtrEntry.am_time_out
+                        ? (() => {
+                            try {
+                              return format(parseISO(dtrEntry.am_time_out), 'h:mm a');
+                            } catch (e) {
+                              return dtrEntry.am_time_out;
+                            }
+                          })()
+                        : ""}
                     </td>
                     <td className="border border-black h-6">
-                      {dtrEntry && dtrEntry.pm_arrival ? dtrEntry.pm_arrival : ""}
+                      {dtrEntry && dtrEntry.pm_time_in
+                        ? (() => {
+                            try {
+                              return format(parseISO(dtrEntry.pm_time_in), 'h:mm a');
+                            } catch (e) {
+                              return dtrEntry.pm_time_in;
+                            }
+                          })()
+                        : ""}
                     </td>
                     <td className="border border-black h-6">
-                      {dtrEntry && dtrEntry.pm_departure ? dtrEntry.pm_departure : ""}
+                      {dtrEntry && dtrEntry.pm_time_out
+                        ? (() => {
+                            try {
+                              return format(parseISO(dtrEntry.pm_time_out), 'h:mm a');
+                            } catch (e) {
+                              return dtrEntry.pm_time_out;
+                            }
+                          })()
+                        : ""}
                     </td>
                     <td className="border border-black h-6"></td>
                     <td className="border border-black h-6"></td>
@@ -640,19 +781,43 @@ console.log(filtered)
           </table>
 
           {/* Certification preview */}
-          <div className="text-center text-xs my-4">
-            I certify on my honor that the above is a true and correct report...
+          <div className="text-center text-xs my-4" style={{ fontStyle: 'italic', margin: '1rem 0' }}>
+            I certify on my honor that the above is a true and correct report of the<br/>
+            hours of work performed, record of which was made daily at the time of<br/>
+            arrival and departure from office.
           </div>
 
-          {/* Signature preview */}
-          <div className="flex justify-between mt-4">
-            <div className="w-1/3 text-center">
-              <div className="border-b border-black h-4"></div>
-              <div className="text-xs">Employee's Signature</div>
+          {/* Employee Signature - centered */}
+          <div className="text-center mt-8">
+            <div style={{ margin: '2rem 0' }}>
+              <div className="border-b border-black" style={{ height: '20px', width: '300px', margin: '0 auto' }}></div>
+              <div className="text-xs mt-1">Employee's Signature</div>
             </div>
-            <div className="w-1/3 text-center">
-              <div className="border-b border-black h-4"></div>
-              <div className="text-xs">In Charge</div>
+          </div>
+
+          {/* Two horizontal lines above VERIFIED */}
+          <div className="mt-8" style={{ display: 'flex', margin: 0, padding: 0, marginBottom: 0 }}>
+            <div style={{ width: '50%', margin: 0, padding: 0, border: 0, marginBottom: 0 }}>
+              <div className="border-b border-black" style={{ height: '20px', margin: 0, padding: 0, borderRight: 0, marginBottom: 0 }}></div>
+            </div>
+            <div style={{ width: '50%', margin: 0, padding: 0, border: 0, marginBottom: 0 }}>
+              <div className="border-b border-black" style={{ height: '20px', margin: 0, padding: 0, borderLeft: 0, marginBottom: 0 }}></div>
+            </div>
+          </div>
+
+          {/* Third horizontal line above VERIFIED */}
+          <div style={{ margin: 0, padding: 0, marginTop: '-1px' }}>
+            <div className="w-full text-center">
+              <div className="border-b border-black" style={{ height: '20px', margin: 0, padding: 0, marginTop: 0 }}></div>
+            </div>
+          </div>
+
+          {/* Verification section */}
+          <div className="mt-1 font-bold text-xs">
+            VERIFIED as to the prescribed office hours:
+            <div className="text-center mt-4">
+              <div className="border-b border-black" style={{ height: '20px', width: '300px', margin: '0 auto' }}></div>
+              <div className="text-xs font-normal mt-1">In Charge</div>
             </div>
           </div>
         </div>

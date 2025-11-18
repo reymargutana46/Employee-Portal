@@ -25,6 +25,11 @@ class DashboardService
     {
         $this->user = Auth::user();
         $this->employee = Employee::where('username_id', $this->user->username)->first();
+        
+        // Log for debugging reactivated users
+        if (!$this->employee) {
+            \Log::warning("Employee record not found for user: {$this->user->username}");
+        }
     }
 
     protected function restrictQuery($query, $field = 'employee_id')
@@ -36,6 +41,40 @@ class DashboardService
         return $query;
     }
 
+    /**
+     * Return empty dashboard data for users without employee records
+     */
+    private function getEmptyDashboardData()
+    {
+        return [
+            'totalEmployees' => 0,
+            'employeeDiff' => 0,
+            'facultyByGrade' => [],
+            'attendanceData' => [
+                'total' => 0,
+                'present' => 0,
+                'absent' => 0,
+                'late' => 0
+            ],
+            'avgWorkload' => 0,
+            'avgWorkloadDiff' => 0,
+            'workloadStats' => [
+                'total' => 0,
+                'approved' => 0,
+                'disapproved' => 0
+            ],
+            'leaveRequests' => 0,
+            'leaveRequestsDiff' => 0,
+            'leaveStats' => [],
+            'staffLeaveDetails' => [
+                'total' => 0,
+                'pending' => 0,
+                'approved' => 0,
+                'disapproved' => 0
+            ],
+        ];
+    }
+
     public function cards()
     {
         try {
@@ -44,6 +83,11 @@ class DashboardService
 
             $employeeQuery = Employee::query();
             if (!$this->user->hasRole($this->allowedRoles)) {
+                // If employee record is not found, return empty data instead of failing
+                if (!$this->employee) {
+                    \Log::warning("Dashboard cards: Employee record not found for user {$this->user->username}, returning empty data");
+                    return $this->getEmptyDashboardData();
+                }
                 $employeeQuery->where('id', $this->employee->id);
             }
 
@@ -247,7 +291,12 @@ class DashboardService
             $workloads = WorkLoadHdr::whereDate('from', '<=', $now->endOfMonth())
                 ->whereDate('to', '>=', $now->startOfMonth())
                 ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
-                    $query->where('assignee_id', $this->employee->id);
+                    if ($this->employee) {
+                        $query->where('assignee_id', $this->employee->id);
+                    } else {
+                        // If no employee record, return no workloads
+                        $query->whereRaw('1 = 0');
+                    }
                 })
                 ->get();
 
@@ -259,7 +308,12 @@ class DashboardService
             $workloadsLastMonth = WorkLoadHdr::whereDate('from', '<=', $lastMonth->endOfMonth())
                 ->whereDate('to', '>=', $lastMonth->startOfMonth())
                 ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
-                    $query->where('assignee_id', $this->employee->id);
+                    if ($this->employee) {
+                        $query->where('assignee_id', $this->employee->id);
+                    } else {
+                        // If no employee record, return no workloads
+                        $query->whereRaw('1 = 0');
+                    }
                 })
                 ->get();
 
@@ -280,14 +334,22 @@ class DashboardService
             $leaveRequests = Leave::whereMonth('created_at', $now->month)
                 ->whereYear('created_at', $now->year)
                 ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
-                    $query->where('employee_id', $this->employee->id);
+                    if ($this->employee) {
+                        $query->where('employee_id', $this->employee->id);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
                 })
                 ->count();
 
             $leaveRequestsLastMonth = Leave::whereMonth('created_at', $lastMonth->month)
                 ->whereYear('created_at', $lastMonth->year)
                 ->when(!$this->user->hasRole($this->allowedRoles), function ($query) {
-                    $query->where('employee_id', $this->employee->id);
+                    if ($this->employee) {
+                        $query->where('employee_id', $this->employee->id);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
                 })
                 ->count();
 
@@ -305,12 +367,21 @@ class DashboardService
             }
             // Get detailed leave counts by status for staff and faculty members
             else if (!$this->user->hasRole($this->allowedRoles)) {
-                $staffLeaveDetails = [
-                    'total' => Leave::where('employee_id', $this->employee->id)->count(),
-                    'pending' => Leave::where('employee_id', $this->employee->id)->where('status', 'Pending')->count(),
-                    'approved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Approved')->count(),
-                    'disapproved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Disapproved')->count(),
-                ];
+                if ($this->employee) {
+                    $staffLeaveDetails = [
+                        'total' => Leave::where('employee_id', $this->employee->id)->count(),
+                        'pending' => Leave::where('employee_id', $this->employee->id)->where('status', 'Pending')->count(),
+                        'approved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Approved')->count(),
+                        'disapproved' => Leave::where('employee_id', $this->employee->id)->where('status', 'Disapproved')->count(),
+                    ];
+                } else {
+                    $staffLeaveDetails = [
+                        'total' => 0,
+                        'pending' => 0,
+                        'approved' => 0,
+                        'disapproved' => 0,
+                    ];
+                }
             }
 
             return [
@@ -383,6 +454,13 @@ class DashboardService
             $pmQuery = DtrPmtime::whereBetween('time_in', [$startDate, $endDate]);
 
             if (!$this->user->hasRole($this->allowedRoles)) {
+                if (!$this->employee) {
+                    // Return empty data if employee record not found
+                    return [
+                        'attendanceData' => [],
+                        'quarter' => $quarter,
+                    ];
+                }
                 $amQuery->where('employee_id', $this->employee->id);
                 $pmQuery->where('employee_id', $this->employee->id);
             }
@@ -534,6 +612,15 @@ class DashboardService
         try {
             $query = WorkLoadHdr::query();
             if (!$this->user->hasRole($this->allowedRoles)) {
+                if (!$this->employee) {
+                    // Return empty workload data if employee record not found
+                    return [
+                        ['role' => 'Total', 'workload' => 0, 'fill' => "hsl(var(--chart-1))"],
+                        ['role' => 'Pending', 'workload' => 0, 'fill' => "hsl(var(--chart-2))"],
+                        ['role' => 'Approved', 'workload' => 0, 'fill' => "hsl(var(--chart-3))"],
+                        ['role' => 'Disapproved', 'workload' => 0, 'fill' => "hsl(var(--chart-4))"],
+                    ];
+                }
                 $query->where('assignee_id', $this->employee->id);
             } elseif ($this->user->hasRole('Principal')) {
                 // Principal: show only workloads created by GradeLeader users (all statuses)

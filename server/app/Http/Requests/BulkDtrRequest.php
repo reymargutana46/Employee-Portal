@@ -22,6 +22,7 @@ class BulkDtrRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'employee_name' => ['required', 'string'],
             'month' => ['required', 'string',  function ($attribute, $value, $fail) {
                 $value = ucwords(strtolower(trim($value)));
@@ -53,11 +54,12 @@ class BulkDtrRequest extends FormRequest
                 }
             },],
             'records' => ['required', 'array'],
+            'records.*.employee_id' => ['nullable', 'integer'],
             'records.*.day' => ['required', 'string'],
-            'records.*.am_arrival' => ['required', 'string'],
-            'records.*.am_departure' => ['required', 'string'],
-            'records.*.pm_arrival' => ['required', 'string'],
-            'records.*.pm_departure' => ['required', 'string'],
+            'records.*.am_arrival' => ['nullable', 'string'],
+            'records.*.am_departure' => ['nullable', 'string'],
+            'records.*.pm_arrival' => ['nullable', 'string'],
+            'records.*.pm_departure' => ['nullable', 'string'],
             'records.*.undertime_hour' => ['nullable', 'string'],
             'records.*.undertime_minute' => ['nullable', 'string'],
         ];

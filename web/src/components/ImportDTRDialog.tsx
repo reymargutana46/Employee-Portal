@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useRef, DragEvent } from "react";
+import { useState, useRef, DragEvent, useEffect } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -19,14 +19,25 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDTRStore } from "@/store/useDTRStore";
 import { Upload, File } from "lucide-react";
 import axios from "@/utils/axiosInstance";
 import { useToast } from "./ui/use-toast";
+import { useEmployeeStore } from "@/store/useEmployeeStore";
+import { Employee } from "@/types/employee";
+import { createBiometricMapping, validateBiometricMapping, findEmployeeByName, createComprehensiveMapping, discoverBiometricIds } from "@/utils/employeeMapping";
 
 type ParsedDTRRow = {
   day: string;
+  employee_id?: number;
+  employee_name?: string;
   amArrival: string;
   amDeparture: string;
   pmArrival: string;
@@ -85,78 +96,165 @@ function processDTRRows(rows: ParsedDTRRow[]): ParsedDTRRow[] {
   return rows;
 }
 
-function mapCSVToDTRRows(data: any[]): ParsedDTRRow[] {
-  // Find the row with headers or day numbers
-  let dataStartRow = -1;
-  let headerRowIndex = -1;
 
-  // First look for headers
-  for (let i = 0; i < data.length; i++) {
-    if (
-      data[i] &&
-      Array.isArray(data[i]) &&
-      data[i].some(
-        (cell) =>
-          cell === "Day" || (typeof cell === "string" && cell?.includes("Day"))
-      )
-    ) {
-      headerRowIndex = i;
-      dataStartRow = i + 1;
-      break;
-    }
+function mapCSVToDTRRows(data: any[], selectedEmployeeId: number | null, employees: any[] = []): ParsedDTRRow[] {
+  const rows: ParsedDTRRow[] = [];
+  
+  console.log("Processing CSV data:", data.slice(0, 5)); // Log first 5 rows
+  
+  // Create comprehensive biometric ID mapping for all employees in CSV
+  const { mapping: biometricToDbMapping, unmappedIds, mappedCount } = createComprehensiveMapping(data, employees);
+  
+  console.log(`=== MAPPING SUMMARY ===`);
+  console.log(`Total mapped employees: ${mappedCount}`);
+  console.log(`Unmapped biometric IDs: ${unmappedIds.length}`);
+  
+  if (unmappedIds.length > 0) {
+    console.warn("Unmapped biometric IDs found:");
+    unmappedIds.forEach(({ biometricId, csvName }) => {
+      console.warn(`- ${csvName} (ID: ${biometricId}) - No matching employee found in database`);
+    });
   }
-
-  // If no headers found, look for day numbers
-  if (dataStartRow === -1) {
-    for (let i = 0; i < data.length; i++) {
-      if (data[i] && data[i][0] && !isNaN(Number(data[i][0]))) {
+  
+  // Find header row and data start
+  let dataStartRow = 0;
+  for (let i = 0; i < Math.min(data.length, 10); i++) {
+    if (data[i] && data[i].length > 0) {
+      const firstCell = String(data[i][0] || "").toLowerCase();
+      // Skip header rows
+      if (firstCell.includes("id") || firstCell.includes("name") || firstCell.includes("employee")) {
+        dataStartRow = i + 1;
+        console.log(`Found header at row ${i}, data starts at ${dataStartRow}`);
+        continue;
+      }
+      // If we find a numeric ID, this is data
+      if (!isNaN(Number(data[i][0])) && Number(data[i][0]) > 0) {
         dataStartRow = i;
+        console.log(`Found data starting at row ${i}`);
         break;
       }
     }
   }
 
-  // Fallback to static row if nothing found
-  if (dataStartRow === -1) {
-    dataStartRow = 14; // Default to row 14 as before
-  }
-
-  // Extract rows
-  const rows: ParsedDTRRow[] = [];
+  // Process each data row
   for (let i = dataStartRow; i < data.length; i++) {
     const row = data[i];
-    if (!row || !row.length) continue;
+    if (!row || row.length < 4) continue;
 
-    const day = parseInt(row[0]?.toString() || "");
-    if (isNaN(day) || day <= 0) continue;
+    // Extract data based on your CSV format:
+    // Column 0: ID (Employee ID)
+    // Column 1: Name 
+    // Column 2: Department
+    // Column 3: Date
+    // Column 4: First time in (On-duty)
+    // Column 5: First time out (Off-duty) 
+    // Column 6: Second time in (On-duty)
+    // Column 7: Second time out (Off-duty)
+
+    const employeeIdRaw = String(row[0] || "").trim();
+    const employeeName = String(row[1] || "").trim();
+    const dateRaw = String(row[3] || "").trim();
+    const timeIn1 = String(row[4] || "").trim();
+    const timeOut1 = String(row[5] || "").trim();
+    const timeIn2 = String(row[6] || "").trim();
+    const timeOut2 = String(row[7] || "").trim();
+
+    console.log(`Row ${i}: ID=${employeeIdRaw}, Name=${employeeName}, Date=${dateRaw}`);
+
+    // Skip if no employee ID
+    if (!employeeIdRaw || isNaN(Number(employeeIdRaw))) {
+      console.log(`Skipping row ${i}: Invalid employee ID`);
+      continue;
+    }
+
+    const biometricId = parseInt(employeeIdRaw);
+    // Use the biometric ID directly as employee ID if not mapped
+    const employeeId = biometricToDbMapping[biometricId] || biometricId;
+    
+    if (!biometricToDbMapping[biometricId]) {
+      console.warn(`Warning: Biometric ID ${biometricId} not mapped to database employee, using biometric ID as employee ID`);
+    } else {
+      console.log(`Mapped biometric ID ${biometricId} to database employee ID ${employeeId}`);
+    }
+
+    // Extract day from date (format: 2025-08-01)
+    let day = "";
+    if (dateRaw) {
+      const dateMatch = dateRaw.match(/\d{4}-\d{2}-(\d{2})/);
+      if (dateMatch) {
+        day = parseInt(dateMatch[1]).toString(); // Remove leading zero
+      }
+    }
+
+    if (!day) {
+      console.log(`Skipping row ${i}: Could not extract day from date ${dateRaw}`);
+      continue;
+    }
+
+    console.log(`Processing: Employee ${employeeId}, Day ${day}, Times: ${timeIn1}|${timeOut1}|${timeIn2}|${timeOut2}`);
+
+    // Skip rows with no time data
+    if (!timeIn1 && !timeOut1 && !timeIn2 && !timeOut2) {
+      console.log(`Skipping row ${i}: No time data`);
+      continue;
+    }
 
     rows.push({
-      day: day.toString(),
-      amArrival: convertTimeToString(row[1]),
-      amDeparture: convertTimeToString(row[2]),
-      pmArrival: convertTimeToString(row[3]),
-      pmDeparture: convertTimeToString(row[4]),
-      undertimeHour: row[5]?.toString() || "",
-      undertimeMinute: row[6]?.toString() || "",
+      day: day,
+      employee_id: employeeId,
+      employee_name: employeeName, // Include the name from CSV
+      amArrival: convertTimeToString(timeIn1),
+      amDeparture: convertTimeToString(timeOut1),
+      pmArrival: convertTimeToString(timeIn2),
+      pmDeparture: convertTimeToString(timeOut2),
+      undertimeHour: "",
+      undertimeMinute: "",
     });
   }
 
+  console.log(`Parsed ${rows.length} rows from CSV`);
   return processDTRRows(rows);
 }
 
-function mapXLSXToDTRRows(wsData: XLSX.WorkSheet): ParsedDTRRow[] {
-  // Find the row with the headers or day numbers
+function mapXLSXToDTRRows(wsData: XLSX.WorkSheet, selectedEmployeeId: number | null): ParsedDTRRow[] {
   const rows: ParsedDTRRow[] = [];
-
+  
+  // Find employee_id column by checking headers (row 13 or nearby)
+  let employeeIdColumn = '';
+  for (let headerRow = 10; headerRow <= 15; headerRow++) {
+    for (let col = 0; col < 26; col++) { // Check columns A-Z
+      const colLetter = String.fromCharCode(65 + col);
+      const headerCell = wsData[`${colLetter}${headerRow}`];
+      const headerValue = (headerCell?.w || headerCell?.v || '').toString().toLowerCase();
+      
+      if (headerValue.includes('employee_id') || headerValue.includes('employeeid') || headerValue === 'employee id') {
+        employeeIdColumn = colLetter;
+        break;
+      }
+    }
+    if (employeeIdColumn) break;
+  }
+  
   for (let i = 14; i <= 44; i++) {
     // loop through reasonable range
     const cell = wsData[`A${i}`];
     const dayRaw = cell?.w ?? cell?.v;
     const day = parseInt(dayRaw?.toString().trim()); // Trim the day string
-    console.log(wsData[`F${i}`]?.w?.toLowerCase());
     if (isNaN(day)) break; // stop loop if A cell is no longer a number
+    
+    // Get employee_id from the file or use selected employee
+    let employeeId: number | undefined;
+    if (employeeIdColumn && wsData[`${employeeIdColumn}${i}`]) {
+      const empIdRaw = wsData[`${employeeIdColumn}${i}`]?.w ?? wsData[`${employeeIdColumn}${i}`]?.v;
+      employeeId = parseInt(empIdRaw?.toString() || "");
+      if (isNaN(employeeId)) employeeId = undefined;
+    } else {
+      employeeId = selectedEmployeeId || undefined;
+    }
+    
     rows.push({
       day: day.toString(),
+      employee_id: employeeId,
       amArrival: convertTimeToString(wsData[`B${i}`]?.w?.toLowerCase()),
       amDeparture: convertTimeToString(wsData[`C${i}`]?.w?.toLowerCase()),
       pmArrival: convertTimeToString(wsData[`D${i}`]?.w?.toLowerCase()),
@@ -164,24 +262,30 @@ function mapXLSXToDTRRows(wsData: XLSX.WorkSheet): ParsedDTRRow[] {
       undertimeHour: convertTimeToString(wsData[`F${i}`]?.w?.toLowerCase()),
       undertimeMinute: wsData[`G${i}`]?.w,
     });
-    console.log(rows);
   }
   return rows;
 }
 
 export function ImportDTRDialog() {
   const { toast } = useToast();
+  const { employees, fetchEmployee } = useEmployeeStore();
 
   const [open, setOpen] = useState(false);
   const [parsedRows, setParsedRows] = useState<ParsedDTRRow[]>([]);
   const [filename, setFilename] = useState("");
   const [employeeName, setEmployeeName] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
   const [month, setMonth] = useState("");
 
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { fetchDTR } = useDTRStore();
+
+  // Fetch employees on mount
+  useEffect(() => {
+    fetchEmployee();
+  }, [fetchEmployee]);
 
   const extractEmployeeName = (data: any[]) => {
     // Look for name field in various locations
@@ -243,11 +347,16 @@ export function ImportDTRDialog() {
             const csv = results.data as any[];
             setEmployeeName(extractEmployeeName(csv));
             setMonth(extractMonth(csv));
-            const rows = mapCSVToDTRRows(csv);
+            const rows = mapCSVToDTRRows(csv, selectedEmployeeId, employees);
             setParsedRows(rows);
+            
+            // Show import summary
+            const uniqueEmployees = new Set(rows.filter(row => row.employee_id).map(row => row.employee_id)).size;
+            const rowsWithEmployeeId = rows.filter(row => row.employee_id).length;
+            
             toast({
               title: "File Imported",
-              description: `Parsed ${rows.length} rows from ${file.name}`,
+              description: `Parsed ${rows.length} rows from ${file.name}. Found ${uniqueEmployees} employees with ${rowsWithEmployeeId} valid records.`,
             });
           } catch (err) {
             console.error("CSV parsing error:", err);
@@ -280,7 +389,7 @@ export function ImportDTRDialog() {
           setEmployeeName(extractEmployeeName(wsData));
           setMonth(extractMonth(wsData));
           console.log(ws);
-          const rows = mapXLSXToDTRRows(ws);
+          const rows = mapXLSXToDTRRows(ws, selectedEmployeeId);
           setParsedRows(rows);
 
           // HERE
@@ -335,50 +444,111 @@ export function ImportDTRDialog() {
   };
 
   const handleSave = async () => {
+    // Ensure month is present
+    if (!month) {
+      toast({
+        variant: "destructive",
+        title: "No Month Selected",
+        description: "Please select a month before importing.",
+      });
+      return;
+    }
+
+    // Ensure we actually have parsed rows
+    if (parsedRows.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Data to Import",
+        description: "Please upload a file before importing.",
+      });
+      return;
+    }
+
+    // Check if we have any rows with employee_id, if not, require selection
+    const rowsWithEmployeeId = parsedRows.filter(row => row.employee_id);
+    if (rowsWithEmployeeId.length === 0 && !selectedEmployeeId) {
+      toast({
+        variant: "destructive",
+        title: "No Employee Information",
+        description: "Your file doesn't contain employee_id data. Please select an employee from the dropdown.",
+      });
+      return;
+    }
+
+    // Filter and prepare records for import
+    const toSend = parsedRows
+      .filter(
+        (row) =>
+          row.day &&
+          (row.employee_id || selectedEmployeeId) && // Must have employee_id from CSV or selection
+          (row.amArrival ||
+            row.amDeparture ||
+            row.pmArrival ||
+            row.pmDeparture)
+      )
+      .map((row) => ({
+        day: row.day,
+        employee_id: row.employee_id || selectedEmployeeId, // Use CSV employee_id or selected one
+        employee_name: row.employee_name, // Send employee name for backend processing
+        am_arrival: row.amArrival,
+        am_departure: row.amDeparture,
+        pm_arrival: row.pmArrival,
+        pm_departure: row.pmDeparture,
+        undertime_hour: row.undertimeHour,
+        undertime_minute: row.undertimeMinute,
+      }));
+
+    console.log("Final records to send to backend:", toSend);
+
+    if (toSend.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Valid Records",
+        description: "No valid DTR records found to import. Make sure your file contains employee_id for each row.",
+      });
+      return;
+    }
+
+    // Count unique employees
+    const uniqueEmployees = new Set(toSend.map(row => row.employee_id));
+    const employeeCount = uniqueEmployees.size;
+
     setLoading(true);
     try {
-      const toSend = parsedRows
-        .filter(
-          (row) =>
-            row.day &&
-            (row.amArrival ||
-              row.amDeparture ||
-              row.pmArrival ||
-              row.pmDeparture)
-        )
-        .map((row) => ({
-          day: row.day,
-          am_arrival: row.amArrival,
-          am_departure: row.amDeparture,
-          pm_arrival: row.pmArrival,
-          pm_departure: row.pmDeparture,
-          undertime_hour: row.undertimeHour,
-          undertime_minute: row.undertimeMinute,
-        }));
-
-      await axios.post("/dtr/import", {
-        employee_name: employeeName,
+      const response = await axios.post("/dtr/import", {
+        employee_name: "Multi-Employee Import", // This will be overridden by backend using actual employee names
         month,
         records: toSend,
-      }).then((res) => {
-        fetchDTR()
       });
 
+      const responseData: any = response.data;
+      const stats = responseData?.data || {};
+      const importedCount: number = stats.imported_count ?? toSend.length;
+      const skippedCount: number = stats.skipped_count ?? 0;
 
+      fetchDTR();
 
       toast({
         title: "DTR Imported",
-        description: `Successfully imported records for ${
-          parsedRows.length
-        } days for ${employeeName || "employee"}.`,
+        description:
+          skippedCount > 0
+            ? `Imported ${importedCount} records for ${employeeCount} employees, skipped ${skippedCount} invalid rows.`
+            : `Successfully imported ${importedCount} records for ${employeeCount} employees.`,
       });
+
       setOpen(false);
       setParsedRows([]);
       setFilename("");
       setEmployeeName("");
+      setSelectedEmployeeId(null);
       setMonth("");
     } catch (err: any) {
       console.log(err);
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: err?.response?.data?.message || "Failed to import DTR records",
+      });
     } finally {
       setLoading(false);
     }
@@ -447,41 +617,84 @@ export function ImportDTRDialog() {
           {employeeName && (
             <div className="mb-2 flex flex-col gap-1 items-start">
               <span className="text-sm text-muted-foreground">
-                Employee Name:
+                Employee (Optional - for single employee files):
               </span>
-              <span className="text-lg font-semibold">{employeeName}</span>
+              <Select 
+                value={selectedEmployeeId?.toString() || ""} 
+                onValueChange={(value) => setSelectedEmployeeId(Number(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select employee (optional for multi-employee files)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter(emp => `${emp.fname} ${emp.lname}`.toLowerCase().includes(employeeName.toLowerCase()))
+                    .map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id.toString()}>
+                        {employee.fname} {employee.lname}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
           {parsedRows.length > 0 && (
-            <div className="flex-grow overflow-y-auto border rounded mb-2">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Day</TableHead>
-                    <TableHead>AM Arrival</TableHead>
-                    <TableHead>AM Departure</TableHead>
-                    <TableHead>PM Arrival</TableHead>
-                    <TableHead>PM Departure</TableHead>
-                    <TableHead>UT Hour</TableHead>
-                    <TableHead>UT Min</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {parsedRows.map((row, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{row.day}</TableCell>
-                      <TableCell>{row.amArrival}</TableCell>
-                      <TableCell>{row.amDeparture}</TableCell>
-                      <TableCell>{row.pmArrival}</TableCell>
-                      <TableCell>{row.pmDeparture}</TableCell>
-                      <TableCell>{row.undertimeHour}</TableCell>
-                      <TableCell>{row.undertimeMinute}</TableCell>
+            <>
+              <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-sm text-blue-800">
+                  <strong>Import Summary:</strong>
+                  <br />
+                  • Total rows: {parsedRows.length}
+                  <br />
+                  • Employees detected: {new Set(parsedRows.filter(row => row.employee_id).map(row => row.employee_id)).size}
+                  <br />
+                  • Rows with employee_id: {parsedRows.filter(row => row.employee_id).length}
+                  <br />
+                  • Rows without employee_id: {parsedRows.filter(row => !row.employee_id).length}
+                  {parsedRows.filter(row => !row.employee_id).length > 0 && (
+                    <>
+                      <br />
+                      <span className="text-orange-600 font-medium">
+                        ⚠️ Some employees are not mapped to database. Check console for details.
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex-grow overflow-y-auto border rounded mb-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Day</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>AM Arrival</TableHead>
+                      <TableHead>AM Departure</TableHead>
+                      <TableHead>PM Arrival</TableHead>
+                      <TableHead>PM Departure</TableHead>
+                      <TableHead>UT Hour</TableHead>
+                      <TableHead>UT Min</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {parsedRows.map((row, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{row.day}</TableCell>
+                        <TableCell className={row.employee_id ? "text-green-600 font-medium" : "text-red-500"}>
+                          {row.employee_id || "Missing"}
+                        </TableCell>
+                        <TableCell>{row.amArrival}</TableCell>
+                        <TableCell>{row.amDeparture}</TableCell>
+                        <TableCell>{row.pmArrival}</TableCell>
+                        <TableCell>{row.pmDeparture}</TableCell>
+                        <TableCell>{row.undertimeHour}</TableCell>
+                        <TableCell>{row.undertimeMinute}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
         <DialogFooter className="mt-4">

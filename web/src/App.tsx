@@ -6,7 +6,8 @@ import { ColumnMapper } from './components/ColumnMapper';
 import { DataPreview } from './components/DataPreview';
 import { parseFile, ParsedData } from './utils/fileParser';
 import { mapRowToRecord, ColumnMappings } from './utils/dataMapper';
-import {  dtrecords, insertDTRRecords } from './lib/supabase';
+import axios from './utils/axiosInstance';
+// Supabase imports removed - using local API
 import { useDTRStore } from "@/store/useDTRStore";
 
 
@@ -20,6 +21,8 @@ function App() {
     date: -1,
     timeIn: -1,
     timeOut: -1,
+    timeIn2: -1,
+    timeOut2: -1,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{
@@ -79,7 +82,7 @@ function App() {
       const sheetData = parsedData.data[selectedSheet];
       const dataRows = sheetData.slice(startRow);
 
-      const records: dtrecords[] = [];
+      const records: any[] = [];
       for (const row of dataRows) {
         if (!Array.isArray(row) || row.length === 0) continue;
         const record = mapRowToRecord(row, columnMappings);
@@ -98,7 +101,21 @@ function App() {
       }
 
       try {
-  const count = await insertDTRRecords(records);
+  // Use local API endpoint
+  await axios.post('/dtr/import', {
+    employee_name: records[0]?.employee_name || 'Unknown',
+    month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+    records: records.map(record => ({
+      day: new Date(record.date).getDate().toString(),
+      am_arrival: record.time_in || '',
+      am_departure: record.time_out || '',
+      pm_arrival: record.time_in2 || '',
+      pm_departure: record.time_out2 || '',
+      undertime_hour: '0',
+      undertime_minute: '0'
+    }))
+  });
+  const count = records.length;
   setUploadStatus({
     type: 'success',
     message: `Successfully imported ${count} records!`,
@@ -122,6 +139,8 @@ function App() {
         date: -1,
         timeIn: -1,
         timeOut: -1,
+        timeIn2: -1,
+        timeOut2: -1,
       });
       setStartRow(1);
     } catch (error) {
@@ -211,6 +230,8 @@ function App() {
                         date: -1,
                         timeIn: -1,
                         timeOut: -1,
+                        timeIn2: -1,
+                        timeOut2: -1,
                       });
                       setStartRow(1);
                       setUploadStatus({ type: null, message: '' });

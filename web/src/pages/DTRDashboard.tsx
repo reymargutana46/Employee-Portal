@@ -193,7 +193,7 @@ const DTRDashboard = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto">
-              <DTRExport DTRs={records} />
+              <DTRExport />
             </DialogContent>
           </Dialog>
         </div>

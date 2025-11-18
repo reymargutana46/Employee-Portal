@@ -1,4 +1,13 @@
-import { DTRRecord } from '../lib/supabase';
+// Local interface for DTR records
+export interface DTRRecord {
+  employee_name: string;
+  employee_id?: number;
+  date: string;
+  time_in: string;
+  time_out?: string;
+  time_in2?: string;
+  time_out2?: string;
+}
 
 export interface ColumnMappings {
   employeeName: number;
@@ -12,40 +21,52 @@ export interface ColumnMappings {
 
 const parseDateTime = (dateValue: unknown, timeValue: unknown): string => {
   try {
-    let dateStr = '';
-    let timeStr = '';
-
-    if (typeof dateValue === 'number') {
-      const date = new Date((dateValue - 25569) * 86400 * 1000);
-      dateStr = date.toISOString().split('T')[0];
-    } else if (dateValue instanceof Date) {
-      dateStr = dateValue.toISOString().split('T')[0];
-    } else if (typeof dateValue === 'string') {
-      dateStr = new Date(dateValue).toISOString().split('T')[0];
-    }
-
+    // Handle time value
     if (typeof timeValue === 'number') {
       const totalSeconds = Math.round(timeValue * 24 * 60 * 60);
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      // Convert to 12-hour format
+      const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const minutesStr = String(minutes).padStart(2, '0');
+      
+      return `${displayHours}:${minutesStr} ${ampm}`;
     } else if (timeValue instanceof Date) {
-      timeStr = timeValue.toTimeString().split(' ')[0];
+      let hours = timeValue.getHours();
+      const minutes = timeValue.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours || 12;
+      const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+      return `${hours}:${minutesStr} ${ampm}`;
     } else if (typeof timeValue === 'string') {
-      timeStr = timeValue;
+      // If already in time format, return as is
+      if (timeValue.includes('AM') || timeValue.includes('PM')) {
+        return timeValue;
+      }
+      // Try to parse as time string
+      const [time, ampm] = timeValue.split(' ');
+      if (ampm && (ampm.toUpperCase() === 'AM' || ampm.toUpperCase() === 'PM')) {
+        return timeValue.toUpperCase();
+      }
+      // If just time like "8:30", assume it's in 24-hour format
+      const parts = time.split(':');
+      if (parts.length >= 2) {
+        let hours = parseInt(parts[0]);
+        const minutes = parts[1];
+        const displayAmpm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours || 12;
+        return `${hours}:${minutes} ${displayAmpm}`;
+      }
     }
-
-    if (dateStr && timeStr) {
-      return `${dateStr}T${timeStr}Z`;
-    } else if (dateStr) {
-      return `${dateStr}T00:00:00Z`;
-    }
-
-    return new Date().toISOString();
+    
+    return '';
   } catch (error) {
-    console.error('Error parsing date/time:', error);
-    return new Date().toISOString();
+    console.error('Error parsing time:', error);
+    return '';
   }
 };
 
@@ -76,6 +97,8 @@ export const mapRowToRecord = (
       date: dateStr,
       time_in: parseDateTime(date, timeIn),
       time_out: mappings.timeOut !== -1 ? parseDateTime(date, row[mappings.timeOut]) : undefined,
+      time_in2: mappings.timeIn2 !== -1 ? parseDateTime(date, row[mappings.timeIn2]) : undefined,
+      time_out2: mappings.timeOut2 !== -1 ? parseDateTime(date, row[mappings.timeOut2]) : undefined,
     };
 
     return record;

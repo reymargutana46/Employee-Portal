@@ -108,6 +108,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('dtr')->controller(DTRController::class)->group(function () {
         Route::get('/', 'index');
+        Route::get('/raw', 'raw');
         Route::post('/', 'store');
         Route::post('/import', 'bulkStore');
         Route::put('/', 'update');

@@ -6,7 +6,7 @@ import { ColumnMapper } from './ColumnMapper';
 import { DataPreview } from './DataPreview';
 import { parseFile, ParsedData } from '@/utils/fileParser';
 import { mapRowToRecord, ColumnMappings } from '@/utils/dataMapper';
-import {  dtrecords, insertDTRRecords } from '@/lib/supabase';
+// Supabase imports removed - using local API
 
 
 
@@ -38,6 +38,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDTRStore } from "@/store/useDTRStore";
 import { Upload, File } from "lucide-react";
 import axios from "@/utils/axiosInstance";
+import { isAxiosError } from "axios";
 import { useToast } from "./ui/use-toast";
 
 type ParsedDTRRow = {
@@ -100,10 +101,10 @@ function processDTRRows(rows: ParsedDTRRow[]): ParsedDTRRow[] {
   return rows;
 }
 
-function mapCSVToDTRRows(data: unknown[][]): ParsedDTRRow[] {
+function mapCSVToDTRRows(data: unknown[][], startRow: number = 1): ParsedDTRRow[] {
   // Find the row with headers or day numbers
-  let dataStartRow = -1;
-  let headerRowIndex = -1;
+  let dataStartRow = startRow;
+  let headerRowIndex = startRow - 1;
 
   // First look for headers
   for (let i = 0; i < data.length; i++) {
@@ -122,18 +123,20 @@ function mapCSVToDTRRows(data: unknown[][]): ParsedDTRRow[] {
   }
 
   // If no headers found, look for day numbers
-  if (dataStartRow === -1) {
-    for (let i = 0; i < data.length; i++) {
+  if (dataStartRow === startRow) {
+    for (let i = startRow; i < data.length; i++) {
       if (data[i] && data[i][0] && !isNaN(Number(data[i][0]))) {
         dataStartRow = i;
+        headerRowIndex = i - 1;
         break;
       }
     }
   }
 
   // Fallback to static row if nothing found
-  if (dataStartRow === -1) {
-    dataStartRow = 14; // Default to row 14 as before
+  if (dataStartRow === startRow) {
+    dataStartRow = startRow; // Use the provided startRow
+    headerRowIndex = startRow - 1;
   }
 
   // Extract rows
@@ -257,7 +260,7 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
       const sheetData = parsedData.data[selectedSheet];
       const dataRows = sheetData.slice(startRow);
 
-      const records: dtrecords[] = [];
+      const records: any[] = [];
       for (const row of dataRows) {
         if (!Array.isArray(row) || row.length === 0) continue;
         const record = mapRowToRecord(row, columnMappings);
@@ -278,22 +281,88 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
       }
 
       try {
-        const count = await insertDTRRecords(records);
+        // Helper function to convert ISO datetime to time format
+        const convertToTimeFormat = (dateTimeStr: string | undefined): string => {
+          if (!dateTimeStr) return '';
+          
+          // If it's already in time format (e.g., "8:30 AM"), return as is
+          if (dateTimeStr.includes('AM') || dateTimeStr.includes('PM')) {
+            return dateTimeStr;
+          }
+          
+          // If it's an ISO datetime string, extract just the time part
+          if (dateTimeStr.includes('T')) {
+            const date = new Date(dateTimeStr);
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours || 12; // 0 should be 12
+            const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+            return `${hours}:${minutesStr} ${ampm}`;
+          }
+          
+          // Return as is if it doesn't match any pattern
+          return dateTimeStr;
+        };
+        
+        // Use local API endpoint
+        const requestData = {
+          employee_name: 'Multi-Employee Import',
+          month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+          records: records.map(record => ({
+            employee_id: record.employee_id, // Include employee_id for backend processing
+            // employee_name will be set by backend using database employee data
+            day: new Date(record.date).getDate().toString(),
+            am_arrival: convertToTimeFormat(record.time_in),
+            am_departure: convertToTimeFormat(record.time_out),
+            pm_arrival: convertToTimeFormat(record.time_in2),
+            pm_departure: convertToTimeFormat(record.time_out2),
+            undertime_hour: '0',
+            undertime_minute: '0'
+          }))
+        };
+        
+        const response = await axios.post('/dtr/import', requestData);
+        
+        console.log('Import successful:', response.data);
+        const count = records.length;
         setUploadStatus({
           type: 'success',
           message: `Successfully imported ${count} records!`,
         });
       } catch (error: unknown) {
+        console.error('Import error:', error);
+        let errorMessage = 'Failed to import data';
+        
+        if (isAxiosError(error)) {
+          if (error.response?.status === 422) {
+            const validationErrors = error.response.data;
+            console.error('Validation errors:', validationErrors);
+            errorMessage = `Validation failed: ${JSON.stringify(validationErrors)}`;
+          } else if (error.response?.status === 404) {
+            const errorData = error.response.data;
+            if (errorData?.message?.includes('not found')) {
+              const employeeName = records[0]?.employee_name || 'Unknown';
+              errorMessage = `Employee not found in database. Please check the employee name: "${employeeName}"`;
+            } else {
+              errorMessage = errorData?.message || 'Resource not found';
+            }
+          } else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else {
+            errorMessage = `HTTP ${error.response?.status}: ${error.message}`;
+          }
+        } else if (error instanceof Error) {
+          errorMessage = `Failed to import data: ${error.message}`;
+        }
+        
         setUploadStatus({
           type: 'error',
-          message: `Failed to import data: ${(error as Error).message}`,
+          message: errorMessage,
         });
       }
-      setUploadStatus({
-        type: 'success',
-        message: `Successfully imported ${records.length} records!`,
-      });
-
+      setIsUploading(false);
       setParsedData(null);
       setSelectedSheet('');
       setColumnMappings({
@@ -403,13 +472,13 @@ const [parsedData, setParsedData] = useState<ParsedData | null>(null);
                           setParsedData(null);
                           setSelectedSheet('');
                           setColumnMappings({
-                            employeeName: -1,
-                            employeeId: -1,
-                            date: -1,
-                            timeIn: -1,
-                            timeOut: -1,
-                            timeIn2: -1,
-                            timeOut2: -1,
+                            employeeName: 0,
+                            employeeId: 0,
+                            date: 0,
+                            timeIn: 0,
+                            timeOut: 0,
+                            timeIn2: 0,
+                            timeOut2: 0,
                           });
                           setStartRow(1);
                           setUploadStatus({ type: null, message: '' });
