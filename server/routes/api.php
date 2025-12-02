@@ -171,4 +171,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/files/{id}', 'deleteFile');
         Route::get('/files/{id}/view', 'viewFile');
     });
+
 });

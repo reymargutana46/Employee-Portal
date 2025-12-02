@@ -156,6 +156,19 @@ class LeaveController extends Controller
         // Log the incoming request data
         \Log::info('Leave update request data: ', $request->all());
 
+        // Check if user is authorized to update this leave
+        $leave = Leave::findOrFail($id);
+        
+        // Only the owner of the leave request can edit it
+        if (Auth::user()->employee->id !== $leave->employee_id) {
+            return $this->unauthorized("You are not authorized to edit this leave request.");
+        }
+
+        // Check if leave is still pending
+        if ($leave->status !== "Pending") {
+            return $this->badRequest("Leave is already Updated");
+        }
+
         // Optimize leave type lookup
         $typeName = trim($request->type);
         // First try exact match (most common case)
@@ -173,12 +186,7 @@ class LeaveController extends Controller
             return $this->notFound('Type "' . $typeName . '" is not found. Available types: ' . implode(', ', $availableTypes));
         }
         
-        $leave = Leave::findOrFail($id);
         \Log::info('Leave before update: ', $leave->toArray());
-        
-        if ($leave->status !== "Pending") {
-            return $this->badRequest("Leave is already Updated");
-        }
         
         $fromDate = Carbon::parse($request->from)->startOfDay();
         $toDate = Carbon::parse($request->to)->startOfDay();

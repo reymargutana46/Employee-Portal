@@ -71,8 +71,11 @@ export default function Accounts() {
     const loadUsers = async () => {
       setLoading(true);
       try {
-        await fetchsetup();
-        await fetchUser();
+        // Run both fetch operations in parallel to improve performance
+        await Promise.all([
+          fetchsetup(),
+          fetchUser()
+        ]);
         setLoading(false);
       } catch (error) {
         console.error("Failed to fetch users:", error);
@@ -359,9 +362,17 @@ export default function Accounts() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left sidebar - User list */}
-        <Card className="md:col-span-1">
+      {loading ? (
+        <div className="flex items-center justify-center h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading account details...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left sidebar - User list */}
+          <Card className="md:col-span-1">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -879,6 +890,7 @@ export default function Accounts() {
           )}
         </Card>
       </div>
+      )}
     </div>
   );
 }

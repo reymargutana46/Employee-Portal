@@ -216,36 +216,50 @@ function mapCSVToDTRRows(data: any[], selectedEmployeeId: number | null, employe
   return processDTRRows(rows);
 }
 
-function mapXLSXToDTRRows(wsData: XLSX.WorkSheet, selectedEmployeeId: number | null): ParsedDTRRow[] {
+function mapXLSXToDTRRows(workbook: XLSX.WorkBook, selectedEmployeeId: number | null, employees: any[] = []): ParsedDTRRow[] {
   const rows: ParsedDTRRow[] = [];
+  
+  // Get the first sheet by default
+  const firstSheetName = workbook.SheetNames[0];
+  const ws = workbook.Sheets[firstSheetName];
+  
+  if (!ws) {
+    console.error(`Sheet ${firstSheetName} not found in workbook`);
+    return rows;
+  }
+  
+  // Convert sheet to JSON
+  const wsData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
   
   // Find employee_id column by checking headers (row 13 or nearby)
   let employeeIdColumn = '';
   for (let headerRow = 10; headerRow <= 15; headerRow++) {
     for (let col = 0; col < 26; col++) { // Check columns A-Z
       const colLetter = String.fromCharCode(65 + col);
-      const headerCell = wsData[`${colLetter}${headerRow}`];
-      const headerValue = (headerCell?.w || headerCell?.v || '').toString().toLowerCase();
-      
-      if (headerValue.includes('employee_id') || headerValue.includes('employeeid') || headerValue === 'employee id') {
-        employeeIdColumn = colLetter;
-        break;
+      const headerCell = ws[`${colLetter}${headerRow}`];
+      if (headerCell) {
+        const headerValue = (headerCell.w || headerCell.v || '').toString().toLowerCase();
+        if (headerValue.includes('employee_id') || headerValue.includes('employeeid') || headerValue === 'employee id') {
+          employeeIdColumn = colLetter;
+          break;
+        }
       }
     }
     if (employeeIdColumn) break;
   }
   
+  // Process rows from the first sheet
   for (let i = 14; i <= 44; i++) {
     // loop through reasonable range
-    const cell = wsData[`A${i}`];
+    const cell = ws[`A${i}`];
     const dayRaw = cell?.w ?? cell?.v;
     const day = parseInt(dayRaw?.toString().trim()); // Trim the day string
     if (isNaN(day)) break; // stop loop if A cell is no longer a number
     
     // Get employee_id from the file or use selected employee
     let employeeId: number | undefined;
-    if (employeeIdColumn && wsData[`${employeeIdColumn}${i}`]) {
-      const empIdRaw = wsData[`${employeeIdColumn}${i}`]?.w ?? wsData[`${employeeIdColumn}${i}`]?.v;
+    if (employeeIdColumn && ws[`${employeeIdColumn}${i}`]) {
+      const empIdRaw = ws[`${employeeIdColumn}${i}`]?.w ?? ws[`${employeeIdColumn}${i}`]?.v;
       employeeId = parseInt(empIdRaw?.toString() || "");
       if (isNaN(employeeId)) employeeId = undefined;
     } else {
@@ -255,15 +269,123 @@ function mapXLSXToDTRRows(wsData: XLSX.WorkSheet, selectedEmployeeId: number | n
     rows.push({
       day: day.toString(),
       employee_id: employeeId,
-      amArrival: convertTimeToString(wsData[`B${i}`]?.w?.toLowerCase()),
-      amDeparture: convertTimeToString(wsData[`C${i}`]?.w?.toLowerCase()),
-      pmArrival: convertTimeToString(wsData[`D${i}`]?.w?.toLowerCase()),
-      pmDeparture: convertTimeToString(wsData[`E${i}`]?.w?.toLowerCase()),
-      undertimeHour: convertTimeToString(wsData[`F${i}`]?.w?.toLowerCase()),
-      undertimeMinute: wsData[`G${i}`]?.w,
+      amArrival: convertTimeToString(ws[`B${i}`]?.w),
+      amDeparture: convertTimeToString(ws[`C${i}`]?.w),
+      pmArrival: convertTimeToString(ws[`D${i}`]?.w),
+      pmDeparture: convertTimeToString(ws[`E${i}`]?.w),
+      undertimeHour: convertTimeToString(ws[`F${i}`]?.w),
+      undertimeMinute: ws[`G${i}`]?.w,
     });
   }
   return rows;
+}
+
+// Add a new function to handle fourth sheet processing for exception statistical records
+function mapFourthSheetToDTRRows(workbook: XLSX.WorkBook, employees: any[] = []): ParsedDTRRow[] {
+  const rows: ParsedDTRRow[] = [];
+  
+  // Check if there's a fourth sheet
+  if (workbook.SheetNames.length < 4) {
+    console.warn("Workbook doesn't have a fourth sheet");
+    return rows;
+  }
+  
+  const fourthSheetName = workbook.SheetNames[3]; // 0-indexed, so 3 is the fourth sheet
+  console.log(`Processing fourth sheet: ${fourthSheetName}`);
+  
+  // Get the fourth sheet
+  const ws = workbook.Sheets[fourthSheetName];
+  if (!ws) {
+    console.error(`Fourth sheet ${fourthSheetName} not found in workbook`);
+    return rows;
+  }
+  
+  // Convert sheet to JSON for easier processing
+  const wsData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+  
+  // Create comprehensive biometric ID mapping for all employees in the sheet
+  const { mapping: biometricToDbMapping, unmappedIds, mappedCount } = createComprehensiveMapping(wsData, employees);
+  
+  console.log(`=== FOURTH SHEET MAPPING SUMMARY ===`);
+  console.log(`Total mapped employees: ${mappedCount}`);
+  console.log(`Unmapped biometric IDs: ${unmappedIds.length}`);
+  
+  if (unmappedIds.length > 0) {
+    console.warn("Unmapped biometric IDs found in fourth sheet:");
+    unmappedIds.forEach(({ biometricId, csvName }) => {
+      console.warn(`- ${csvName} (ID: ${biometricId}) - No matching employee found in database`);
+    });
+  }
+  
+  // Process the exception statistical records from the fourth sheet
+  // Look for data rows that contain employee information and time records
+  for (let i = 0; i < wsData.length; i++) {
+    const row = wsData[i];
+    if (!row || row.length < 6) continue;
+    
+    // Look for rows that have employee ID in the first column
+    const employeeIdRaw = String(row[0] || "").trim();
+    if (!employeeIdRaw || isNaN(Number(employeeIdRaw))) continue;
+    
+    const biometricId = parseInt(employeeIdRaw);
+    // Use the biometric ID directly as employee ID if not mapped
+    const employeeId = biometricToDbMapping[biometricId] || biometricId;
+    
+    if (!biometricToDbMapping[biometricId]) {
+      console.warn(`Warning: Biometric ID ${biometricId} not mapped to database employee, using biometric ID as employee ID`);
+    } else {
+      console.log(`Mapped biometric ID ${biometricId} to database employee ID ${employeeId}`);
+    }
+    
+    // Extract date (assuming it's in the second column)
+    const dateRaw = String(row[1] || "").trim();
+    
+    // Extract day from date
+    let day = "";
+    if (dateRaw) {
+      // Try to parse as date first
+      const dateMatch = dateRaw.match(/\d{4}-\d{2}-(\d{2})/);
+      if (dateMatch) {
+        day = parseInt(dateMatch[1]).toString(); // Extract day from date
+      } else {
+        // Try to parse as day number
+        const dayNum = parseInt(dateRaw);
+        if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+          day = dayNum.toString();
+        }
+      }
+    }
+    
+    if (!day) {
+      console.log(`Skipping row ${i}: Could not extract day from date ${dateRaw}`);
+      continue;
+    }
+    
+    // Extract time data (adjust column indices as needed based on actual sheet structure)
+    const amArrival = String(row[2] || "").trim(); // Assuming AM arrival in third column
+    const amDeparture = String(row[3] || "").trim(); // Assuming AM departure in fourth column
+    const pmArrival = String(row[4] || "").trim(); // Assuming PM arrival in fifth column
+    const pmDeparture = String(row[5] || "").trim(); // Assuming PM departure in sixth column
+    
+    // Skip rows with no time data
+    if (!amArrival && !amDeparture && !pmArrival && !pmDeparture) {
+      console.log(`Skipping row ${i}: No time data`);
+      continue;
+    }
+    
+    rows.push({
+      day: day,
+      employee_id: employeeId,
+      amArrival: convertTimeToString(amArrival),
+      amDeparture: convertTimeToString(amDeparture),
+      pmArrival: convertTimeToString(pmArrival),
+      pmDeparture: convertTimeToString(pmDeparture),
+      undertimeHour: "",
+      undertimeMinute: "",
+    });
+  }
+  
+  return processDTRRows(rows);
 }
 
 export function ImportDTRDialog() {
@@ -275,7 +397,9 @@ export function ImportDTRDialog() {
   const [filename, setFilename] = useState("");
   const [employeeName, setEmployeeName] = useState("");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
-  const [month, setMonth] = useState("");
+  const [month, setMonth] = useState<string>("");
+  const [progress, setProgress] = useState<number>(0); // Add progress state
+  const [isProcessing, setIsProcessing] = useState<boolean>(false); // Add processing state
 
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -333,7 +457,7 @@ export function ImportDTRDialog() {
       }
     }
 
-    return null;
+    return "";
   };
 
   const handleFile = (file: File) => {
@@ -363,7 +487,6 @@ export function ImportDTRDialog() {
             toast({
               variant: "destructive",
               title: "Import Error",
-
               description: "Failed to parse CSV file.",
             });
           }
@@ -372,7 +495,6 @@ export function ImportDTRDialog() {
           toast({
             variant: "destructive",
             title: "Import Error",
-
             description: "Failed to parse CSV file.",
           });
         },
@@ -383,18 +505,32 @@ export function ImportDTRDialog() {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: "array" });
-          const wsName = workbook.SheetNames[0];
-          const ws = workbook.Sheets[wsName];
-          const wsData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-          setEmployeeName(extractEmployeeName(wsData));
-          setMonth(extractMonth(wsData));
-          console.log(ws);
-          const rows = mapXLSXToDTRRows(ws, selectedEmployeeId);
+          
+          // Try to process the fourth sheet first for exception statistical records
+          let rows: ParsedDTRRow[] = [];
+          if (workbook.SheetNames.length >= 4) {
+            console.log("Processing fourth sheet for exception statistical records");
+            rows = mapFourthSheetToDTRRows(workbook, employees);
+          }
+          
+          // If no data from fourth sheet or insufficient data, fall back to first sheet
+          if (rows.length === 0) {
+            console.log("No sufficient data from fourth sheet, falling back to first sheet");
+            const firstSheetName = workbook.SheetNames[0];
+            const firstSheetData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 }) as any[][];
+            setEmployeeName(extractEmployeeName(firstSheetData));
+            setMonth(extractMonth(firstSheetData));
+            rows = mapXLSXToDTRRows(workbook, selectedEmployeeId, employees);
+          } else {
+            // Extract month and employee name from fourth sheet data if available
+            const fourthSheetName = workbook.SheetNames[3];
+            const fourthSheetData = XLSX.utils.sheet_to_json(workbook.Sheets[fourthSheetName], { header: 1 }) as any[][];
+            setEmployeeName(extractEmployeeName(fourthSheetData));
+            setMonth(extractMonth(fourthSheetData));
+          }
+          
           setParsedRows(rows);
 
-          // HERE
-          console.log(rows);
-          console.log(wsData);
           toast({
             title: "File Imported",
             description: `Parsed ${rows.length} rows from ${file.name}`,
@@ -404,8 +540,7 @@ export function ImportDTRDialog() {
           toast({
             variant: "destructive",
             title: "Import Error",
-
-            description: "Failed to parse XSLX file.",
+            description: "Failed to parse XLSX file.",
           });
         }
       };
@@ -414,7 +549,6 @@ export function ImportDTRDialog() {
       toast({
         variant: "destructive",
         title: "Invalid File",
-
         description: "Unable to read file type.",
       });
     }
@@ -514,12 +648,28 @@ export function ImportDTRDialog() {
     const employeeCount = uniqueEmployees.size;
 
     setLoading(true);
+    setIsProcessing(true); // Set processing state
+    setProgress(0); // Reset progress
+
     try {
+      // Simulate progress for better UX
+      const simulateProgress = () => {
+        setProgress(prev => {
+          if (prev < 90) return prev + 10;
+          return prev;
+        });
+      };
+
+      const progressInterval = setInterval(simulateProgress, 200);
+
       const response = await axios.post("/dtr/import", {
         employee_name: "Multi-Employee Import", // This will be overridden by backend using actual employee names
         month,
         records: toSend,
       });
+
+      clearInterval(progressInterval);
+      setProgress(100); // Complete progress
 
       const responseData: any = response.data;
       const stats = responseData?.data || {};
@@ -542,6 +692,7 @@ export function ImportDTRDialog() {
       setEmployeeName("");
       setSelectedEmployeeId(null);
       setMonth("");
+      setProgress(0); // Reset progress
     } catch (err: any) {
       console.log(err);
       toast({
@@ -551,6 +702,8 @@ export function ImportDTRDialog() {
       });
     } finally {
       setLoading(false);
+      setIsProcessing(false); // Reset processing state
+      setTimeout(() => setProgress(0), 1000); // Reset progress after delay
     }
   };
 
@@ -636,6 +789,21 @@ export function ImportDTRDialog() {
                     ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {isProcessing && (
+            <div className="mb-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium">Processing...</span>
+                <span className="text-sm font-medium">{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
             </div>
           )}
 

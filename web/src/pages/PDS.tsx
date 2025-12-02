@@ -102,17 +102,13 @@ const PDS = () => {
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "text/plain",
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
         description:
-          "Please upload only PDF, Word documents, images, or text files.",
+          "Please upload only PDF or Word documents.",
         variant: "destructive",
       });
       return;
@@ -435,8 +431,7 @@ const PDS = () => {
                   Drag and drop your file here, or click to browse
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Supports PDF, Word documents, images, and text files (max
-                  10MB)
+                  Supports PDF and Word documents (max 10MB)
                 </p>
               </div>
               <Button
@@ -449,7 +444,7 @@ const PDS = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                accept=".pdf,.doc,.docx"
                 onChange={(e) => handleFileSelection(e.target.files)}
                 className="hidden"
               />

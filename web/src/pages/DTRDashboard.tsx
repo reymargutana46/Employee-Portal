@@ -84,16 +84,7 @@ const DTRDashboard = () => {
     });
   }, [selectedMonth, filterByDateRange, toast]);
 
-  // Get filtered records
-  const filteredRecords = getFilteredRecords().filter((record) => {
-    // Filter by selected employee if not "all"
-    if (selectedEmployee !== "all" && record.employee_id !== parseInt(selectedEmployee)) {
-      return false;
-    }
-    return true;
-  });
-
-  const { userRoles } = useAuth();
+  const { user, userRoles } = useAuth();
   const { canDoAction } = useAuthStore();
   const isSecretary = userRoles.some((role) => role.name === "secretary");
   const isAdmin = userRoles.some(
@@ -105,14 +96,33 @@ const DTRDashboard = () => {
   const isStaff = userRoles.some((role) => role.name === "staff");
   const isFaculty = userRoles.some((role) => role.name === "faculty");
 
-  const handleDownloadTemplate = () => {
-    const link = document.createElement("a");
-    link.href = "/DTR-Blank-Form.xlsx"; // path relative to public folder
-    link.download = "DTR-Blank-Form.xlsx";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // Get filtered records
+  const allFilteredRecords = getFilteredRecords().filter((record) => {
+    // Filter by selected employee if not "all"
+    if (selectedEmployee !== "all" && record.employee_id !== parseInt(selectedEmployee)) {
+      return false;
+    }
+    return true;
+  });
+
+  // Filter records based on user role
+  // Regular users (faculty, staff) can only see their own records
+  // Secretaries and admins can see all records
+  const filteredRecords = allFilteredRecords.filter((record) => {
+    // If user is secretary or admin, show all records
+    if (isSecretary || isAdmin) {
+      return true;
+    }
+    
+    // For regular users, only show their own records
+    // We need to match the record's employee_id with the current user's employee_id
+    if (user && user.employee_id) {
+      return record.employee_id === user.employee_id;
+    }
+    
+    // If we can't determine the user's employee_id, don't show any records
+    return false;
+  });
 
   // Calculate summary statistics for DTR records
   const calculateDTRSummary = () => {
@@ -161,6 +171,15 @@ const DTRDashboard = () => {
 
   const dtrSummary = calculateDTRSummary()
 
+  const handleDownloadTemplate = () => {
+    const link = document.createElement("a");
+    link.href = "/DTR-Blank-Form.xlsx"; // path relative to public folder
+    link.download = "DTR-Blank-Form.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Create date range from selected month for child components
   const dateRange = {
     from: startOfMonth(selectedMonth),
@@ -186,16 +205,18 @@ const DTRDashboard = () => {
               <Download className="mr-2 h-4 w-4" /> Download Template
             </Button>
           )}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
-                <Download className="mr-2 h-4 w-4" /> Export
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto">
-              <DTRExport />
-            </DialogContent>
-          </Dialog>
+          {isSecretary && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
+                  <Download className="mr-2 h-4 w-4" /> Export
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto">
+                <DTRExport />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 

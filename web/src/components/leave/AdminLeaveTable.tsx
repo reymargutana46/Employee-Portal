@@ -154,7 +154,6 @@ const AdminLeaveTable = ({
                       "admin",
                       "faculty",
                       "staff",
-                      "secretary",
                     ]) && (
                       <>
                         {request.status === "Pending" && (

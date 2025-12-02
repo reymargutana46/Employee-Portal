@@ -34,6 +34,5 @@ export const formatFileSize = (bytes: string | number) => {
 export const getFileIcon = (type: string) => {
   if (type.includes("pdf")) return "📄";
   if (type.includes("word") || type.includes("document")) return "📝";
-  if (type.includes("image")) return "🖼️";
   return "📁";
 };

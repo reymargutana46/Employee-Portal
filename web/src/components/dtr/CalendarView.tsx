@@ -79,10 +79,39 @@ const DTRCalendarView = ({ records, dateRange, isAdmin, isSecretary, onRefresh }
 
     if (dayRecords.length === 0) return null
 
-    // Count statuses - removed Leave status display
+    // Count statuses - show Present, Absent, and Late
+    const presentRecords = dayRecords.filter((r) => r.status === "Present");
+    const absentRecords = dayRecords.filter((r) => r.status === "Absent");
+    
+    // Count late records (Present records that are late)
+    const lateRecords = presentRecords.filter((r) => {
+      // Check if the record is late (AM arrival after 8:00 AM)
+      if (r.am_arrival && r.am_arrival !== "-") {
+        try {
+          const [time, modifier] = r.am_arrival.split(" ");
+          const [hours, minutes] = time.split(":").map(Number);
+          
+          // Convert to 24-hour format for comparison
+          let hour24 = hours;
+          if (modifier === "PM" && hours !== 12) hour24 += 12;
+          if (modifier === "AM" && hours === 12) hour24 = 0;
+          
+          // If arrival is after 8:00 AM, consider it late
+          if (hour24 > 8 || (hour24 === 8 && minutes > 0)) {
+            return true;
+          }
+        } catch (e) {
+          // If parsing fails, assume not late
+          return false;
+        }
+      }
+      return false;
+    });
+    
     const statuses = {
-      Present: dayRecords.filter((r) => r.status === "Present").length,
-      // Leave display removed as requested
+      Present: presentRecords.length - lateRecords.length, // Only pure present records
+      Absent: absentRecords.length,
+      Late: lateRecords.length
     }
 
     return statuses
@@ -239,7 +268,16 @@ const DTRCalendarView = ({ records, dateRange, isAdmin, isSecretary, onRefresh }
                       {dayStatus.Present} Present
                     </div>
                   )}
-                  {/* Leave display removed as requested */}
+                  {dayStatus.Late > 0 && (
+                    <div className="text-xs bg-amber-100 text-amber-800 px-1 py-0.5 rounded mb-0.5 truncate">
+                      {dayStatus.Late} Late
+                    </div>
+                  )}
+                  {dayStatus.Absent > 0 && (
+                    <div className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded mb-0.5 truncate">
+                      {dayStatus.Absent} Absent
+                    </div>
+                  )}
                 </div>
               )}
             </Button>

@@ -224,30 +224,6 @@ const ServiceRequests = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* More Filters Button (for future expansion) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">More</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Additional Filters</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {requestTypes.map((type) => (
-              <DropdownMenuItem key={type} onClick={() => setSearchTerm(type)}>
-                Type: {type}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            {hasActiveFilters && (
-              <DropdownMenuItem onClick={clearAllFilters} className="text-primary font-medium">
-                Clear All Filters
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Consolidated active filters section */}

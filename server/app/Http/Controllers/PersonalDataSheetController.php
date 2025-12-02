@@ -67,6 +67,17 @@ class PersonalDataSheetController extends Controller
         $file = $request->file('file');
         $employeeName = $request->input('employeeName');
 
+        // Additional validation for file type
+        $allowedMimeTypes = [
+            'application/pdf',
+            'application/msword', // .doc
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+        ];
+
+        if (!in_array($file->getMimeType(), $allowedMimeTypes)) {
+            return $this->badRequest('Invalid file type. Only PDF and Word documents are allowed.');
+        }
+
         // For all users, always use the authenticated user's full name
         $user = Auth::user();
         // Get the user's full name from their employee record
@@ -168,8 +179,8 @@ class PersonalDataSheetController extends Controller
                 'Expires' => '0'
             ];
             
-            // For PDF files and images, display inline; for others, download
-            if (strpos($pds->file_type, 'pdf') !== false || strpos($pds->file_type, 'image') !== false) {
+            // For PDF files, display inline; for others, download
+            if (strpos($pds->file_type, 'pdf') !== false) {
                 $headers['Content-Disposition'] = 'inline; filename="' . $displayName . '"';
             } else {
                 $headers['Content-Disposition'] = 'attachment; filename="' . $displayName . '"';

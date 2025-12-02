@@ -55,7 +55,7 @@ const formSchema = z.object({
   workhour_pm: z.string(),
   department: z.string(),
   position: z.string(),
-  password: z.string().min(8, "Password must be 8 character long"),
+  password: z.string().min(1, "Password is required"),
   contactno: z.string(),
   telno: z.string().optional(),
 });
